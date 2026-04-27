@@ -106,6 +106,10 @@ const Powerups = (function() {
         if (success) {
             inventory[id]--;
             AudioManager.playPowerUp();
+            // 记录统计
+            if (typeof Stats !== 'undefined') {
+                Stats.recordPowerupUsed(id);
+            }
             // 通知UI更新
             document.dispatchEvent(new CustomEvent('powerupUsed', {
                 detail: { id: id, remaining: inventory[id] }

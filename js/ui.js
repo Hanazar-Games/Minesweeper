@@ -260,6 +260,7 @@ const UI = (function() {
             intermediate: '中级',
             expert: '高级',
             master: '大师',
+            giant: '巨型',
             custom: '自定义'
         };
         document.getElementById('difficulty-label').textContent = 
@@ -458,7 +459,7 @@ const UI = (function() {
             AudioManager.playClick();
             document.getElementById('pause-overlay').classList.add('hidden');
             const state = Game.getState();
-            Game.start(state.difficulty);
+            Game.start(state.difficulty, null, state.challengeMode, state.seed);
         });
 
         document.getElementById('quit-btn').addEventListener('click', () => {
@@ -472,7 +473,7 @@ const UI = (function() {
             AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
             const state = Game.getState();
-            Game.start(state.difficulty);
+            Game.start(state.difficulty, null, state.challengeMode, state.seed);
         });
 
         document.getElementById('go-menu-btn').addEventListener('click', () => {

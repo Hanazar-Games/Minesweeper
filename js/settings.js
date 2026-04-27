@@ -122,8 +122,14 @@ const Settings = (function() {
             if (typeof AudioManager !== 'undefined') {
                 AudioManager.setEnabled(settings.sound);
                 AudioManager.setVolume((settings.volume || 50) / 100);
+                AudioManager.setMasterVolume((settings.masterVolume || 80) / 100);
+                AudioManager.setSfxVolume((settings.sfxVolume || 70) / 100);
+                AudioManager.setMusicVolume((settings.musicVolume || 30) / 100);
+                AudioManager.setSfxStyle(settings.sfxStyle || 'classic');
+                AudioManager.setAdsr(settings.adsrAttack || 5, settings.adsrDecay || 50, settings.adsrRelease || 30);
+                AudioManager.setMusicReverb((settings.musicReverb || 20) / 100);
                 if (settings.music) {
-                    AudioManager.setMusicEnabled(true, settings.musicStyle);
+                    AudioManager.setMusicEnabled(true);
                 } else {
                     AudioManager.setMusicEnabled(false);
                 }

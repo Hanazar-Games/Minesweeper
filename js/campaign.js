@@ -105,6 +105,10 @@ const Campaign = (function() {
             progress[id + 1].unlocked = true;
         }
         save();
+        // 更新统计
+        if (typeof Stats !== 'undefined') {
+            Stats.recordCampaign(getTotalStars(), getStats().completed);
+        }
         return p.stars;
     }
 

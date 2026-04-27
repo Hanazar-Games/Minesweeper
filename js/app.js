@@ -127,7 +127,7 @@
     function checkDailyChallenge() {
         try {
             var today = new Date();
-            var todayKey = today.getFullYear() + '' + (today.getMonth() + 1) + '' + today.getDate();
+            var todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
             var lastDaily = Storage.get('last_daily');
             var badge = document.getElementById('daily-badge');
             if (badge) {
@@ -135,7 +135,7 @@
             }
             var weekStart = new Date(today);
             weekStart.setDate(today.getDate() - today.getDay());
-            var weekKey = weekStart.getFullYear() + '' + (weekStart.getMonth() + 1) + '' + weekStart.getDate();
+            var weekKey = weekStart.getFullYear() + '-' + String(weekStart.getMonth() + 1).padStart(2, '0') + '-' + String(weekStart.getDate()).padStart(2, '0');
             var lastWeekly = Storage.get('last_weekly');
             var wbadge = document.getElementById('weekly-badge');
             if (wbadge) {

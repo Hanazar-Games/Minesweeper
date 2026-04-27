@@ -239,6 +239,10 @@ const Game = (function() {
 
         const result = board.reveal(x, y);
         if (result.changed) {
+            // 盲扫挑战：递减 revealsLeft
+            if (challengeMode === 'blind' && challengeData.revealsLeft > 0) {
+                challengeData.revealsLeft--;
+            }
             if (result.hitMine) {
                 // 盾牌保护
                 if (typeof Powerups !== 'undefined' && Powerups.hasShield()) {
@@ -315,28 +319,8 @@ const Game = (function() {
         const result = board.chord(x, y);
         if (result.changed) {
             if (result.hitMine) {
-                if (typeof Powerups !== 'undefined' && Powerups.hasShield()) {
-                    Powerups.consumeShield();
-                    var scell = board.getCell(x, y);
-                    if (scell) {
-                        scell.isMine = false;
-                        var idx = -1;
-                        for (var i = 0; i < board.mines.length; i++) {
-                            if (board.mines[i].x === x && board.mines[i].y === y) {
-                                idx = i; break;
-                            }
-                        }
-                        if (idx >= 0) board.mines.splice(idx, 1);
-                        board.mineCount--;
-                        board.calculateNumbers();
-                        board.calculateBV();
-                        scell.isRevealed = true;
-                        board.revealedCount++;
-                        AudioManager.playReveal();
-                        updateUI();
-                        if (board.checkWin()) win();
-                    }
-                } else if (challengeMode === 'survival' && lives > 1) {
+                // chord 触雷不应用盾牌（盾牌只保护直接 reveal）
+                if (challengeMode === 'survival' && lives > 1) {
                     lives--;
                     combo = 0;
                     AudioManager.playLose();
@@ -371,6 +355,7 @@ const Game = (function() {
     function flag(x, y) {
         if (gameState === 'won' || gameState === 'lost') return;
         if (gameState === 'paused') return;
+        if (challengeMode === 'no-flag') return; // 无标记挑战禁止标记
         if (gameState === 'idle') {
             gameState = 'playing';
             startTimer();
@@ -416,11 +401,10 @@ const Game = (function() {
 
         // 每日挑战记录
         if (challengeMode === 'daily') {
-            const today = new Date();
-            const todayKey = today.getFullYear() + '' + (today.getMonth() + 1) + '' + today.getDate();
-            const lastDaily = Storage.get('last_daily');
-            const dailyBest = Storage.get('daily_best');
-            
+            var today = new Date();
+            var todayKey = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+            var lastDaily = Storage.get('last_daily');
+            var dailyBest = Storage.get('daily_best');
             if (lastDaily !== todayKey || !dailyBest || time < dailyBest) {
                 Storage.set('daily_best', time);
                 Storage.set('last_daily', todayKey);
@@ -429,13 +413,12 @@ const Game = (function() {
 
         // 每周挑战记录
         if (challengeMode === 'weekly') {
-            var now = new Date();
-            var weekStart = new Date(now);
-            weekStart.setDate(now.getDate() - now.getDay());
-            var weekKey = weekStart.getFullYear() + '' + (weekStart.getMonth() + 1) + '' + weekStart.getDate();
+            var now2 = new Date();
+            var weekStart = new Date(now2);
+            weekStart.setDate(now2.getDate() - now2.getDay());
+            var weekKey = weekStart.getFullYear() + '-' + String(weekStart.getMonth() + 1).padStart(2, '0') + '-' + String(weekStart.getDate()).padStart(2, '0');
             var lastWeekly = Storage.get('last_weekly');
             var weeklyBest = Storage.get('weekly_best');
-            
             if (lastWeekly !== weekKey || !weeklyBest || time < weeklyBest) {
                 Storage.set('weekly_best', time);
                 Storage.set('last_weekly', weekKey);
@@ -453,6 +436,12 @@ const Game = (function() {
 
         // 生存模式：进入下一关
         if (challengeMode === 'survival') {
+            Achievements.check({
+                won: true, time, clicks, efficiency, difficulty, challengeMode,
+                noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
+                customSize: difficulty === 'custom',
+                width: board ? board.width : null, height: board ? board.height : null
+            });
             survivalLevel++;
             survivalScore += Math.max(1000 - time * 5, 100) + combo * 10;
             lives = Math.min(maxLives, lives + 1);
@@ -654,6 +643,7 @@ const Game = (function() {
             challengeMode,
             challengeData,
             currentSeed,
+            symmetryMode: board ? board.symmetryMode : null,
             campaignLevelId,
             survivalLevel,
             lives,
@@ -728,6 +718,7 @@ const Game = (function() {
         board.flaggedCount = b.flaggedCount;
         board.questionCount = b.questionCount;
         board.bv = b.bv;
+        board.symmetryMode = b.symmetryMode || null;
 
         // 恢复历史记录
         history = [];
@@ -806,7 +797,7 @@ const Game = (function() {
 
     // 战役关卡开始
     function startCampaignLevel(levelId) {
-        if (!Campaign) return false;
+        if (typeof Campaign === 'undefined') return false;
         var level = Campaign.getLevel(levelId);
         if (!level) return false;
         campaignLevelId = levelId;
@@ -900,6 +891,15 @@ const Game = (function() {
         getState,
         get difficulties() { return difficulties; },
         getSeed,
-        startWithSeed
+        startWithSeed,
+        startCampaignLevel,
+        startSurvivalLevel,
+        usePowerup,
+        get survivalLevel() { return survivalLevel; },
+        get lives() { return lives; },
+        get maxLives() { return maxLives; },
+        get combo() { return combo; },
+        get maxCombo() { return maxCombo; },
+        get survivalScore() { return survivalScore; }
     };
 })();

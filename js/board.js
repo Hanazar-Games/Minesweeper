@@ -6,10 +6,13 @@
 class SeededRandom {
     constructor(seed) {
         this.seed = seed;
+        if (this.seed <= 0 || this.seed > 2147483646) {
+            this.seed = ((Math.abs(this.seed) % 2147483646) + 2147483646) % 2147483646 + 1;
+        }
     }
 
     next() {
-        this.seed = (this.seed * 16807 + 0) % 2147483647;
+        this.seed = (this.seed * 16807) % 2147483647;
         return (this.seed - 1) / 2147483646;
     }
 }
@@ -85,25 +88,31 @@ class MinesweeperBoard {
         if (symmetry === 'point' || symmetry === 'mirror') {
             var pairs = [];
             var used = new Set();
+            // 构建位置查找表
+            var posMap = {};
+            for (var i = 0; i < positions.length; i++) {
+                posMap[positions[i].x + ',' + positions[i].y] = true;
+            }
             for (var i = 0; i < positions.length; i++) {
                 var p = positions[i];
                 var key = p.x + ',' + p.y;
                 if (used.has(key)) continue;
                 
-                var symP = null;
-                if (symmetry === 'point') {
-                    symP = { x: this.width - 1 - p.x, y: this.height - 1 - p.y };
-                } else {
-                    symP = { x: this.width - 1 - p.x, y: p.y };
+                var symPX = symmetry === 'point' ? this.width - 1 - p.x : this.width - 1 - p.x;
+                var symPY = symmetry === 'point' ? this.height - 1 - p.y : p.y;
+                var symKey = symPX + ',' + symPY;
+                
+                // 如果对称位置不在可用位置中（比如是安全格），标记为已用并跳过
+                if (!posMap[symKey]) {
+                    used.add(key);
+                    continue;
                 }
-                var symKey = symP.x + ',' + symP.y;
                 
                 if (symKey === key) {
-                    // 中心点（奇数尺寸时），单独处理
-                    pairs.push({ single: p });
+                    pairs.push({ cells: [p], count: 1 });
                     used.add(key);
                 } else if (!used.has(symKey)) {
-                    pairs.push({ a: p, b: symP });
+                    pairs.push({ cells: [p, { x: symPX, y: symPY }], count: 2 });
                     used.add(key);
                     used.add(symKey);
                 }
@@ -115,26 +124,18 @@ class MinesweeperBoard {
                 var tmp = pairs[i]; pairs[i] = pairs[j]; pairs[j] = tmp;
             }
             
-            var needed = Math.floor(this.mineCount / 2);
+            var minesNeeded = this.mineCount;
             var selected = [];
-            for (var i = 0; i < pairs.length && selected.length < needed; i++) {
-                if (pairs[i].single) {
-                    selected.push(pairs[i].single);
-                } else {
-                    selected.push(pairs[i].a);
-                    selected.push(pairs[i].b);
-                }
-            }
-            // 如果还有余数，从剩余pair中再选一个single
-            if (selected.length < this.mineCount) {
-                for (var i = 0; i < pairs.length; i++) {
-                    if (pairs[i].single && selected.indexOf(pairs[i].single) < 0) {
-                        selected.push(pairs[i].single);
-                        break;
+            for (var i = 0; i < pairs.length && minesNeeded > 0; i++) {
+                if (pairs[i].count <= minesNeeded) {
+                    for (var k = 0; k < pairs[i].cells.length; k++) {
+                        selected.push(pairs[i].cells[k]);
                     }
+                    minesNeeded -= pairs[i].count;
                 }
             }
-            this.mines = selected.slice(0, this.mineCount);
+            this.mines = selected;
+            this.mineCount = selected.length;
         } else {
             // 标准随机模式
             for (let i = positions.length - 1; i > 0; i--) {
@@ -363,6 +364,7 @@ class MinesweeperBoard {
         b.questionCount = this.questionCount;
         b.bv = this.bv;
         b.mines = this.mines.map(function(m) { return Object.assign({}, m); });
+        b.symmetryMode = this.symmetryMode;
         
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
