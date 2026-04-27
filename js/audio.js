@@ -365,11 +365,17 @@ const AudioManager = (function() {
         enabled = v;
     }
 
+    var musicStarted = false;
     function setMusicEnabled(v) {
+        if (musicEnabled === v) return;
         musicEnabled = v;
         if (musicEnabled) {
-            startMusic();
+            if (!musicStarted) {
+                musicStarted = true;
+                startMusic();
+            }
         } else {
+            musicStarted = false;
             stopMusic();
         }
     }

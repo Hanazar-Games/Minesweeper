@@ -59,6 +59,9 @@ const UI = (function() {
                     case 'daily':
                         startDailyChallenge();
                         break;
+                    case 'weekly':
+                        startWeeklyChallenge();
+                        break;
                     case 'continue':
                         if (Game.loadSaved()) {
                             showScreen('game-screen');
@@ -103,9 +106,14 @@ const UI = (function() {
                 AudioManager.playClick();
                 const diff = card.dataset.diff;
                 if (diff === 'custom') {
-                    const w = document.getElementById('custom-width').value;
-                    const h = document.getElementById('custom-height').value;
-                    const m = document.getElementById('custom-mines').value;
+                    var w = parseInt(document.getElementById('custom-width').value) || 20;
+                    var h = parseInt(document.getElementById('custom-height').value) || 15;
+                    var m = parseInt(document.getElementById('custom-mines').value) || 50;
+                    var pct = parseInt(document.getElementById('custom-percent').value) || 15;
+                    // 如果用户调整了百分比滑块，按百分比计算雷数
+                    if (document.getElementById('custom-percent').dataset.changed) {
+                        m = Math.max(1, Math.min(w * h - 1, Math.round(w * h * pct / 100)));
+                    }
                     Game.start('custom', { width: w, height: h, mines: m });
                 } else {
                     Game.start(diff);
@@ -113,11 +121,25 @@ const UI = (function() {
                 showScreen('game-screen');
             });
         });
+
+        // 百分比滑块联动
+        var percentSlider = document.getElementById('custom-percent');
+        var percentValue = document.getElementById('custom-percent-value');
+        if (percentSlider && percentValue) {
+            percentSlider.addEventListener('input', function() {
+                percentSlider.dataset.changed = 'true';
+                percentValue.textContent = percentSlider.value + '%';
+                var w = parseInt(document.getElementById('custom-width').value) || 20;
+                var h = parseInt(document.getElementById('custom-height').value) || 15;
+                var m = Math.round(w * h * parseInt(percentSlider.value) / 100);
+                document.getElementById('custom-mines').value = Math.max(1, Math.min(w * h - 1, m));
+            });
+        }
     }
 
     function updateDifficultyBests() {
         const stats = Stats.getAll();
-        ['beginner', 'intermediate', 'expert', 'master'].forEach(diff => {
+        ['beginner', 'intermediate', 'expert', 'master', 'giant'].forEach(diff => {
             const el = document.getElementById('best-' + diff);
             if (el) {
                 const d = stats.byDifficulty[diff];
@@ -209,7 +231,14 @@ const UI = (function() {
         // 更新信息栏
         document.getElementById('mine-count').textContent = 
             Math.max(0, board.mineCount - board.flaggedCount);
-        document.getElementById('timer').textContent = padStart(String(detail.time), 3, '0');
+        var timerEl = document.getElementById('timer');
+        if (timerEl) {
+            if (detail.challengeMode === 'zen') {
+                timerEl.textContent = '∞';
+            } else {
+                timerEl.textContent = padStart(String(detail.time), 3, '0');
+            }
+        }
         document.getElementById('click-count').textContent = detail.clicks;
         document.getElementById('undo-btn').disabled = !detail.canUndo;
 
@@ -1260,6 +1289,11 @@ const UI = (function() {
                 if (challenge === 'blind') diff = 'beginner';
                 if (challenge === 'fog') diff = 'intermediate';
                 if (challenge === 'survival') diff = 'intermediate';
+                if (challenge === 'symmetry') diff = 'intermediate';
+                if (challenge === 'zen') diff = 'intermediate';
+                if (challenge === 'giant') diff = 'giant';
+                if (challenge === 'combo-rush') diff = 'intermediate';
+                if (challenge === 'no-undo') diff = 'intermediate';
                 
                 Game.start(diff, null, challenge);
                 showScreen('game-screen');
@@ -1269,7 +1303,12 @@ const UI = (function() {
                     'blind': { name: '盲扫挑战', desc: '仅前5次揭示可见数字，之后全凭记忆！' },
                     'time-attack': { name: '限时挑战', desc: '60秒内完成高级难度，与时间赛跑！' },
                     'fog': { name: '迷雾挑战', desc: '视野受限，只有已揭示区域周围可见！' },
-                    'survival': { name: '生存挑战', desc: '连续解关，3条命，难度逐关递增！' }
+                    'survival': { name: '生存挑战', desc: '连续解关，3条命，难度逐关递增！' },
+                    'symmetry': { name: '对称挑战', desc: '雷区呈中心对称分布，发现规律快速通关！' },
+                    'zen': { name: '禅意挑战', desc: '无计时压力，纯粹享受解谜的乐趣！' },
+                    'giant': { name: '巨型挑战', desc: '50×30 超大棋盘，350颗地雷的极限考验！' },
+                    'combo-rush': { name: '连击大师', desc: '2分钟限时，追求最高连击数！' },
+                    'no-undo': { name: '无撤销挑战', desc: '一旦点击就无法回头，考验你的每一步！' }
                 };
                 var info = infoMap[challenge];
                 if (info) showModeInfo(info);
@@ -1286,6 +1325,11 @@ const UI = (function() {
             'challenge-time-attack-best': (c.timeAttack && c.timeAttack.best) || 0,
             'challenge-fog-best': (c.fog && c.fog.best) || 0,
             'challenge-survival-best': (c.survival && c.survival.best) || 0,
+            'challenge-symmetry-best': (c.symmetry && c.symmetry.best) || 0,
+            'challenge-zen-best': (c.zen && c.zen.best) || 0,
+            'challenge-giant-best': (c.giant && c.giant.best) || 0,
+            'challenge-combo-rush-best': (c.comboRush && c.comboRush.best) || 0,
+            'challenge-no-undo-best': (c.noUndo && c.noUndo.best) || 0,
         };
         Object.keys(elMap).forEach(function(id) {
             var val = elMap[id];
@@ -1339,26 +1383,43 @@ const UI = (function() {
 
     function startDailyChallenge() {
         AudioManager.playClick();
-        // 根据日期生成固定种子
-        const today = new Date();
-        const dateStr = today.getFullYear() + '' + (today.getMonth() + 1) + '' + today.getDate();
-        let seed = 0;
-        for (let i = 0; i < dateStr.length; i++) {
+        var today = new Date();
+        var dateStr = today.getFullYear() + '' + (today.getMonth() + 1) + '' + today.getDate();
+        var seed = 0;
+        for (var i = 0; i < dateStr.length; i++) {
             seed = (seed * 31 + dateStr.charCodeAt(i)) % 1000000000;
         }
-        
-        // 每日挑战固定为中级难度
         Game.start('intermediate', null, 'daily', seed);
         showScreen('game-screen');
-        
-        // 检查今日是否已完成
-        const lastDaily = Storage.get('last_daily');
-        const todayKey = dateStr;
-        if (lastDaily === todayKey) {
-            const dailyBest = Storage.get('daily_best');
+        var lastDaily = Storage.get('last_daily');
+        if (lastDaily === dateStr) {
+            var dailyBest = Storage.get('daily_best');
             if (dailyBest) {
-                setTimeout(() => {
-                    showHintOverlay(`今日最佳时间: ${dailyBest}秒`);
+                setTimeout(function() {
+                    showHintOverlay('今日最佳时间: ' + dailyBest + '秒');
+                }, 500);
+            }
+        }
+    }
+
+    function startWeeklyChallenge() {
+        AudioManager.playClick();
+        var now = new Date();
+        var weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay());
+        var dateStr = weekStart.getFullYear() + '' + (weekStart.getMonth() + 1) + '' + weekStart.getDate();
+        var seed = 0;
+        for (var i = 0; i < dateStr.length; i++) {
+            seed = (seed * 31 + dateStr.charCodeAt(i)) % 1000000000;
+        }
+        Game.start('expert', null, 'weekly', seed);
+        showScreen('game-screen');
+        var lastWeekly = Storage.get('last_weekly');
+        if (lastWeekly === dateStr) {
+            var weeklyBest = Storage.get('weekly_best');
+            if (weeklyBest) {
+                setTimeout(function() {
+                    showHintOverlay('本周最佳时间: ' + weeklyBest + '秒');
                 }, 500);
             }
         }
@@ -1478,8 +1539,8 @@ const UI = (function() {
                 var p = probs.get ? probs.get(key) : probs[key];
                 if (p !== undefined) {
                     el.classList.remove('heat-low', 'heat-mid', 'heat-high');
-                    if (p >= 0.7) el.classList.add('heat-high');
-                    else if (p >= 0.3) el.classList.add('heat-mid');
+                    if (p >= 70) el.classList.add('heat-high');
+                    else if (p >= 30) el.classList.add('heat-mid');
                     else el.classList.add('heat-low');
                 }
             }
@@ -1590,22 +1651,25 @@ const UI = (function() {
         var comboEl = document.getElementById('survival-combo');
         var scoreEl = document.getElementById('survival-score');
         var levelEl = document.getElementById('survival-level');
+        var hud = document.getElementById('survival-hud');
+
+        var isSurvival = detail.challengeMode === 'survival';
+        if (hud) hud.style.display = isSurvival ? 'flex' : 'none';
 
         if (livesEl) {
-            livesEl.textContent = '❤️'.repeat(detail.lives || 0) + '🖤'.repeat((detail.maxLives || 3) - (detail.lives || 0));
-            livesEl.style.display = detail.challengeMode === 'survival' ? 'inline' : 'none';
+            var l = Math.max(0, Math.min(detail.lives || 0, detail.maxLives || 3));
+            var d = Math.max(0, (detail.maxLives || 3) - l);
+            livesEl.textContent = '❤️'.repeat(l) + '🖤'.repeat(d);
         }
         if (comboEl) {
             comboEl.textContent = 'Combo: ' + (detail.combo || 0);
-            comboEl.style.display = (detail.combo > 0 && detail.challengeMode === 'survival') ? 'inline' : 'none';
+            comboEl.style.display = (detail.combo > 0 && isSurvival) ? 'inline' : 'none';
         }
         if (scoreEl) {
             scoreEl.textContent = 'Score: ' + (detail.survivalScore || 0);
-            scoreEl.style.display = detail.challengeMode === 'survival' ? 'inline' : 'none';
         }
         if (levelEl) {
             levelEl.textContent = 'Lv.' + ((detail.survivalLevel || 0) + 1);
-            levelEl.style.display = detail.challengeMode === 'survival' ? 'inline' : 'none';
         }
     }
 

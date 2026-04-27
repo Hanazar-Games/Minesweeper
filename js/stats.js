@@ -26,6 +26,11 @@ const Stats = (function() {
             timeAttack: { best: 0 },
             fog: { best: 0 },
             survival: { best: 0 },
+            symmetry: { best: 0 },
+            zen: { best: 0 },
+            giant: { best: 0 },
+            comboRush: { best: 0 },
+            noUndo: { best: 0 },
         },
         campaign: {
             totalStars: 0,
@@ -45,12 +50,12 @@ const Stats = (function() {
         }
     };
 
-    let stats = Object.assign({}, defaultStats);
+    let stats = JSON.parse(JSON.stringify(defaultStats));
 
     function load() {
         const saved = Storage.get('stats');
         if (saved) {
-            stats = deepMerge(Object.assign({}, defaultStats), saved);
+            stats = deepMerge(JSON.parse(JSON.stringify(defaultStats)), saved);
         }
     }
 

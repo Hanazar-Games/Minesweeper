@@ -35,6 +35,7 @@ const Game = (function() {
         intermediate: { width: 16, height: 16, mines: 40 },
         expert: { width: 30, height: 16, mines: 99 },
         master: { width: 40, height: 20, mines: 180 },
+        giant: { width: 50, height: 30, mines: 350 },
     };
 
     function start(diff, custom = null, challenge = null, seed = null) {
@@ -56,6 +57,10 @@ const Game = (function() {
 
         currentSeed = seed !== null ? seed : Math.floor(Math.random() * 1000000000);
         board = new MinesweeperBoard(width, height, mines, currentSeed);
+        // 对称模式
+        if (challengeMode === 'symmetry') {
+            board.symmetryMode = 'point';
+        }
         gameState = 'idle';
         time = 0;
         clicks = 0;
@@ -83,6 +88,19 @@ const Game = (function() {
             maxLives = 3;
             survivalScore = 0;
         }
+        // 禅意模式：不显示计时器压力
+        if (challenge === 'zen') {
+            challengeData.noTimer = true;
+        }
+        // 连击大师：2分钟限时
+        if (challenge === 'combo-rush') {
+            challengeData.timeLimit = 120;
+            challengeData.comboRushScore = 0;
+        }
+        // 无撤销挑战
+        if (challenge === 'no-undo') {
+            challengeData.noUndo = true;
+        }
 
         // 初始化道具
         if (typeof Powerups !== 'undefined') {
@@ -94,27 +112,49 @@ const Game = (function() {
         updateUI();
     }
 
+    // 时间冻结事件监听
+    document.addEventListener('freezeTime', function(e) {
+        freezeUntil = Date.now() + e.detail.duration * 1000;
+        // 调整 startTime 以补偿冻结期间
+        var elapsedBeforeFreeze = time * 1000;
+        // 冻结结束后，timer interval 会继续，但 time 不会增加
+    });
+
     function startTimer() {
         if (timerInterval) return;
-        const startTime = Date.now() - time * 1000;
-        timerInterval = setInterval(() => {
-            // 时间冻结检查
-            if (freezeUntil > 0 && Date.now() < freezeUntil) {
+        var startTime = Date.now() - time * 1000;
+        var lastCheck = Date.now();
+        timerInterval = setInterval(function() {
+            var now = Date.now();
+            // 时间冻结检查：跳过冻结期间
+            if (freezeUntil > 0 && now < freezeUntil) {
+                // 调整 startTime，使 time 在冻结期间不增加
+                startTime = now - time * 1000;
+                lastCheck = now;
                 return;
             }
-            time = Math.floor((Date.now() - startTime) / 1000);
+            // 冻结刚结束，重置 freezeUntil
+            if (freezeUntil > 0 && now >= freezeUntil) {
+                startTime = now - time * 1000;
+                freezeUntil = 0;
+            }
+            time = Math.floor((now - startTime) / 1000);
             updateTimerDisplay();
 
-            if (challengeMode === 'time-attack' && time >= 60) {
-                lose();
-            }
-            // 限时挑战（战役/生存中的限时关卡）
-            if (challengeData.timeLimit && time >= challengeData.timeLimit) {
-                lose();
-            }
-            // 倒计时滴答音效
-            if (challengeData.timeLimit && time >= challengeData.timeLimit - 10 && time < challengeData.timeLimit) {
-                AudioManager.playTick();
+            // 每秒检查一次（避免100ms间隔内重复触发）
+            if (now - lastCheck >= 1000) {
+                lastCheck = now;
+                if (challengeMode === 'time-attack' && time >= 60) {
+                    lose();
+                }
+                // 限时挑战
+                if (challengeData.timeLimit && time >= challengeData.timeLimit) {
+                    lose();
+                }
+                // 倒计时滴答音效
+                if (challengeData.timeLimit && time >= challengeData.timeLimit - 10 && time < challengeData.timeLimit) {
+                    AudioManager.playTick();
+                }
             }
         }, 100);
     }
@@ -143,7 +183,16 @@ const Game = (function() {
                 clicks,
                 state: gameState,
                 difficulty,
-                challengeMode
+                challengeMode,
+                canUndo: history.length > 0,
+                seed: currentSeed,
+                survivalLevel,
+                lives,
+                maxLives,
+                combo,
+                maxCombo,
+                survivalScore,
+                campaignLevelId
             }
         });
         document.dispatchEvent(ev);
@@ -160,6 +209,7 @@ const Game = (function() {
     }
 
     function undo() {
+        if (challengeData.noUndo) return; // 无撤销挑战
         if (history.length === 0) return;
         usedUndo = true;
         const prev = history.pop();
@@ -197,16 +247,18 @@ const Game = (function() {
                     var scell = board.getCell(x, y);
                     if (scell) {
                         scell.isMine = false;
-                        // 从 mines 数组中移除
-                        var idx = board.mines.findIndex(function(m) {
-                            return m.x === x && m.y === y;
-                        });
+                        var idx = -1;
+                        for (var i = 0; i < board.mines.length; i++) {
+                            if (board.mines[i].x === x && board.mines[i].y === y) {
+                                idx = i; break;
+                            }
+                        }
                         if (idx >= 0) board.mines.splice(idx, 1);
                         board.mineCount--;
                         board.calculateNumbers();
+                        board.calculateBV();
                         scell.isRevealed = true;
                         board.revealedCount++;
-                        // 触发安全揭示效果
                         AudioManager.playReveal();
                         updateUI();
                         if (board.checkWin()) win();
@@ -263,8 +315,50 @@ const Game = (function() {
         const result = board.chord(x, y);
         if (result.changed) {
             if (result.hitMine) {
-                lose();
+                if (typeof Powerups !== 'undefined' && Powerups.hasShield()) {
+                    Powerups.consumeShield();
+                    var scell = board.getCell(x, y);
+                    if (scell) {
+                        scell.isMine = false;
+                        var idx = -1;
+                        for (var i = 0; i < board.mines.length; i++) {
+                            if (board.mines[i].x === x && board.mines[i].y === y) {
+                                idx = i; break;
+                            }
+                        }
+                        if (idx >= 0) board.mines.splice(idx, 1);
+                        board.mineCount--;
+                        board.calculateNumbers();
+                        board.calculateBV();
+                        scell.isRevealed = true;
+                        board.revealedCount++;
+                        AudioManager.playReveal();
+                        updateUI();
+                        if (board.checkWin()) win();
+                    }
+                } else if (challengeMode === 'survival' && lives > 1) {
+                    lives--;
+                    combo = 0;
+                    AudioManager.playLose();
+                    if (history.length > 0) {
+                        var prev = history.pop();
+                        board = prev.board;
+                        time = prev.time;
+                        clicks = prev.clicks;
+                    }
+                    document.dispatchEvent(new CustomEvent('lifeLost', {
+                        detail: { lives: lives, maxLives: maxLives }
+                    }));
+                    updateUI();
+                } else {
+                    lose();
+                }
             } else {
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                if (combo === 5 || combo === 10 || combo === 20 || combo === 50) {
+                    AudioManager.playCombo(combo);
+                }
                 if (board.checkWin()) {
                     win();
                 }
@@ -333,12 +427,56 @@ const Game = (function() {
             }
         }
 
+        // 每周挑战记录
+        if (challengeMode === 'weekly') {
+            var now = new Date();
+            var weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - now.getDay());
+            var weekKey = weekStart.getFullYear() + '' + (weekStart.getMonth() + 1) + '' + weekStart.getDate();
+            var lastWeekly = Storage.get('last_weekly');
+            var weeklyBest = Storage.get('weekly_best');
+            
+            if (lastWeekly !== weekKey || !weeklyBest || time < weeklyBest) {
+                Storage.set('weekly_best', time);
+                Storage.set('last_weekly', weekKey);
+            }
+        }
+
+        // 战役模式完成
+        if (campaignLevelId && typeof Campaign !== 'undefined') {
+            var stars = Campaign.completeLevel(campaignLevelId, time, clicks, board.bv, usedHint, usedUndo, usedPowerup);
+            AudioManager.playLevelUp();
+            document.dispatchEvent(new CustomEvent('campaignComplete', {
+                detail: { levelId: campaignLevelId, stars: stars }
+            }));
+        }
+
+        // 生存模式：进入下一关
+        if (challengeMode === 'survival') {
+            survivalLevel++;
+            survivalScore += Math.max(1000 - time * 5, 100) + combo * 10;
+            lives = Math.min(maxLives, lives + 1);
+            AudioManager.playLevelUp();
+            document.dispatchEvent(new CustomEvent('survivalAdvance', {
+                detail: { level: survivalLevel, score: survivalScore, lives: lives }
+            }));
+            setTimeout(function() {
+                if (gameState === 'won') {
+                    startSurvivalLevel(survivalLevel);
+                }
+            }, 2000);
+            return;
+        }
+
         // 挑战模式统计
         if (challengeMode) {
             const key = normalizeChallengeKey(challengeMode);
             if (key === 'speedrun') {
                 speedrunStreak++;
                 Stats.recordChallenge(key, speedrunStreak);
+                AudioManager.playStreakUp(speedrunStreak);
+            } else if (key === 'fog' || key === 'survival' || key === 'symmetry' || key === 'zen' || key === 'giant' || key === 'comboRush' || key === 'noUndo') {
+                Stats.recordChallenge(key, 1);
             } else if (key === 'noFlag' || key === 'blind' || key === 'timeAttack') {
                 const current = Stats.getAll().challenges[key];
                 const best = (current && current.best) || 0;
@@ -515,6 +653,40 @@ const Game = (function() {
             gameState,
             challengeMode,
             challengeData,
+            currentSeed,
+            campaignLevelId,
+            survivalLevel,
+            lives,
+            maxLives,
+            combo,
+            maxCombo,
+            survivalScore,
+            usedUndo,
+            usedFlags,
+            usedHint,
+            usedPowerup,
+            chordCount,
+            speedrunStreak,
+            history: history.map(function(h) {
+                return {
+                    board: h.board ? {
+                        width: h.board.width,
+                        height: h.board.height,
+                        mineCount: h.board.mineCount,
+                        cells: h.board.cells,
+                        mines: h.board.mines,
+                        firstClick: h.board.firstClick,
+                        gameOver: h.board.gameOver,
+                        revealedCount: h.board.revealedCount,
+                        flaggedCount: h.board.flaggedCount,
+                        questionCount: h.board.questionCount,
+                        bv: h.board.bv
+                    } : null,
+                    time: h.time,
+                    clicks: h.clicks,
+                    state: h.state
+                };
+            }),
             savedAt: Date.now()
         };
         Storage.set('saved_game', data);
@@ -531,9 +703,23 @@ const Game = (function() {
         gameState = data.gameState;
         challengeMode = data.challengeMode || null;
         challengeData = data.challengeData || {};
+        currentSeed = data.currentSeed || null;
+        campaignLevelId = data.campaignLevelId || null;
+        survivalLevel = data.survivalLevel || 0;
+        lives = data.lives || 3;
+        maxLives = data.maxLives || 3;
+        combo = data.combo || 0;
+        maxCombo = data.maxCombo || 0;
+        survivalScore = data.survivalScore || 0;
+        usedUndo = data.usedUndo || false;
+        usedFlags = data.usedFlags || false;
+        usedHint = data.usedHint || false;
+        usedPowerup = data.usedPowerup || false;
+        chordCount = data.chordCount || 0;
+        speedrunStreak = data.speedrunStreak || 0;
 
         const b = data.board;
-        board = new MinesweeperBoard(b.width, b.height, b.mineCount);
+        board = new MinesweeperBoard(b.width, b.height, b.mineCount, currentSeed);
         board.cells = b.cells;
         board.mines = b.mines;
         board.firstClick = b.firstClick;
@@ -543,7 +729,25 @@ const Game = (function() {
         board.questionCount = b.questionCount;
         board.bv = b.bv;
 
+        // 恢复历史记录
         history = [];
+        if (data.history && Array.isArray(data.history)) {
+            data.history.forEach(function(h) {
+                if (h.board) {
+                    var hb = new MinesweeperBoard(h.board.width, h.board.height, h.board.mineCount, currentSeed);
+                    hb.cells = h.board.cells;
+                    hb.mines = h.board.mines;
+                    hb.firstClick = h.board.firstClick;
+                    hb.gameOver = h.board.gameOver;
+                    hb.revealedCount = h.board.revealedCount;
+                    hb.flaggedCount = h.board.flaggedCount;
+                    hb.questionCount = h.board.questionCount;
+                    hb.bv = h.board.bv;
+                    history.push({ board: hb, time: h.time, clicks: h.clicks, state: h.state });
+                }
+            });
+        }
+
         if (gameState === 'playing') {
             startTimer();
         }
@@ -590,7 +794,12 @@ const Game = (function() {
             'blind': 'blind',
             'time-attack': 'timeAttack',
             'fog': 'fog',
-            'survival': 'survival'
+            'survival': 'survival',
+            'symmetry': 'symmetry',
+            'zen': 'zen',
+            'giant': 'giant',
+            'combo-rush': 'comboRush',
+            'no-undo': 'noUndo'
         };
         return map[mode] || mode;
     }
@@ -602,7 +811,7 @@ const Game = (function() {
         if (!level) return false;
         campaignLevelId = levelId;
         difficulty = 'custom';
-        challengeMode = level.type === 'time' ? 'time-attack' : (level.type === 'blind' ? 'blind' : null);
+        challengeMode = level.type === 'time' ? 'time-attack' : (level.type === 'blind' ? 'blind' : (level.type === 'fog' ? 'fog' : null));
         challengeData = {};
         if (level.timeLimit) challengeData.timeLimit = level.timeLimit;
         if (level.type === 'blind') challengeData.revealsLeft = 5;
@@ -610,6 +819,8 @@ const Game = (function() {
         board = new MinesweeperBoard(level.width, level.height, level.mines, level.seed);
         if (level.type === 'noguess') {
             Settings.set('noGuess', true);
+        } else {
+            Settings.set('noGuess', false);
         }
         gameState = 'idle';
         time = 0;
@@ -632,6 +843,7 @@ const Game = (function() {
 
     // 生存模式关卡开始
     function startSurvivalLevel(level) {
+        survivalLevel = level;
         var baseMines = 40 + level * 2;
         var w = 16, h = 16;
         currentSeed = Math.floor(Math.random() * 1000000000);

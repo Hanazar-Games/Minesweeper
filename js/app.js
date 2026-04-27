@@ -133,6 +133,14 @@
             if (badge) {
                 badge.classList.toggle('hidden', lastDaily === todayKey);
             }
+            var weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            var weekKey = weekStart.getFullYear() + '' + (weekStart.getMonth() + 1) + '' + weekStart.getDate();
+            var lastWeekly = Storage.get('last_weekly');
+            var wbadge = document.getElementById('weekly-badge');
+            if (wbadge) {
+                wbadge.classList.toggle('hidden', lastWeekly === weekKey);
+            }
         } catch (e) {}
     }
 

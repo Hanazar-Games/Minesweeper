@@ -53,6 +53,11 @@ const Achievements = (function() {
         { id: 'time_attack_win', name: '限时冲刺', desc: '完成限时冲刺挑战', icon: '⏰', category: 'challenge', condition: (s) => ((s.challenges.timeAttack && s.challenges.timeAttack.best) || 0) >= 1 },
         { id: 'fog_win', name: '迷雾行者', desc: '完成迷雾挑战', icon: '🌫️', category: 'challenge', condition: (s) => ((s.challenges.fog && s.challenges.fog.best) || 0) >= 1 },
         { id: 'survival_win', name: '生存专家', desc: '完成生存挑战', icon: '❤️', category: 'challenge', condition: (s) => ((s.challenges.survival && s.challenges.survival.best) || 0) >= 1 },
+        { id: 'symmetry_win', name: '对称大师', desc: '完成对称挑战', icon: '🔷', category: 'challenge', condition: (s) => ((s.challenges.symmetry && s.challenges.symmetry.best) || 0) >= 1 },
+        { id: 'zen_win', name: '心如止水', desc: '完成禅意挑战', icon: '🧘', category: 'challenge', condition: (s) => ((s.challenges.zen && s.challenges.zen.best) || 0) >= 1 },
+        { id: 'giant_win', name: '巨兽猎人', desc: '完成巨型挑战', icon: '🦕', category: 'challenge', condition: (s) => ((s.challenges.giant && s.challenges.giant.best) || 0) >= 1 },
+        { id: 'combo_rush_win', name: '连击风暴', desc: '完成连击大师挑战', icon: '⚡', category: 'challenge', condition: (s) => ((s.challenges.comboRush && s.challenges.comboRush.best) || 0) >= 1 },
+        { id: 'no_undo_win', name: '一往无前', desc: '完成无撤销挑战', icon: '🔒', category: 'challenge', condition: (s) => ((s.challenges.noUndo && s.challenges.noUndo.best) || 0) >= 1 },
 
         // 战役模式
         { id: 'campaign_first', name: '战役启程', desc: '完成战役第一关', icon: '🗺️', category: 'challenge', condition: (s) => (s.campaign && s.campaign.levelsCompleted) >= 1 },

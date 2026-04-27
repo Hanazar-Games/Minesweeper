@@ -78,6 +78,11 @@
                         <span class="btn-text">每日挑战</span>
                         <span id="daily-badge" class="menu-badge hidden">!</span>
                     </button>
+                    <button class="menu-btn" data-action="weekly">
+                        <span class="btn-icon">📆</span>
+                        <span class="btn-text">每周挑战</span>
+                        <span id="weekly-badge" class="menu-badge hidden">!</span>
+                    </button>
                     <button class="menu-btn" data-action="continue" id="continue-btn" disabled>
                         <span class="btn-icon">🔄</span>
                         <span class="btn-text">继续游戏</span>
@@ -157,6 +162,13 @@
                     <p>180 颗雷</p>
                     <div class="diff-best">最佳: <span id="best-master">--</span></div>
                 </div>
+                <div class="difficulty-card" data-diff="giant">
+                    <div class="diff-icon">🦕</div>
+                    <h3>巨型</h3>
+                    <p>50 × 30 格</p>
+                    <p>350 颗雷</p>
+                    <div class="diff-best">最佳: <span id="best-giant">--</span></div>
+                </div>
                 <div class="difficulty-card custom-card" data-diff="custom">
                     <div class="diff-icon">⚙️</div>
                     <h3>自定义</h3>
@@ -164,6 +176,9 @@
                         <label>宽: <input type="number" id="custom-width" value="20" min="5" max="50"></label>
                         <label>高: <input type="number" id="custom-height" value="15" min="5" max="30"></label>
                         <label>雷: <input type="number" id="custom-mines" value="50" min="1" max="500"></label>
+                    </div>
+                    <div class="custom-percent" style="margin-top:0.5rem;">
+                        <label>或按百分比: <input type="range" id="custom-percent" value="15" min="5" max="50" style="width:120px;vertical-align:middle;"> <span id="custom-percent-value">15%</span></label>
                     </div>
                 </div>
             </div>
@@ -196,6 +211,38 @@
                 <button class="tool-btn" id="auto-flag-btn" title="自动标雷 (A)">🚩 自动</button>
                 <button class="tool-btn" id="pause-btn" title="暂停 (P)" >⏸️ 暂停</button>
                 <button class="tool-btn" id="save-btn" title="保存游戏">💾 保存</button>
+            </div>
+
+            <!-- 生存模式 HUD -->
+            <div class="survival-hud" id="survival-hud" style="display:none;">
+                <span id="survival-lives"></span>
+                <span id="survival-combo"></span>
+                <span id="survival-score"></span>
+                <span id="survival-level"></span>
+            </div>
+
+            <!-- 道具栏 -->
+            <div class="powerup-bar" id="powerup-bar">
+                <div class="powerup-slot" id="powerup-slot-1" title="炸弹探测器 (1)">
+                    <span class="powerup-icon">🔍</span>
+                    <span class="powerup-count">3</span>
+                    <span class="powerup-key">1</span>
+                </div>
+                <div class="powerup-slot" id="powerup-slot-2" title="安全盾牌 (2)">
+                    <span class="powerup-icon">🛡️</span>
+                    <span class="powerup-count">1</span>
+                    <span class="powerup-key">2</span>
+                </div>
+                <div class="powerup-slot" id="powerup-slot-3" title="时间冻结 (3)">
+                    <span class="powerup-icon">⏱️</span>
+                    <span class="powerup-count">2</span>
+                    <span class="powerup-key">3</span>
+                </div>
+                <div class="powerup-slot" id="powerup-slot-4" title="风险热力图 (4)">
+                    <span class="powerup-icon">💡</span>
+                    <span class="powerup-count">2</span>
+                    <span class="powerup-key">4</span>
+                </div>
             </div>
 
             <div class="game-board-container">
@@ -288,6 +335,61 @@
                     </div>
                     <button class="challenge-play">开始</button>
                 </div>
+                <div class="challenge-item" data-challenge="symmetry">
+                    <div class="challenge-icon">🔷</div>
+                    <div class="challenge-info">
+                        <h3>对称挑战</h3>
+                        <p>雷区呈中心对称分布，发现规律快速通关</p>
+                        <div class="challenge-stats">
+                            <span>完成次数: <b id="challenge-symmetry-best">0</b></span>
+                        </div>
+                    </div>
+                    <button class="challenge-play">开始</button>
+                </div>
+                <div class="challenge-item" data-challenge="zen">
+                    <div class="challenge-icon">🧘</div>
+                    <div class="challenge-info">
+                        <h3>禅意挑战</h3>
+                        <p>无计时压力，纯粹享受解谜的乐趣</p>
+                        <div class="challenge-stats">
+                            <span>完成次数: <b id="challenge-zen-best">0</b></span>
+                        </div>
+                    </div>
+                    <button class="challenge-play">开始</button>
+                </div>
+                <div class="challenge-item" data-challenge="giant">
+                    <div class="challenge-icon">🦕</div>
+                    <div class="challenge-info">
+                        <h3>巨型挑战</h3>
+                        <p>50×30 超大棋盘，350颗地雷的极限考验</p>
+                        <div class="challenge-stats">
+                            <span>完成次数: <b id="challenge-giant-best">0</b></span>
+                        </div>
+                    </div>
+                    <button class="challenge-play">开始</button>
+                </div>
+                <div class="challenge-item" data-challenge="combo-rush">
+                    <div class="challenge-icon">⚡</div>
+                    <div class="challenge-info">
+                        <h3>连击大师</h3>
+                        <p>2分钟限时，追求最高连击数</p>
+                        <div class="challenge-stats">
+                            <span>完成次数: <b id="challenge-combo-rush-best">0</b></span>
+                        </div>
+                    </div>
+                    <button class="challenge-play">开始</button>
+                </div>
+                <div class="challenge-item" data-challenge="no-undo">
+                    <div class="challenge-icon">🔒</div>
+                    <div class="challenge-info">
+                        <h3>无撤销挑战</h3>
+                        <p>一旦点击就无法回头，考验你的每一步</p>
+                        <div class="challenge-stats">
+                            <span>完成次数: <b id="challenge-no-undo-best">0</b></span>
+                        </div>
+                    </div>
+                    <button class="challenge-play">开始</button>
+                </div>
             </div>
         </div>
 
@@ -332,6 +434,8 @@
                     <button class="ach-filter-btn" data-ach-filter="skill">技巧</button>
                     <button class="ach-filter-btn" data-ach-filter="challenge">挑战</button>
                     <button class="ach-filter-btn" data-ach-filter="special">特殊</button>
+                    <button class="ach-filter-btn" data-ach-filter="master">大师</button>
+                    <button class="ach-filter-btn" data-ach-filter="stats">统计</button>
                 </div>
                 <div class="achievements-grid" id="achievements-grid">
                     <!-- 动态生成 -->
@@ -888,7 +992,7 @@
                             <div class="about-logo">💣</div>
                             <h2>超级扫雷</h2>
                             <p class="about-desc">一个功能丰富、界面精美的现代化扫雷游戏。</p>
-                            <div class="about-version">版本 1.0.1</div>
+                            <div class="about-version">版本 1.1.0</div>
                             <div class="about-links">
                                 <a href="https://github.com" target="_blank" class="about-link">🐙 GitHub 仓库</a>
                                 <a href="#" class="about-link">🐛 反馈问题</a>

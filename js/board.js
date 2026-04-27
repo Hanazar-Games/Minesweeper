@@ -29,6 +29,7 @@ class MinesweeperBoard {
         this.flaggedCount = 0;
         this.questionCount = 0;
         this.bv = 0;
+        this.symmetryMode = null;
         this.init();
     }
 
@@ -58,8 +59,8 @@ class MinesweeperBoard {
         return Math.random();
     }
 
-    generateMines(safeX, safeY, safeRadius = 0) {
-        const positions = [];
+    generateMines(safeX, safeY, safeRadius = 0, symmetry = null) {
+        var positions = [];
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 let isSafe = (x === safeX && y === safeY);
@@ -80,16 +81,72 @@ class MinesweeperBoard {
             this.mineCount = positions.length;
         }
 
-        // Fisher-Yates 洗牌（使用种子随机数）
-        for (let i = positions.length - 1; i > 0; i--) {
-            const j = Math.floor(this.random() * (i + 1));
-            [positions[i], positions[j]] = [positions[j], positions[i]];
+        // 对称模式：先筛选出对称位置对
+        if (symmetry === 'point' || symmetry === 'mirror') {
+            var pairs = [];
+            var used = new Set();
+            for (var i = 0; i < positions.length; i++) {
+                var p = positions[i];
+                var key = p.x + ',' + p.y;
+                if (used.has(key)) continue;
+                
+                var symP = null;
+                if (symmetry === 'point') {
+                    symP = { x: this.width - 1 - p.x, y: this.height - 1 - p.y };
+                } else {
+                    symP = { x: this.width - 1 - p.x, y: p.y };
+                }
+                var symKey = symP.x + ',' + symP.y;
+                
+                if (symKey === key) {
+                    // 中心点（奇数尺寸时），单独处理
+                    pairs.push({ single: p });
+                    used.add(key);
+                } else if (!used.has(symKey)) {
+                    pairs.push({ a: p, b: symP });
+                    used.add(key);
+                    used.add(symKey);
+                }
+            }
+            
+            // Fisher-Yates 洗牌 pairs
+            for (var i = pairs.length - 1; i > 0; i--) {
+                var j = Math.floor(this.random() * (i + 1));
+                var tmp = pairs[i]; pairs[i] = pairs[j]; pairs[j] = tmp;
+            }
+            
+            var needed = Math.floor(this.mineCount / 2);
+            var selected = [];
+            for (var i = 0; i < pairs.length && selected.length < needed; i++) {
+                if (pairs[i].single) {
+                    selected.push(pairs[i].single);
+                } else {
+                    selected.push(pairs[i].a);
+                    selected.push(pairs[i].b);
+                }
+            }
+            // 如果还有余数，从剩余pair中再选一个single
+            if (selected.length < this.mineCount) {
+                for (var i = 0; i < pairs.length; i++) {
+                    if (pairs[i].single && selected.indexOf(pairs[i].single) < 0) {
+                        selected.push(pairs[i].single);
+                        break;
+                    }
+                }
+            }
+            this.mines = selected.slice(0, this.mineCount);
+        } else {
+            // 标准随机模式
+            for (let i = positions.length - 1; i > 0; i--) {
+                const j = Math.floor(this.random() * (i + 1));
+                [positions[i], positions[j]] = [positions[j], positions[i]];
+            }
+            this.mines = positions.slice(0, this.mineCount);
         }
-
-        this.mines = positions.slice(0, this.mineCount);
-        this.mines.forEach(({ x, y }) => {
-            this.cells[y][x].isMine = true;
-        });
+        
+        this.mines.forEach(function(m) {
+            this.cells[m.y][m.x].isMine = true;
+        }.bind(this));
 
         this.calculateNumbers();
         this.calculateBV();
@@ -165,7 +222,7 @@ class MinesweeperBoard {
 
         if (this.firstClick) {
             const noGuess = Settings.get('noGuess');
-            this.generateMines(x, y, noGuess ? 1 : 0);
+            this.generateMines(x, y, noGuess ? 1 : 0, this.symmetryMode);
             this.firstClick = false;
         }
 
@@ -298,7 +355,7 @@ class MinesweeperBoard {
     }
 
     clone() {
-        const b = new MinesweeperBoard(this.width, this.height, this.mineCount);
+        const b = new MinesweeperBoard(this.width, this.height, this.mineCount, this.seed);
         b.firstClick = this.firstClick;
         b.gameOver = this.gameOver;
         b.revealedCount = this.revealedCount;
