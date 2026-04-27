@@ -24,15 +24,33 @@ const Stats = (function() {
             noFlag: { best: 0 },
             blind: { best: 0 },
             timeAttack: { best: 0 },
+            fog: { best: 0 },
+            survival: { best: 0 },
+        },
+        campaign: {
+            totalStars: 0,
+            levelsCompleted: 0,
+        },
+        survival: {
+            bestLevel: 0,
+            bestScore: 0,
+            bestCombo: 0,
+            totalRuns: 0,
+        },
+        powerups: {
+            scannerUsed: 0,
+            shieldUsed: 0,
+            freezeUsed: 0,
+            heatmapUsed: 0,
         }
     };
 
-    let stats = { ...defaultStats };
+    let stats = Object.assign({}, defaultStats);
 
     function load() {
         const saved = Storage.get('stats');
         if (saved) {
-            stats = deepMerge({ ...defaultStats }, saved);
+            stats = deepMerge(Object.assign({}, defaultStats), saved);
         }
     }
 
@@ -114,10 +132,43 @@ const Stats = (function() {
                 c.best = value;
                 save();
                 return true; // new record
+            } else {
+                save();
             }
         }
-        save();
         return false;
+    }
+
+    function recordCampaign(totalStars, levelsCompleted) {
+        if (totalStars > stats.campaign.totalStars) {
+            stats.campaign.totalStars = totalStars;
+        }
+        if (levelsCompleted > stats.campaign.levelsCompleted) {
+            stats.campaign.levelsCompleted = levelsCompleted;
+        }
+        save();
+    }
+
+    function recordSurvival(level, score, maxCombo) {
+        stats.survival.totalRuns++;
+        if (level > stats.survival.bestLevel) {
+            stats.survival.bestLevel = level;
+        }
+        if (score > stats.survival.bestScore) {
+            stats.survival.bestScore = score;
+        }
+        if (maxCombo > stats.survival.bestCombo) {
+            stats.survival.bestCombo = maxCombo;
+        }
+        save();
+    }
+
+    function recordPowerupUsed(id) {
+        var key = id + 'Used';
+        if (stats.powerups[key] !== undefined) {
+            stats.powerups[key]++;
+            save();
+        }
     }
 
     function getWinRate(difficulty) {
@@ -181,6 +232,9 @@ const Stats = (function() {
         recordCellsRevealed,
         recordFlagsPlaced,
         recordChallenge,
+        recordCampaign,
+        recordSurvival,
+        recordPowerupUsed,
         getWinRate,
         getAvgTime,
         getAll,

@@ -80,8 +80,13 @@ const AudioManager = (function() {
 
         gain.gain.setValueAtTime(0, context.currentTime);
         gain.gain.linearRampToValueAtTime(finalVol, context.currentTime + attack);
-        gain.gain.exponentialRampToValueAtTime(finalVol * 0.3, context.currentTime + attack + decay);
-        gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration + release);
+        var decayEndTime = context.currentTime + attack + decay;
+        var releaseEndTime = context.currentTime + duration + release;
+        if (releaseEndTime <= decayEndTime) {
+            releaseEndTime = decayEndTime + 0.01;
+        }
+        gain.gain.exponentialRampToValueAtTime(finalVol * 0.3, decayEndTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, releaseEndTime);
 
         osc.connect(filter);
         filter.connect(gain);
@@ -194,7 +199,81 @@ const AudioManager = (function() {
         playTone(1000, 0.03, null, 0.15);
     }
 
-    function startMusic(style) {
+    // ========== 新增音效 ==========
+
+    function playTick() {
+        if (!enabled) return;
+        resume();
+        playTone(1200, 0.04, 'square', 0.12, { filter: 6000 });
+    }
+
+    function playTimeout() {
+        if (!enabled) return;
+        resume();
+        var notes = [600, 500, 400, 300];
+        notes.forEach(function(freq, i) {
+            setTimeout(function() {
+                playTone(freq, 0.3, 'sawtooth', 0.3, { filter: 2000 });
+            }, i * 120);
+        });
+    }
+
+    function playStreakUp(n) {
+        if (!enabled) return;
+        resume();
+        var baseFreq = 440 + Math.min(n * 50, 400);
+        playTone(baseFreq, 0.15, 'sine', 0.35, { filter: 8000 });
+        setTimeout(function() {
+            playTone(baseFreq * 1.25, 0.2, 'sine', 0.3, { filter: 8000 });
+        }, 100);
+        setTimeout(function() {
+            playTone(baseFreq * 1.5, 0.3, 'sine', 0.25, { filter: 10000 });
+        }, 220);
+    }
+
+    function playStreakReset() {
+        if (!enabled) return;
+        resume();
+        playTone(400, 0.2, 'sawtooth', 0.25, { filter: 1500 });
+        setTimeout(function() {
+            playTone(300, 0.3, 'sawtooth', 0.2, { filter: 1000 });
+        }, 150);
+    }
+
+    function playPowerUp() {
+        if (!enabled) return;
+        resume();
+        playTone(660, 0.08, 'sine', 0.3, { filter: 8000 });
+        setTimeout(function() {
+            playTone(880, 0.12, 'sine', 0.25, { filter: 10000 });
+        }, 80);
+        setTimeout(function() {
+            playTone(1320, 0.2, 'sine', 0.2, { filter: 12000 });
+        }, 180);
+    }
+
+    function playLevelUp() {
+        if (!enabled) return;
+        resume();
+        var notes = [523, 659, 784, 1047, 1319];
+        notes.forEach(function(freq, i) {
+            setTimeout(function() {
+                playTone(freq, 0.25, 'sine', 0.3, { filter: 9000, attack: 15 });
+            }, i * 100);
+        });
+    }
+
+    function playCombo(milestone) {
+        if (!enabled) return;
+        resume();
+        var freq = 600 + milestone * 40;
+        playTone(freq, 0.1, 'sine', 0.3, { filter: 8000 });
+        setTimeout(function() {
+            playTone(freq * 1.2, 0.15, 'sine', 0.25, { filter: 10000 });
+        }, 80);
+    }
+
+    function startMusic() {
         if (!musicEnabled || !enabled) return;
         resume();
         const context = getCtx();
@@ -217,16 +296,39 @@ const AudioManager = (function() {
             lofi:       [262, 294, 349, 294, 262, 220, 196, 220],
         };
 
-        const melody = melodies[style] || melodies.orchestral;
+        var musicStyle = (typeof Settings !== 'undefined') ? Settings.get('musicStyle') : 'orchestral';
+        const melody = melodies[musicStyle] || melodies.orchestral;
         let noteIndex = 0;
 
-        // 混响效果
-        const convolver = context.createConvolver();
-        const reverbGain = context.createGain();
-        reverbGain.gain.value = musicReverbAmount;
+        // 读取 tempo 设置（修复：原来硬编码 500ms）
+        var tempoSetting = (typeof Settings !== 'undefined') ? (Settings.get('musicTempo') || 100) : 100;
+        var noteInterval = Math.max(200, Math.min(1000, 500 * (100 / tempoSetting)));
+        var sustainTime = Math.max(150, noteInterval * 0.8);
+
+        // 混响效果（修复：原来未接入信号链）
+        var convolver = null;
+        var reverbGain = null;
+        if (musicReverbAmount > 0.01) {
+            convolver = context.createConvolver();
+            reverbGain = context.createGain();
+            reverbGain.gain.value = musicReverbAmount;
+            // 程序化生成简单脉冲响应
+            var impulseLen = context.sampleRate * 1.5;
+            var impulse = context.createBuffer(2, impulseLen, context.sampleRate);
+            for (var ch = 0; ch < 2; ch++) {
+                var data = impulse.getChannelData(ch);
+                for (var i = 0; i < impulseLen; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLen, 2);
+                }
+            }
+            convolver.buffer = impulse;
+            musicGain.connect(convolver);
+            convolver.connect(reverbGain);
+            reverbGain.connect(context.destination);
+        }
 
         function playNextNote() {
-            if (!musicEnabled || !musicOsc) return;
+            if (!musicEnabled) return;
 
             if (musicOsc) {
                 try { musicOsc.stop(); } catch(e) {}
@@ -238,14 +340,14 @@ const AudioManager = (function() {
             musicOsc.connect(musicGain);
             musicOsc.start();
 
-            setTimeout(() => {
+            setTimeout(function() {
                 if (musicOsc) {
                     try { musicOsc.stop(); } catch(e) {}
                 }
-            }, 400);
+            }, sustainTime);
 
             noteIndex++;
-            setTimeout(playNextNote, 500);
+            setTimeout(playNextNote, noteInterval);
         }
 
         playNextNote();
@@ -263,10 +365,10 @@ const AudioManager = (function() {
         enabled = v;
     }
 
-    function setMusicEnabled(v, style) {
+    function setMusicEnabled(v) {
         musicEnabled = v;
         if (musicEnabled) {
-            startMusic(style || 'orchestral');
+            startMusic();
         } else {
             stopMusic();
         }
@@ -322,6 +424,13 @@ const AudioManager = (function() {
         playHint,
         playHover,
         playCount,
+        playTick,
+        playTimeout,
+        playStreakUp,
+        playStreakReset,
+        playPowerUp,
+        playLevelUp,
+        playCombo,
         setEnabled,
         setMusicEnabled,
         setVolume,

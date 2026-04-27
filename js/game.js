@@ -12,10 +12,23 @@ const Game = (function() {
     let history = []; // 用于撤销
     let challengeMode = null;
     let challengeData = {};
+    let speedrunStreak = 0;
     let currentSeed = null;
     let chordCount = 0;
     let usedUndo = false;
     let usedFlags = false;
+    let usedHint = false;
+    let usedPowerup = false;
+    // 生存模式状态
+    let survivalLevel = 0;
+    let lives = 3;
+    let maxLives = 3;
+    let combo = 0;
+    let maxCombo = 0;
+    let survivalScore = 0;
+    let freezeUntil = 0;
+    // 战役模式状态
+    let campaignLevelId = null;
 
     const difficulties = {
         beginner: { width: 9, height: 9, mines: 10 },
@@ -50,9 +63,30 @@ const Game = (function() {
         chordCount = 0;
         usedUndo = false;
         usedFlags = false;
+        usedHint = false;
+        usedPowerup = false;
+        combo = 0;
+        maxCombo = 0;
+        freezeUntil = 0;
+        campaignLevelId = null;
 
         if (challenge === 'blind') {
             challengeData.revealsLeft = 5;
+        }
+        if (challenge !== 'speedrun') {
+            speedrunStreak = 0;
+        }
+        // 生存模式初始化
+        if (challenge === 'survival') {
+            survivalLevel = 0;
+            lives = 3;
+            maxLives = 3;
+            survivalScore = 0;
+        }
+
+        // 初始化道具
+        if (typeof Powerups !== 'undefined') {
+            Powerups.initGame();
         }
 
         Replay.start();
@@ -64,11 +98,23 @@ const Game = (function() {
         if (timerInterval) return;
         const startTime = Date.now() - time * 1000;
         timerInterval = setInterval(() => {
+            // 时间冻结检查
+            if (freezeUntil > 0 && Date.now() < freezeUntil) {
+                return;
+            }
             time = Math.floor((Date.now() - startTime) / 1000);
             updateTimerDisplay();
 
             if (challengeMode === 'time-attack' && time >= 60) {
                 lose();
+            }
+            // 限时挑战（战役/生存中的限时关卡）
+            if (challengeData.timeLimit && time >= challengeData.timeLimit) {
+                lose();
+            }
+            // 倒计时滴答音效
+            if (challengeData.timeLimit && time >= challengeData.timeLimit - 10 && time < challengeData.timeLimit) {
+                AudioManager.playTick();
             }
         }, 100);
     }
@@ -82,7 +128,11 @@ const Game = (function() {
 
     function updateTimerDisplay() {
         const el = document.getElementById('timer');
-        if (el) el.textContent = String(time).padStart(3, '0');
+        if (el) {
+            var t = String(time);
+            while (t.length < 3) t = '0' + t;
+            el.textContent = t;
+        }
     }
 
     function updateUI() {
@@ -140,8 +190,57 @@ const Game = (function() {
         const result = board.reveal(x, y);
         if (result.changed) {
             if (result.hitMine) {
-                lose();
+                // 盾牌保护
+                if (typeof Powerups !== 'undefined' && Powerups.hasShield()) {
+                    Powerups.consumeShield();
+                    // 将地雷变为安全数字格
+                    var scell = board.getCell(x, y);
+                    if (scell) {
+                        scell.isMine = false;
+                        // 从 mines 数组中移除
+                        var idx = board.mines.findIndex(function(m) {
+                            return m.x === x && m.y === y;
+                        });
+                        if (idx >= 0) board.mines.splice(idx, 1);
+                        board.mineCount--;
+                        board.calculateNumbers();
+                        scell.isRevealed = true;
+                        board.revealedCount++;
+                        // 触发安全揭示效果
+                        AudioManager.playReveal();
+                        updateUI();
+                        if (board.checkWin()) win();
+                    }
+                } else {
+                    // 生存模式扣命
+                    if (challengeMode === 'survival' && lives > 1) {
+                        lives--;
+                        combo = 0;
+                        AudioManager.playLose();
+                        // 恢复棋盘状态（撤销这次揭示）
+                        if (history.length > 0) {
+                            const prev = history.pop();
+                            board = prev.board;
+                            time = prev.time;
+                            clicks = prev.clicks;
+                        }
+                        // 显示扣命提示
+                        document.dispatchEvent(new CustomEvent('lifeLost', {
+                            detail: { lives: lives, maxLives: maxLives }
+                        }));
+                        updateUI();
+                    } else {
+                        lose();
+                    }
+                }
             } else {
+                // combo 计算：连续无错揭示
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                // combo 里程碑音效
+                if (combo === 5 || combo === 10 || combo === 20 || combo === 50) {
+                    AudioManager.playCombo(combo);
+                }
                 if (board.checkWin()) {
                     win();
                 }
@@ -234,6 +333,19 @@ const Game = (function() {
             }
         }
 
+        // 挑战模式统计
+        if (challengeMode) {
+            const key = normalizeChallengeKey(challengeMode);
+            if (key === 'speedrun') {
+                speedrunStreak++;
+                Stats.recordChallenge(key, speedrunStreak);
+            } else if (key === 'noFlag' || key === 'blind' || key === 'timeAttack') {
+                const current = Stats.getAll().challenges[key];
+                const best = (current && current.best) || 0;
+                Stats.recordChallenge(key, best + 1);
+            }
+        }
+
         AudioManager.playWin();
         createParticles();
         Replay.stop();
@@ -264,9 +376,27 @@ const Game = (function() {
         Stats.recordGame(difficulty, false, time, clicks, board.bv, efficiency);
         Stats.recordCellsRevealed(board.revealedCount);
 
+        // 限时模式超时音效
+        if (challengeData.timeLimit && time >= challengeData.timeLimit) {
+            AudioManager.playTimeout();
+        } else {
+            AudioManager.playLose();
+        }
+
         showGameOver(false, time, board.bv, efficiency, false);
-        AudioManager.playLose();
         Replay.stop();
+
+        // 速通挑战连胜中断
+        if (challengeMode && normalizeChallengeKey(challengeMode) === 'speedrun') {
+            if (speedrunStreak > 0) AudioManager.playStreakReset();
+            speedrunStreak = 0;
+        }
+
+        // 生存模式结束统计
+        if (challengeMode === 'survival') {
+            Stats.recordSurvival(survivalLevel, survivalScore, maxCombo);
+        }
+
         Achievements.check({
             won: false,
             time,
@@ -278,8 +408,8 @@ const Game = (function() {
             noFlags: !usedFlags,
             chordCount,
             customSize: difficulty === 'custom',
-            width: board?.width,
-            height: board?.height
+            width: board ? board.width : null,
+            height: board ? board.height : null
         });
     }
 
@@ -330,6 +460,7 @@ const Game = (function() {
 
     function hint() {
         if (gameState !== 'playing' && gameState !== 'idle') return;
+        usedHint = true;
         
         if (board.firstClick && Settings.get('firstSafe')) {
             const corners = [
@@ -437,7 +568,14 @@ const Game = (function() {
             gameState,
             challengeMode,
             canUndo: history.length > 0,
-            seed: currentSeed
+            seed: currentSeed,
+            survivalLevel,
+            lives,
+            maxLives,
+            combo,
+            maxCombo,
+            survivalScore,
+            campaignLevelId
         };
     }
 
@@ -445,8 +583,91 @@ const Game = (function() {
         return currentSeed;
     }
 
+    function normalizeChallengeKey(mode) {
+        var map = {
+            'speedrun': 'speedrun',
+            'no-flag': 'noFlag',
+            'blind': 'blind',
+            'time-attack': 'timeAttack',
+            'fog': 'fog',
+            'survival': 'survival'
+        };
+        return map[mode] || mode;
+    }
+
+    // 战役关卡开始
+    function startCampaignLevel(levelId) {
+        if (!Campaign) return false;
+        var level = Campaign.getLevel(levelId);
+        if (!level) return false;
+        campaignLevelId = levelId;
+        difficulty = 'custom';
+        challengeMode = level.type === 'time' ? 'time-attack' : (level.type === 'blind' ? 'blind' : null);
+        challengeData = {};
+        if (level.timeLimit) challengeData.timeLimit = level.timeLimit;
+        if (level.type === 'blind') challengeData.revealsLeft = 5;
+        currentSeed = level.seed;
+        board = new MinesweeperBoard(level.width, level.height, level.mines, level.seed);
+        if (level.type === 'noguess') {
+            Settings.set('noGuess', true);
+        }
+        gameState = 'idle';
+        time = 0;
+        clicks = 0;
+        history = [];
+        chordCount = 0;
+        usedUndo = false;
+        usedFlags = false;
+        usedHint = false;
+        usedPowerup = false;
+        combo = 0;
+        maxCombo = 0;
+        freezeUntil = 0;
+        if (typeof Powerups !== 'undefined') Powerups.initGame();
+        Replay.start();
+        stopTimer();
+        updateUI();
+        return true;
+    }
+
+    // 生存模式关卡开始
+    function startSurvivalLevel(level) {
+        var baseMines = 40 + level * 2;
+        var w = 16, h = 16;
+        currentSeed = Math.floor(Math.random() * 1000000000);
+        board = new MinesweeperBoard(w, h, Math.min(baseMines, w * h - 1), currentSeed);
+        difficulty = 'intermediate';
+        challengeMode = 'survival';
+        challengeData = {};
+        gameState = 'idle';
+        time = 0;
+        clicks = 0;
+        history = [];
+        chordCount = 0;
+        usedUndo = false;
+        usedFlags = false;
+        usedHint = false;
+        usedPowerup = false;
+        combo = 0;
+        freezeUntil = 0;
+        if (typeof Powerups !== 'undefined') Powerups.initGame();
+        Replay.start();
+        stopTimer();
+        updateUI();
+    }
+
+    function usePowerup(id) {
+        if (gameState !== 'playing' && gameState !== 'idle') return false;
+        if (typeof Powerups === 'undefined') return false;
+        var result = Powerups.use(id, board);
+        if (result) {
+            usedPowerup = true;
+            updateUI();
+        }
+        return result;
+    }
+
     function startWithSeed(diff, seed) {
-        const d = difficulties[diff] || difficulties.beginner;
         Game.start(diff, null, null, seed);
     }
 

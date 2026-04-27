@@ -212,9 +212,12 @@ const Tutorial = (function() {
     ];
 
     function init() {
-        document.getElementById('tutorial-next').addEventListener('click', nextStep);
-        document.getElementById('tutorial-prev').addEventListener('click', prevStep);
-        document.getElementById('tutorial-finish').addEventListener('click', finishTutorial);
+        var nextBtn = document.getElementById('tutorial-next');
+        var prevBtn = document.getElementById('tutorial-prev');
+        var finishBtn = document.getElementById('tutorial-finish');
+        if (nextBtn) nextBtn.addEventListener('click', nextStep);
+        if (prevBtn) prevBtn.addEventListener('click', prevStep);
+        if (finishBtn) finishBtn.addEventListener('click', finishTutorial);
     }
 
     function start() {

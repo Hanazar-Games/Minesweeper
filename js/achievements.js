@@ -13,19 +13,19 @@ const Achievements = (function() {
         { id: 'flag_master', name: '标雷专家', desc: '累计放置100个旗帜', icon: '🚩', category: 'beginner', condition: (s) => s.flagsPlaced >= 100 },
 
         // 初级挑战
-        { id: 'beginner_10', name: '初出茅庐', desc: '初级难度胜利10次', icon: '🌱', category: 'beginner', condition: (s) => (s.byDifficulty.beginner?.wins || 0) >= 10 },
-        { id: 'beginner_50', name: '初级老手', desc: '初级难度胜利50次', icon: '🌿', category: 'beginner', condition: (s) => (s.byDifficulty.beginner?.wins || 0) >= 50 },
+        { id: 'beginner_10', name: '初出茅庐', desc: '初级难度胜利10次', icon: '🌱', category: 'beginner', condition: (s) => ((s.byDifficulty.beginner && s.byDifficulty.beginner.wins) || 0) >= 10 },
+        { id: 'beginner_50', name: '初级老手', desc: '初级难度胜利50次', icon: '🌿', category: 'beginner', condition: (s) => ((s.byDifficulty.beginner && s.byDifficulty.beginner.wins) || 0) >= 50 },
         { id: 'beginner_speed', name: '风驰电掣', desc: '初级30秒内完成', icon: '🔥', category: 'beginner', condition: (s, g) => g.won && g.time <= 30 && g.difficulty === 'beginner' },
         { id: 'beginner_eff', name: '效率之王', desc: '初级效率达到90%', icon: '📈', category: 'beginner', condition: (s, g) => g.won && g.efficiency >= 90 && g.difficulty === 'beginner' },
 
         // 中级挑战
         { id: 'intermediate_first', name: '踏入中级', desc: '首次完成中级难度', icon: '🎋', category: 'intermediate', condition: (s, g) => g.won && g.difficulty === 'intermediate' },
-        { id: 'intermediate_10', name: '中级熟手', desc: '中级难度胜利10次', icon: '🎍', category: 'intermediate', condition: (s) => (s.byDifficulty.intermediate?.wins || 0) >= 10 },
+        { id: 'intermediate_10', name: '中级熟手', desc: '中级难度胜利10次', icon: '🎍', category: 'intermediate', condition: (s) => ((s.byDifficulty.intermediate && s.byDifficulty.intermediate.wins) || 0) >= 10 },
         { id: 'intermediate_speed', name: '中级闪电', desc: '中级120秒内完成', icon: '💨', category: 'intermediate', condition: (s, g) => g.won && g.time <= 120 && g.difficulty === 'intermediate' },
 
         // 高级挑战
         { id: 'expert_first', name: '勇闯高级', desc: '首次完成高级难度', icon: '🔥', category: 'expert', condition: (s, g) => g.won && g.difficulty === 'expert' },
-        { id: 'expert_10', name: '高级专家', desc: '高级难度胜利10次', icon: '💀', category: 'expert', condition: (s) => (s.byDifficulty.expert?.wins || 0) >= 10 },
+        { id: 'expert_10', name: '高级专家', desc: '高级难度胜利10次', icon: '💀', category: 'expert', condition: (s) => ((s.byDifficulty.expert && s.byDifficulty.expert.wins) || 0) >= 10 },
         { id: 'expert_speed', name: '高级神速', desc: '高级180秒内完成', icon: '⚡', category: 'expert', condition: (s, g) => g.won && g.time <= 180 && g.difficulty === 'expert' },
 
         // 大师挑战
@@ -48,9 +48,26 @@ const Achievements = (function() {
 
         // 挑战模式
         { id: 'daily_first', name: '每日打卡', desc: '完成第一次每日挑战', icon: '📅', category: 'challenge', condition: (s, g) => g.challengeMode === 'daily' && g.won },
-        { id: 'speedrun_3', name: '速通三连', desc: '速通模式连胜3局', icon: '🏃', category: 'challenge', condition: (s) => (s.challenges.speedrun?.best || 0) >= 3 },
-        { id: 'blind_win', name: '盲扫达人', desc: '完成盲扫挑战', icon: '🕶️', category: 'challenge', condition: (s) => (s.challenges.blind?.best || 0) >= 1 },
-        { id: 'time_attack_win', name: '限时冲刺', desc: '完成限时冲刺挑战', icon: '⏰', category: 'challenge', condition: (s) => (s.challenges.timeAttack?.best || 0) >= 1 },
+        { id: 'speedrun_3', name: '速通三连', desc: '速通模式连胜3局', icon: '🏃', category: 'challenge', condition: (s) => ((s.challenges.speedrun && s.challenges.speedrun.best) || 0) >= 3 },
+        { id: 'blind_win', name: '盲扫达人', desc: '完成盲扫挑战', icon: '🕶️', category: 'challenge', condition: (s) => ((s.challenges.blind && s.challenges.blind.best) || 0) >= 1 },
+        { id: 'time_attack_win', name: '限时冲刺', desc: '完成限时冲刺挑战', icon: '⏰', category: 'challenge', condition: (s) => ((s.challenges.timeAttack && s.challenges.timeAttack.best) || 0) >= 1 },
+        { id: 'fog_win', name: '迷雾行者', desc: '完成迷雾挑战', icon: '🌫️', category: 'challenge', condition: (s) => ((s.challenges.fog && s.challenges.fog.best) || 0) >= 1 },
+        { id: 'survival_win', name: '生存专家', desc: '完成生存挑战', icon: '❤️', category: 'challenge', condition: (s) => ((s.challenges.survival && s.challenges.survival.best) || 0) >= 1 },
+
+        // 战役模式
+        { id: 'campaign_first', name: '战役启程', desc: '完成战役第一关', icon: '🗺️', category: 'challenge', condition: (s) => (s.campaign && s.campaign.levelsCompleted) >= 1 },
+        { id: 'campaign_half', name: '半途而废', desc: '完成战役第8关', icon: '🏔️', category: 'challenge', condition: (s) => (s.campaign && s.campaign.levelsCompleted) >= 8 },
+        { id: 'campaign_clear', name: '战役通关', desc: '完成全部15关战役', icon: '👑', category: 'challenge', condition: (s) => (s.campaign && s.campaign.levelsCompleted) >= 15 },
+        { id: 'campaign_perfect', name: '完美战役', desc: '获得战役全部45颗星', icon: '⭐', category: 'challenge', condition: (s) => (s.campaign && s.campaign.totalStars) >= 45 },
+
+        // 生存模式
+        { id: 'survival_3', name: '生存者', desc: '生存模式达到第3关', icon: '🛡️', category: 'challenge', condition: (s) => (s.survival && s.survival.bestLevel) >= 3 },
+        { id: 'survival_10', name: '绝地求生', desc: '生存模式达到第10关', icon: '🔥', category: 'challenge', condition: (s) => (s.survival && s.survival.bestLevel) >= 10 },
+        { id: 'survival_combo', name: '连击大师', desc: '生存模式单次达到20连击', icon: '⚡', category: 'challenge', condition: (s, g) => g.won && g.challengeMode === 'survival' && g.maxCombo >= 20 },
+
+        // 道具使用
+        { id: 'powerup_first', name: '道具新手', desc: '首次使用道具', icon: '🧪', category: 'skill', condition: (s) => (s.powerups && (s.powerups.scannerUsed + s.powerups.shieldUsed + s.powerups.freezeUsed + s.powerups.heatmapUsed)) >= 1 },
+        { id: 'shield_save', name: '死里逃生', desc: '使用盾牌避免一次死亡', icon: '🛡️', category: 'skill', condition: (s) => (s.powerups && s.powerups.shieldUsed) >= 1 },
 
         // 特殊
         { id: 'custom_max', name: '极限挑战', desc: '在50x30的自定义地图上获胜', icon: '🗺️', category: 'special', condition: (s, g) => g.won && g.customSize && g.width >= 50 && g.height >= 30 },
@@ -58,7 +75,7 @@ const Achievements = (function() {
         { id: 'lucky_day', name: '幸运日', desc: '在周五13号完成一局', icon: '🍀', category: 'special', condition: (s, g) => { const d = new Date(); return g.won && d.getDay() === 5 && d.getDate() === 13; } },
         { id: 'all_difficulties', name: '全能选手', desc: '在所有预设难度都取得过胜利', icon: '🎖️', category: 'special', condition: (s) => {
             const d = s.byDifficulty;
-            return (d.beginner?.wins || 0) > 0 && (d.intermediate?.wins || 0) > 0 && (d.expert?.wins || 0) > 0 && (d.master?.wins || 0) > 0;
+            return ((d.beginner && d.beginner.wins) || 0) > 0 && ((d.intermediate && d.intermediate.wins) || 0) > 0 && ((d.expert && d.expert.wins) || 0) > 0 && ((d.master && d.master.wins) || 0) > 0;
         }},
     ];
 

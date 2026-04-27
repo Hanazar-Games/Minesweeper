@@ -305,11 +305,11 @@ class MinesweeperBoard {
         b.flaggedCount = this.flaggedCount;
         b.questionCount = this.questionCount;
         b.bv = this.bv;
-        b.mines = this.mines.map(m => ({ ...m }));
+        b.mines = this.mines.map(function(m) { return Object.assign({}, m); });
         
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
-                b.cells[y][x] = { ...this.cells[y][x] };
+                b.cells[y][x] = Object.assign({}, this.cells[y][x]);
             }
         }
         return b;

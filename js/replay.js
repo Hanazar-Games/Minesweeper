@@ -26,11 +26,11 @@ const Replay = (function() {
 
     function stop() {
         isRecording = false;
-        return [...recording];
+        return recording.slice();
     }
 
     function getRecording() {
-        return [...recording];
+        return recording.slice();
     }
 
     function exportJSON() {

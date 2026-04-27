@@ -56,12 +56,12 @@ const Settings = (function() {
         smoothScroll: true,
     };
 
-    let settings = { ...defaults };
+    let settings = Object.assign({}, defaults);
 
     function load() {
         const saved = Storage.get('settings');
         if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
-            settings = { ...defaults, ...saved };
+            settings = Object.assign({}, defaults, saved);
         }
         apply();
     }
@@ -94,7 +94,7 @@ const Settings = (function() {
             }
 
             // 对比度
-            const contrast = settings.contrast || 100;
+            const contrast = typeof settings.contrast === 'number' ? settings.contrast : 100;
             document.documentElement.style.filter = 'contrast(' + contrast + '%)';
 
             // 强调色
@@ -134,11 +134,11 @@ const Settings = (function() {
     }
 
     function all() {
-        return { ...settings };
+        return Object.assign({}, settings);
     }
 
     function reset() {
-        settings = { ...defaults };
+        settings = Object.assign({}, defaults);
         save();
         apply();
     }

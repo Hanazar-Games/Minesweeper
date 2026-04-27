@@ -9,6 +9,11 @@
     // 安全地隐藏启动画面
     function hideSplash() {
         try {
+            // 取消紧急后备定时器
+            if (window.__splashTimeout) {
+                clearTimeout(window.__splashTimeout);
+                window.__splashTimeout = null;
+            }
             var splash = document.getElementById('splash-screen');
             if (splash) {
                 splash.classList.add('hidden');
@@ -131,6 +136,8 @@
         } catch (e) {}
     }
 
-    console.log('%c💣 超级扫雷 v1.0', 'font-size:20px;font-weight:bold;color:#3b82f6;');
-    console.log('%c按 F 全屏 | M 静音 | P 暂停 | H 提示 | Ctrl+Z 撤销', 'color:#94a3b8;');
+    if (typeof console !== 'undefined' && console.log) {
+        console.log('%c💣 超级扫雷 v1.0', 'font-size:20px;font-weight:bold;color:#3b82f6;');
+        console.log('%c按 F 全屏 | M 静音 | P 暂停 | H 提示 | Ctrl+Z 撤销', 'color:#94a3b8;');
+    }
 })();

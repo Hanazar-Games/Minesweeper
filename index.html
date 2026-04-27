@@ -54,6 +54,15 @@
                 </div>
             </div>
         </div>
+        <script>
+            // 紧急后备：如果主 JS 加载失败，5 秒后自动隐藏启动画面并显示主菜单
+            window.__splashTimeout = setTimeout(function() {
+                var splash = document.getElementById('splash-screen');
+                if (splash) splash.classList.add('hidden');
+                var menu = document.getElementById('main-menu');
+                if (menu) menu.classList.remove('hidden');
+            }, 5000);
+        </script>
 
         <!-- 主菜单 -->
         <div id="main-menu" class="screen hidden">
@@ -72,6 +81,10 @@
                     <button class="menu-btn" data-action="continue" id="continue-btn" disabled>
                         <span class="btn-icon">🔄</span>
                         <span class="btn-text">继续游戏</span>
+                    </button>
+                    <button class="menu-btn" data-action="campaign">
+                        <span class="btn-icon">🗺️</span>
+                        <span class="btn-text">战役模式</span>
                     </button>
                     <button class="menu-btn" data-action="challenge">
                         <span class="btn-icon">🏆</span>
@@ -253,6 +266,45 @@
                     </div>
                     <button class="challenge-play">开始</button>
                 </div>
+                <div class="challenge-item" data-challenge="fog">
+                    <div class="challenge-icon">🌫️</div>
+                    <div class="challenge-info">
+                        <h3>迷雾挑战</h3>
+                        <p>视野受限，只有已揭示区域周围可见</p>
+                        <div class="challenge-stats">
+                            <span>完成次数: <b id="challenge-fog-best">0</b></span>
+                        </div>
+                    </div>
+                    <button class="challenge-play">开始</button>
+                </div>
+                <div class="challenge-item" data-challenge="survival">
+                    <div class="challenge-icon">❤️</div>
+                    <div class="challenge-info">
+                        <h3>生存挑战</h3>
+                        <p>3条命连续解关，难度逐关递增</p>
+                        <div class="challenge-stats">
+                            <span>完成次数: <b id="challenge-survival-best">0</b></span>
+                        </div>
+                    </div>
+                    <button class="challenge-play">开始</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 战役模式 -->
+        <div id="campaign-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>🗺️ 战役模式</h2>
+                <div class="campaign-header-stats">
+                    <span>总星数: <b id="campaign-stars">0/45</b></span>
+                </div>
+            </div>
+            <div class="campaign-container">
+                <div class="campaign-map" id="campaign-map">
+                    <!-- 动态生成关卡节点 -->
+                </div>
+                <button class="danger-btn" id="reset-campaign-btn">🗑️ 重置战役进度</button>
             </div>
         </div>
 
@@ -870,7 +922,22 @@
                 </div>
             </div>
         </div>
-<!-- 帮助 -->
+<!-- 新手教程 -->
+        <div id="tutorial-screen" class="screen hidden">
+            <div class="tutorial-container">
+                <div class="tutorial-progress">
+                    <div class="tutorial-progress-bar" id="tutorial-progress"></div>
+                </div>
+                <div id="tutorial-content"></div>
+                <div class="tutorial-nav">
+                    <button class="tutorial-btn" id="tutorial-prev">上一步</button>
+                    <button class="tutorial-btn primary" id="tutorial-next">下一步</button>
+                    <button class="tutorial-btn primary hidden" id="tutorial-finish">完成</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 帮助 -->
         <div id="help-screen" class="screen hidden">
             <div class="screen-header">
                 <button class="back-btn" data-back="main-menu">← 返回</button>
@@ -963,6 +1030,15 @@
             </div>
         </div>
 
+        <!-- 模式说明浮层 -->
+        <div id="mode-info-overlay" class="overlay hidden">
+            <div class="overlay-content small">
+                <h3 id="mode-info-title">模式名称</h3>
+                <p id="mode-info-desc">模式描述...</p>
+                <button class="overlay-btn" id="mode-info-ok-btn">开始游戏</button>
+            </div>
+        </div>
+
         <!-- 粒子容器 -->
         <div id="particles"></div>
 
@@ -976,6 +1052,8 @@
     <script src="js/stats.js"></script>
     <script src="js/board.js"></script>
     <script src="js/solver.js"></script>
+    <script src="js/campaign.js"></script>
+    <script src="js/powerups.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/i18n.js"></script>

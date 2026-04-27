@@ -76,9 +76,10 @@ const Solver = (function() {
         });
 
         // 概率估计：对边界格子使用组合计数
-        const frontierList = Array.from(frontier).map(k => {
-            const [x, y] = k.split(',').map(Number);
-            return { x, y };
+        const frontierList = [];
+        frontier.forEach(function(k) {
+            var parts = k.split(',');
+            frontierList.push({ x: parseInt(parts[0], 10), y: parseInt(parts[1], 10) });
         });
 
         // 简化的概率估计：对每个边界格子，统计包含它的约束中剩余雷数/未知格子的最小比值
@@ -158,7 +159,8 @@ const Solver = (function() {
         // 找概率最低的边界格子
         let bestKey = null;
         let bestProb = 101;
-        Object.entries(result.probMap).forEach(([key, prob]) => {
+        Object.keys(result.probMap).forEach(function(key) {
+            var prob = result.probMap[key];
             if (prob < bestProb) {
                 bestProb = prob;
                 bestKey = key;

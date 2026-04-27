@@ -26,6 +26,7 @@ const UI = (function() {
         bindChallengeEvents();
         bindDifficultyEvents();
         bindAchievementsEvents();
+        bindCampaignEvents();
         updateContinueButton();
         updateAchievementBadge();
     }
@@ -41,6 +42,8 @@ const UI = (function() {
             renderLeaderboard('beginner');
         } else if (name === 'difficulty-screen') {
             updateDifficultyBests();
+        } else if (name === 'campaign-screen') {
+            renderCampaign();
         }
     }
 
@@ -63,6 +66,9 @@ const UI = (function() {
                         break;
                     case 'challenge':
                         showScreen('challenge-screen');
+                        break;
+                    case 'campaign':
+                        showScreen('campaign-screen');
                         break;
                     case 'stats':
                         showScreen('stats-screen');
@@ -158,6 +164,19 @@ const UI = (function() {
             Game.autoFlag();
         });
 
+        // 道具按钮
+        var powerupBtns = document.querySelectorAll('.powerup-slot');
+        powerupBtns.forEach(function(btn, i) {
+            btn.addEventListener('click', function() {
+                var keys = ['scanner', 'shield', 'freeze', 'heatmap'];
+                var key = keys[i];
+                if (key) {
+                    AudioManager.playClick();
+                    Game.usePowerup(key);
+                }
+            });
+        });
+
         document.getElementById('save-btn').addEventListener('click', () => {
             AudioManager.playClick();
             if (Game.save()) {
@@ -190,7 +209,7 @@ const UI = (function() {
         // 更新信息栏
         document.getElementById('mine-count').textContent = 
             Math.max(0, board.mineCount - board.flaggedCount);
-        document.getElementById('timer').textContent = String(detail.time).padStart(3, '0');
+        document.getElementById('timer').textContent = padStart(String(detail.time), 3, '0');
         document.getElementById('click-count').textContent = detail.clicks;
         document.getElementById('undo-btn').disabled = !detail.canUndo;
 
@@ -233,6 +252,22 @@ const UI = (function() {
         } else {
             document.getElementById('3bv-display').textContent = '';
             document.getElementById('efficiency').textContent = '';
+        }
+
+        // 生存模式 HUD
+        updateSurvivalHUD(detail);
+
+        // 道具栏更新
+        updatePowerupHUD();
+
+        // 迷雾模式遮罩
+        updateFogOverlay(board);
+
+        // 热力图覆盖
+        if (typeof Powerups !== 'undefined' && Powerups.isHeatmapActive()) {
+            updateHeatmapOverlay(board);
+        } else {
+            clearHeatmapOverlay();
         }
     }
 
@@ -445,6 +480,14 @@ const UI = (function() {
             AudioManager.playClick();
             document.getElementById('hint-overlay').classList.add('hidden');
         });
+
+        var modeInfoOk = document.getElementById('mode-info-ok-btn');
+        if (modeInfoOk) {
+            modeInfoOk.addEventListener('click', function() {
+                AudioManager.playClick();
+                document.getElementById('mode-info-overlay').classList.add('hidden');
+            });
+        }
     }
 
     function bindKeyboardEvents() {
@@ -537,6 +580,19 @@ const UI = (function() {
                     if (soundToggle) {
                         soundToggle.checked = !soundToggle.checked;
                         Settings.set('sound', soundToggle.checked);
+                    }
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                    if (inGame) {
+                        var keys = ['scanner', 'shield', 'freeze', 'heatmap'];
+                        var idx = parseInt(e.key) - 1;
+                        if (keys[idx]) {
+                            e.preventDefault();
+                            Game.usePowerup(keys[idx]);
+                        }
                     }
                     break;
                 case 'escape':
@@ -1026,25 +1082,34 @@ const UI = (function() {
         });
     }
 
+    function padStart(str, len, ch) {
+        str = String(str);
+        while (str.length < len) str = ch + str;
+        return str;
+    }
+
     function renderStats() {
         const s = Stats.getAll();
-        document.getElementById('stat-total-games').textContent = s.totalGames;
-        document.getElementById('stat-wins').textContent = s.wins;
-        document.getElementById('stat-win-rate').textContent = Stats.getWinRate() + '%';
-        document.getElementById('stat-current-streak').textContent = s.currentStreak;
-        document.getElementById('stat-best-streak').textContent = s.bestStreak;
-        document.getElementById('stat-total-time').textContent = Math.floor(s.totalTime / 3600) + 'h';
-        document.getElementById('stat-cells-revealed').textContent = s.cellsRevealed.toLocaleString();
-        document.getElementById('stat-flags-placed').textContent = s.flagsPlaced.toLocaleString();
+        var el;
+        el = document.getElementById('stat-total-games'); if (el) el.textContent = s.totalGames;
+        el = document.getElementById('stat-wins'); if (el) el.textContent = s.wins;
+        el = document.getElementById('stat-win-rate'); if (el) el.textContent = Stats.getWinRate() + '%';
+        el = document.getElementById('stat-current-streak'); if (el) el.textContent = s.currentStreak;
+        el = document.getElementById('stat-best-streak'); if (el) el.textContent = s.bestStreak;
+        el = document.getElementById('stat-total-time'); if (el) el.textContent = Math.floor(s.totalTime / 3600) + 'h';
+        el = document.getElementById('stat-cells-revealed'); if (el) el.textContent = s.cellsRevealed.toLocaleString ? s.cellsRevealed.toLocaleString() : s.cellsRevealed;
+        el = document.getElementById('stat-flags-placed'); if (el) el.textContent = s.flagsPlaced.toLocaleString ? s.flagsPlaced.toLocaleString() : s.flagsPlaced;
 
         // 按难度表格
         const tbody = document.getElementById('stats-diff-body');
+        if (!tbody) return;
         tbody.innerHTML = '';
         const diffNames = {
             beginner: '初级', intermediate: '中级', 
             expert: '高级', master: '大师', custom: '自定义'
         };
-        Object.entries(s.byDifficulty).forEach(([key, d]) => {
+        Object.keys(s.byDifficulty).forEach(function(key) {
+            var d = s.byDifficulty[key];
             const tr = document.createElement('tr');
             const avgTime = d.wins > 0 ? Math.round(d.totalTime / d.wins) + 's' : '--';
             tr.innerHTML = `
@@ -1066,6 +1131,7 @@ const UI = (function() {
 
     function renderWinTrend(history) {
         const container = document.getElementById('win-trend-graph');
+        if (!container) return;
         container.innerHTML = '';
         const recent = history.slice(-10);
         if (recent.length === 0) {
@@ -1073,8 +1139,11 @@ const UI = (function() {
             return;
         }
 
-        const maxTime = Math.max(...recent.map(h => h.time), 1);
-        recent.forEach((h, i) => {
+        var maxTime = 1;
+        for (var i = 0; i < recent.length; i++) {
+            if (recent[i].time > maxTime) maxTime = recent[i].time;
+        }
+        recent.forEach(function(h, i) {
             const bar = document.createElement('div');
             bar.className = 'graph-bar';
             bar.style.height = (h.time / maxTime * 100) + '%';
@@ -1086,8 +1155,13 @@ const UI = (function() {
 
     function renderDiffPie(byDifficulty) {
         const container = document.getElementById('diff-pie-graph');
+        if (!container) return;
         container.innerHTML = '';
-        const total = Object.values(byDifficulty).reduce((s, d) => s + d.games, 0);
+        var total = 0;
+        var keys = Object.keys(byDifficulty);
+        for (var i = 0; i < keys.length; i++) {
+            total += byDifficulty[keys[i]].games;
+        }
         if (total === 0) {
             container.innerHTML = '<div class="text-center" style="color:var(--text-muted)">暂无数据</div>';
             return;
@@ -1110,31 +1184,57 @@ const UI = (function() {
         legend.style.gap = '0.5rem';
         legend.style.justifyContent = 'center';
 
-        Object.entries(byDifficulty).forEach(([key, d], i) => {
+        Object.keys(byDifficulty).forEach(function(key, i) {
+            var d = byDifficulty[key];
             if (d.games === 0) return;
-            const pct = (d.games / total * 100).toFixed(1);
+            var pct = (d.games / total * 100).toFixed(1);
             
             const item = document.createElement('span');
             item.style.fontSize = '0.8rem';
             item.style.color = 'var(--text-muted)';
-            item.innerHTML = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colors[i]};margin-right:4px;"></span>${diffNames[key]} ${pct}%`;
+            item.innerHTML = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + colors[i] + ';margin-right:4px;"></span>' + (diffNames[key] || key) + ' ' + pct + '%';
             legend.appendChild(item);
         });
 
         // 简化饼图：用 conic-gradient
-        const gradients = [];
-        Object.entries(byDifficulty).forEach(([key, d], i) => {
+        var gradients = [];
+        Object.keys(byDifficulty).forEach(function(key, i) {
+            var d = byDifficulty[key];
             if (d.games === 0) return;
-            const pct = d.games / total;
-            const start = currentAngle;
-            const end = currentAngle + pct * 360;
-            gradients.push(`${colors[i]} ${start}deg ${end}deg`);
+            var pct = d.games / total;
+            var start = currentAngle;
+            var end = currentAngle + pct * 360;
+            gradients.push(colors[i] + ' ' + start + 'deg ' + end + 'deg');
             currentAngle = end;
         });
-        pie.style.background = `conic-gradient(${gradients.join(', ')})`;
+        pie.style.background = 'conic-gradient(' + gradients.join(', ') + ')';
         
         container.appendChild(pie);
         container.appendChild(legend);
+    }
+
+    function renderLeaderboard(difficulty) {
+        const tbody = document.getElementById('leaderboard-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        const list = Stats.Leaderboard.get(difficulty);
+        
+        if (list.length === 0) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td colspan="5" style="color:var(--text-muted)">暂无记录</td>';
+            tbody.appendChild(tr);
+            return;
+        }
+
+        list.forEach(function(entry, i) {
+            const tr = document.createElement('tr');
+            var date = '';
+            try {
+                date = new Date(entry.date).toLocaleDateString('zh-CN');
+            } catch (e) { date = entry.date || ''; }
+            tr.innerHTML = '<td>' + (i + 1) + '</td><td>' + entry.player + '</td><td>' + entry.time + 's</td><td>' + date + '</td><td>' + entry.efficiency + '%</td>';
+            tbody.appendChild(tr);
+        });
     }
 
     function bindLeaderboardEvents() {
@@ -1148,32 +1248,6 @@ const UI = (function() {
         });
     }
 
-    function renderLeaderboard(difficulty) {
-        const tbody = document.getElementById('leaderboard-body');
-        tbody.innerHTML = '';
-        const list = Stats.Leaderboard.get(difficulty);
-        
-        if (list.length === 0) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="5" style="color:var(--text-muted)">暂无记录</td>`;
-            tbody.appendChild(tr);
-            return;
-        }
-
-        list.forEach((entry, i) => {
-            const tr = document.createElement('tr');
-            const date = new Date(entry.date).toLocaleDateString('zh-CN');
-            tr.innerHTML = `
-                <td>${i + 1}</td>
-                <td>${entry.player}</td>
-                <td>${entry.time}s</td>
-                <td>${date}</td>
-                <td>${entry.efficiency}%</td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
     function bindChallengeEvents() {
         document.querySelectorAll('.challenge-play').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1184,9 +1258,21 @@ const UI = (function() {
                 let diff = 'intermediate';
                 if (challenge === 'time-attack') diff = 'expert';
                 if (challenge === 'blind') diff = 'beginner';
+                if (challenge === 'fog') diff = 'intermediate';
+                if (challenge === 'survival') diff = 'intermediate';
                 
                 Game.start(diff, null, challenge);
                 showScreen('game-screen');
+                var infoMap = {
+                    'speedrun': { name: '竞速挑战', desc: '尽可能快地完成中级难度，连胜会被记录！' },
+                    'no-flag': { name: '无标记挑战', desc: '全程不能使用旗帜，考验你的记忆力！' },
+                    'blind': { name: '盲扫挑战', desc: '仅前5次揭示可见数字，之后全凭记忆！' },
+                    'time-attack': { name: '限时挑战', desc: '60秒内完成高级难度，与时间赛跑！' },
+                    'fog': { name: '迷雾挑战', desc: '视野受限，只有已揭示区域周围可见！' },
+                    'survival': { name: '生存挑战', desc: '连续解关，3条命，难度逐关递增！' }
+                };
+                var info = infoMap[challenge];
+                if (info) showModeInfo(info);
             });
         });
 
@@ -1198,9 +1284,12 @@ const UI = (function() {
             'challenge-no-flag-best': (c.noFlag && c.noFlag.best) || 0,
             'challenge-blind-best': (c.blind && c.blind.best) || 0,
             'challenge-time-attack-best': (c.timeAttack && c.timeAttack.best) || 0,
+            'challenge-fog-best': (c.fog && c.fog.best) || 0,
+            'challenge-survival-best': (c.survival && c.survival.best) || 0,
         };
-        Object.entries(elMap).forEach(([id, val]) => {
-            const el = document.getElementById(id);
+        Object.keys(elMap).forEach(function(id) {
+            var val = elMap[id];
+            var el = document.getElementById(id);
             if (el) el.textContent = val;
         });
     }
@@ -1318,8 +1407,10 @@ const UI = (function() {
         const badge = document.getElementById('achievement-badge');
         if (!badge) return;
         // 如果还有未解锁的成就，显示红点
-        const progress = Achievements.getProgress();
-        badge.classList.toggle('hidden', progress.unlocked >= progress.total);
+        if (typeof Achievements !== 'undefined' && Achievements.getProgress) {
+            const progress = Achievements.getProgress();
+            badge.classList.toggle('hidden', progress.unlocked >= progress.total);
+        }
     }
 
     function toggleFullscreen() {
@@ -1344,14 +1435,208 @@ const UI = (function() {
         document.getElementById('go-eff').textContent = d.efficiency + '%';
         
         const recordEl = document.getElementById('new-record');
-        recordEl.classList.toggle('hidden', !d.isNewRecord);
+        if (recordEl) recordEl.classList.toggle('hidden', !d.isNewRecord);
         
         document.getElementById('gameover-overlay').classList.remove('hidden');
+        updateAchievementBadge();
     });
+
+    // 战役完成事件
+    document.addEventListener('campaignComplete', function(e) {
+        var d = e.detail;
+        showHintOverlay('关卡完成！获得 ' + d.stars + ' 颗星⭐');
+    });
+
+    // 生存进阶事件
+    document.addEventListener('survivalAdvance', function(e) {
+        var d = e.detail;
+        showHintOverlay('进入第 ' + (d.level + 1) + ' 关！生命: ' + '❤️'.repeat(d.lives));
+    });
+
+    // 扣命事件
+    document.addEventListener('lifeLost', function(e) {
+        var d = e.detail;
+        showHintOverlay('💔 失去一条命！剩余: ' + '❤️'.repeat(d.lives));
+    });
+
+    // 时间冻结事件
+    document.addEventListener('freezeTime', function(e) {
+        showHintOverlay('⏱️ 时间冻结 10 秒！');
+    });
+
+    function updateHeatmapOverlay(board) {
+        if (!board || !cellElements.length) return;
+        var probs = Powerups.getHeatmapData(board);
+        if (!probs) return;
+        for (var y = 0; y < board.height; y++) {
+            for (var x = 0; x < board.width; x++) {
+                var el = cellElements[y] && cellElements[y][x];
+                if (!el) continue;
+                var cell = board.cells[y][x];
+                if (cell.isRevealed || cell.isFlagged) continue;
+                var key = x + ',' + y;
+                var p = probs.get ? probs.get(key) : probs[key];
+                if (p !== undefined) {
+                    el.classList.remove('heat-low', 'heat-mid', 'heat-high');
+                    if (p >= 0.7) el.classList.add('heat-high');
+                    else if (p >= 0.3) el.classList.add('heat-mid');
+                    else el.classList.add('heat-low');
+                }
+            }
+        }
+    }
+
+    function clearHeatmapOverlay() {
+        if (!cellElements.length) return;
+        for (var y = 0; y < cellElements.length; y++) {
+            for (var x = 0; x < cellElements[y].length; x++) {
+                var el = cellElements[y][x];
+                if (el) el.classList.remove('heat-low', 'heat-mid', 'heat-high');
+            }
+        }
+    }
+
+    // 道具使用事件
+    document.addEventListener('powerupUsed', function(e) {
+        var d = e.detail;
+        updatePowerupHUD();
+    });
+
+    function renderCampaign() {
+        var container = document.getElementById('campaign-map');
+        if (!container) return;
+        container.innerHTML = '';
+
+        var stats = Campaign.getStats();
+        var el = document.getElementById('campaign-stars');
+        if (el) el.textContent = stats.totalStars + '/' + stats.maxStars;
+
+        Campaign.levels.forEach(function(level) {
+            var progress = Campaign.getProgress(level.id);
+            var node = document.createElement('div');
+            node.className = 'campaign-node';
+            if (!progress.unlocked) node.classList.add('locked');
+            if (progress.completed) node.classList.add('completed');
+
+            var starsHtml = '';
+            for (var i = 0; i < 3; i++) {
+                starsHtml += i < progress.stars ? '⭐' : '☆';
+            }
+
+            node.innerHTML = `
+                <div class="campaign-node-num">${level.id}</div>
+                <div class="campaign-node-name">${level.name}</div>
+                <div class="campaign-node-stars">${starsHtml}</div>
+            `;
+
+            if (progress.unlocked) {
+                node.addEventListener('click', function() {
+                    AudioManager.playClick();
+                    Game.startCampaignLevel(level.id);
+                    showScreen('game-screen');
+                    showModeInfo(level);
+                });
+            }
+
+            container.appendChild(node);
+        });
+    }
+
+    function bindCampaignEvents() {
+        var resetBtn = document.getElementById('reset-campaign-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                if (confirm('确定要重置战役进度吗？所有关卡将重新锁定。')) {
+                    Campaign.resetProgress();
+                    renderCampaign();
+                }
+            });
+        }
+    }
+
+    function showModeInfo(level) {
+        var overlay = document.getElementById('mode-info-overlay');
+        var title = document.getElementById('mode-info-title');
+        var desc = document.getElementById('mode-info-desc');
+        if (!overlay || !title || !desc) return;
+        title.textContent = level.name;
+        desc.textContent = level.desc || '';
+        overlay.classList.remove('hidden');
+    }
+
+    function updatePowerupHUD() {
+        if (typeof Powerups === 'undefined') return;
+        var p = Powerups.getAll();
+        var bar = document.getElementById('powerup-bar');
+        if (!bar) return;
+        var keys = ['scanner', 'shield', 'freeze', 'heatmap'];
+        keys.forEach(function(key, i) {
+            var slot = document.getElementById('powerup-slot-' + (i + 1));
+            if (!slot) return;
+            var count = Powerups.getCount(key);
+            var info = Powerups.POWERUPS[key];
+            slot.innerHTML = `
+                <span class="powerup-icon">${info.icon}</span>
+                <span class="powerup-count">${count}</span>
+                <span class="powerup-key">${info.key}</span>
+            `;
+            slot.classList.toggle('empty', count <= 0);
+        });
+    }
+
+    function updateSurvivalHUD(detail) {
+        var livesEl = document.getElementById('survival-lives');
+        var comboEl = document.getElementById('survival-combo');
+        var scoreEl = document.getElementById('survival-score');
+        var levelEl = document.getElementById('survival-level');
+
+        if (livesEl) {
+            livesEl.textContent = '❤️'.repeat(detail.lives || 0) + '🖤'.repeat((detail.maxLives || 3) - (detail.lives || 0));
+            livesEl.style.display = detail.challengeMode === 'survival' ? 'inline' : 'none';
+        }
+        if (comboEl) {
+            comboEl.textContent = 'Combo: ' + (detail.combo || 0);
+            comboEl.style.display = (detail.combo > 0 && detail.challengeMode === 'survival') ? 'inline' : 'none';
+        }
+        if (scoreEl) {
+            scoreEl.textContent = 'Score: ' + (detail.survivalScore || 0);
+            scoreEl.style.display = detail.challengeMode === 'survival' ? 'inline' : 'none';
+        }
+        if (levelEl) {
+            levelEl.textContent = 'Lv.' + ((detail.survivalLevel || 0) + 1);
+            levelEl.style.display = detail.challengeMode === 'survival' ? 'inline' : 'none';
+        }
+    }
+
+    function updateFogOverlay(board) {
+        if (!board || !cellElements.length) return;
+        var isFog = Game.getState().challengeMode === 'fog';
+        for (var y = 0; y < board.height; y++) {
+            for (var x = 0; x < board.width; x++) {
+                var el = cellElements[y] && cellElements[y][x];
+                if (!el) continue;
+                var cell = board.cells[y][x];
+                if (isFog && !cell.isRevealed) {
+                    // 检查是否有已揭示的邻居
+                    var hasRevealedNeighbor = false;
+                    board.forEachNeighbor(x, y, function(nx, ny) {
+                        if (board.cells[ny] && board.cells[ny][nx] && board.cells[ny][nx].isRevealed) {
+                            hasRevealedNeighbor = true;
+                        }
+                    });
+                    el.classList.toggle('fog', !hasRevealedNeighbor);
+                } else {
+                    el.classList.remove('fog');
+                }
+            }
+        }
+    }
 
     return {
         init,
         showScreen,
-        updateContinueButton
+        updateContinueButton,
+        updateAchievementBadge
     };
 })();
