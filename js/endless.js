@@ -101,6 +101,19 @@ const Endless = (function() {
         };
     }
 
+    function loadState(state) {
+        if (!state) return;
+        level = state.level || 1;
+        hp = state.hp || 10;
+        maxHp = state.maxHp || 10;
+        score = state.score || 0;
+        totalRevealed = state.totalRevealed || 0;
+        spawnX = state.spawnX || -1;
+        spawnY = state.spawnY || -1;
+        highestLevel = state.highestLevel || level;
+        maxHpReached = state.maxHpReached || maxHp;
+    }
+
     return {
         init: init,
         getBoardConfig: getBoardConfig,
@@ -112,7 +125,8 @@ const Endless = (function() {
         heal: heal,
         addScore: addScore,
         addRevealed: addRevealed,
-        getState: getState
+        getState: getState,
+        loadState: loadState
     };
 })();
 

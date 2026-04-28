@@ -74,6 +74,11 @@ const Game = (function() {
         maxCombo = 0;
         freezeUntil = 0;
         campaignLevelId = null;
+        // 统一重置所有模式专属状态，防止模式间污染
+        survivalLevel = 0;
+        lives = 3;
+        maxLives = 3;
+        survivalScore = 0;
 
         if (challenge === 'blind') {
             challengeData.revealsLeft = 5;
@@ -186,25 +191,27 @@ const Game = (function() {
     }
 
     function updateUI() {
-        const ev = new CustomEvent('gameUpdate', {
-            detail: {
-                board,
-                time,
-                clicks,
-                state: gameState,
-                difficulty,
-                challengeMode,
-                canUndo: history.length > 0,
-                seed: currentSeed,
-                survivalLevel,
-                lives,
-                maxLives,
-                combo,
-                maxCombo,
-                survivalScore,
-                campaignLevelId
-            }
-        });
+        const detail = {
+            board,
+            time,
+            clicks,
+            state: gameState,
+            difficulty,
+            challengeMode,
+            canUndo: history.length > 0,
+            seed: currentSeed,
+            survivalLevel,
+            lives,
+            maxLives,
+            combo,
+            maxCombo,
+            survivalScore,
+            campaignLevelId
+        };
+        if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+            detail.endlessState = Endless.getState();
+        }
+        const ev = new CustomEvent('gameUpdate', { detail: detail });
         document.dispatchEvent(ev);
     }
 
@@ -270,15 +277,11 @@ const Game = (function() {
                         board = prev.board;
                         time = prev.time;
                         clicks = prev.clicks;
+                        gameState = prev.state;
                     }
                     updateUI();
                     if (hp <= 0) {
-                        // 血量为0，触发无尽模式结束
-                        document.dispatchEvent(new CustomEvent('endlessGameOver', {
-                            detail: { score: Endless.getState().endlessScore }
-                        }));
-                        gameState = 'lost';
-                        stopTimer();
+                        lose();
                     }
                 }
                 // 盾牌保护
@@ -358,7 +361,21 @@ const Game = (function() {
         if (result.changed) {
             if (result.hitMine) {
                 // chord 触雷不应用盾牌（盾牌只保护直接 reveal）
-                if (challengeMode === 'survival' && lives > 1) {
+                if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+                    var hp = Endless.takeDamage(1);
+                    AudioManager.playLose();
+                    if (history.length > 0) {
+                        var prev = history.pop();
+                        board = prev.board;
+                        time = prev.time;
+                        clicks = prev.clicks;
+                        gameState = prev.state;
+                    }
+                    updateUI();
+                    if (hp <= 0) {
+                        lose();
+                    }
+                } else if (challengeMode === 'survival' && lives > 1) {
                     lives--;
                     combo = 0;
                     AudioManager.playLose();
@@ -367,6 +384,7 @@ const Game = (function() {
                         board = prev.board;
                         time = prev.time;
                         clicks = prev.clicks;
+                        gameState = prev.state;
                     }
                     document.dispatchEvent(new CustomEvent('lifeLost', {
                         detail: { lives: lives, maxLives: maxLives }
@@ -420,6 +438,28 @@ const Game = (function() {
         board.revealAll();
         
         const efficiency = clicks > 0 ? Math.round((board.bv / clicks) * 100) : 0;
+        
+        // 无尽模式：跳过普通统计和排行榜，直接处理进阶
+        if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+            Achievements.check({
+                won: true, time, clicks, efficiency, difficulty, challengeMode,
+                noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
+                customSize: difficulty === 'custom',
+                width: board ? board.width : null, height: board ? board.height : null
+            });
+            Replay.stop();
+            Endless.nextLevel();
+            AudioManager.playLevelUp();
+            document.dispatchEvent(new CustomEvent('endlessAdvance', {
+                detail: Endless.getState()
+            }));
+            setTimeout(function() {
+                if (gameState === 'won') {
+                    startEndlessLevel();
+                }
+            }, 2000);
+            return;
+        }
         
         Stats.recordGame(difficulty, true, time, clicks, board.bv, efficiency);
         Stats.recordCellsRevealed(board.revealedCount);
@@ -495,21 +535,6 @@ const Game = (function() {
             return;
         }
 
-        // 无尽模式：进入下一层
-        if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
-            Endless.nextLevel();
-            AudioManager.playLevelUp();
-            document.dispatchEvent(new CustomEvent('endlessAdvance', {
-                detail: Endless.getState()
-            }));
-            setTimeout(function() {
-                if (gameState === 'won') {
-                    startEndlessLevel();
-                }
-            }, 2000);
-            return;
-        }
-
         // 挑战模式统计
         if (challengeMode) {
             const key = normalizeChallengeKey(challengeMode);
@@ -553,8 +578,6 @@ const Game = (function() {
         board.revealAll();
 
         const efficiency = clicks > 0 ? Math.round((board.bv / clicks) * 100) : 0;
-        Stats.recordGame(difficulty, false, time, clicks, board.bv, efficiency);
-        Stats.recordCellsRevealed(board.revealedCount);
 
         // 限时模式超时音效
         if (challengeData.timeLimit && time >= challengeData.timeLimit) {
@@ -562,6 +585,23 @@ const Game = (function() {
         } else {
             AudioManager.playLose();
         }
+
+        // 无尽模式：跳过普通统计，使用特殊结算
+        if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+            var es = Endless.getState();
+            showGameOver(false, time, board.bv, efficiency, false);
+            Replay.stop();
+            Achievements.check({
+                won: false, time, clicks, efficiency, difficulty, challengeMode,
+                noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
+                customSize: difficulty === 'custom',
+                width: board ? board.width : null, height: board ? board.height : null
+            });
+            return;
+        }
+
+        Stats.recordGame(difficulty, false, time, clicks, board.bv, efficiency);
+        Stats.recordCellsRevealed(board.revealedCount);
 
         showGameOver(false, time, board.bv, efficiency, false);
         Replay.stop();
@@ -764,12 +804,7 @@ const Game = (function() {
 
         // 恢复无尽模式状态
         if (challengeMode === 'endless' && data.endlessState && typeof Endless !== 'undefined') {
-            var es = data.endlessState;
-            Endless.init();
-            for (var i = 1; i < es.level; i++) {
-                Endless.nextLevel();
-            }
-            // 无法精确恢复 hp/score，但从第1关重新开始
+            Endless.loadState(data.endlessState);
         }
 
         const b = data.board;

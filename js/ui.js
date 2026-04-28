@@ -73,6 +73,9 @@ const UI = (function() {
                         Game.start('intermediate', null, 'endless');
                         showScreen('game-screen');
                         break;
+                    case 'difficulty':
+                        showScreen('difficulty-screen');
+                        break;
                     case 'challenge':
                         showScreen('challenge-screen');
                         break;
@@ -162,7 +165,7 @@ const UI = (function() {
         document.getElementById('face-btn').addEventListener('click', () => {
             AudioManager.playClick();
             const state = Game.getState();
-            Game.start(state.difficulty);
+            Game.start(state.difficulty, null, state.challengeMode, state.seed);
         });
 
         document.getElementById('menu-btn').addEventListener('click', () => {
@@ -257,8 +260,9 @@ const UI = (function() {
 
         // 进度条
         const total = board.width * board.height;
-        const progress = ((board.revealedCount / (total - board.mineCount)) * 100);
-        document.getElementById('progress-fill').style.width = progress + '%';
+        const safeCells = total - board.mineCount;
+        const progress = safeCells > 0 ? ((board.revealedCount / safeCells) * 100) : 0;
+        document.getElementById('progress-fill').style.width = Math.min(100, Math.max(0, progress)) + '%';
 
         // 难度标签
         const diffNames = {
@@ -338,6 +342,7 @@ const UI = (function() {
                 // 触摸事件（长按标记）
                 cell.addEventListener('touchstart', handleTouchStart, { passive: false });
                 cell.addEventListener('touchend', handleTouchEnd, { passive: false });
+                cell.addEventListener('touchcancel', handleTouchCancel, { passive: false });
 
                 container.appendChild(cell);
                 row.push(cell);
@@ -430,13 +435,16 @@ const UI = (function() {
     }
 
     function handleTouchStart(e) {
+        e.preventDefault();
         if (!Settings.get('longPress')) return;
         const x = parseInt(e.target.dataset.x);
         const y = parseInt(e.target.dataset.y);
         if (isNaN(x) || isNaN(y)) return;
 
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+        }
         longPressTimer = setTimeout(() => {
-            e.preventDefault();
             AudioManager.playClick();
             Game.flag(x, y);
             longPressTimer = null;
@@ -444,6 +452,7 @@ const UI = (function() {
     }
 
     function handleTouchEnd(e) {
+        e.preventDefault();
         if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
@@ -454,6 +463,13 @@ const UI = (function() {
                 AudioManager.playReveal();
                 Game.reveal(x, y);
             }
+        }
+    }
+
+    function handleTouchCancel(e) {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
         }
     }
 
@@ -512,7 +528,7 @@ const UI = (function() {
             AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
             const state = Game.getState();
-            Game.start(state.difficulty, null, null, state.seed);
+            Game.start(state.difficulty, null, state.challengeMode, state.seed);
         });
 
         document.getElementById('hint-ok-btn').addEventListener('click', () => {
@@ -1534,12 +1550,6 @@ const UI = (function() {
     document.addEventListener('lifeLost', function(e) {
         var d = e.detail;
         showHintOverlay('💔 失去一条命！剩余: ' + '❤️'.repeat(d.lives));
-    });
-
-    // 无尽游戏结束事件
-    document.addEventListener('endlessGameOver', function(e) {
-        var d = e.detail;
-        showGameOver(false, 0, 0, 0, false, 'endless');
     });
 
     // 时间冻结事件
