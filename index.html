@@ -95,6 +95,10 @@
                         <span class="btn-icon">🎚️</span>
                         <span class="btn-text">选择难度</span>
                     </button>
+                    <button class="menu-btn" data-action="puzzle">
+                        <span class="btn-icon">🧩</span>
+                        <span class="btn-text">谜题工坊</span>
+                    </button>
                     <button class="menu-btn" data-action="campaign">
                         <span class="btn-icon">🗺️</span>
                         <span class="btn-text">战役模式</span>
@@ -425,6 +429,54 @@
                     <!-- 动态生成关卡节点 -->
                 </div>
                 <button class="danger-btn" id="reset-campaign-btn">🗑️ 重置战役进度</button>
+            </div>
+        </div>
+
+        <!-- 谜题工坊 -->
+        <div id="puzzle-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>🧩 谜题工坊</h2>
+            </div>
+            <div class="puzzle-container">
+                <!-- 创建谜题面板 -->
+                <div class="puzzle-panel">
+                    <h3>创建谜题</h3>
+                    <div class="puzzle-size-controls">
+                        <label>宽度: <input type="number" id="puzzle-width" value="9" min="5" max="16"></label>
+                        <label>高度: <input type="number" id="puzzle-height" value="9" min="5" max="16"></label>
+                        <button class="tool-btn" id="puzzle-resize-btn">应用尺寸</button>
+                    </div>
+                    <div class="puzzle-toolbar">
+                        <button class="tool-btn" id="puzzle-clear-btn">🗑️ 清空</button>
+                        <button class="tool-btn" id="puzzle-random-btn">🎲 随机</button>
+                        <button class="tool-btn" id="puzzle-test-btn">✅ 测试可解性</button>
+                    </div>
+                    <div id="puzzle-editor-board" class="puzzle-editor-board"></div>
+                    <div class="puzzle-info">
+                        <span id="puzzle-mine-count">地雷: 0</span>
+                        <span id="puzzle-valid-status"></span>
+                    </div>
+                    <div class="puzzle-share">
+                        <button class="primary-btn" id="puzzle-share-btn">📋 生成分享码</button>
+                        <input type="text" id="puzzle-share-code" readonly placeholder="分享码将显示在这里">
+                        <button class="tool-btn" id="puzzle-play-btn" disabled>▶️ 试玩此谜题</button>
+                    </div>
+                </div>
+                <!-- 游玩谜题面板 -->
+                <div class="puzzle-panel">
+                    <h3>游玩谜题</h3>
+                    <div class="puzzle-input-group">
+                        <input type="text" id="puzzle-input-code" placeholder="输入分享码 (例如: SM...)" maxlength="50">
+                        <button class="primary-btn" id="puzzle-load-btn">📥 加载</button>
+                    </div>
+                    <div class="puzzle-saved">
+                        <h4>我的收藏</h4>
+                        <div id="puzzle-saved-list" class="puzzle-saved-list">
+                            <p class="puzzle-empty">暂无收藏的谜题</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1177,6 +1229,7 @@
     <script src="js/campaign.js"></script>
     <script src="js/powerups.js"></script>
     <script src="js/endless.js"></script>
+    <script src="js/puzzle.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/i18n.js"></script>

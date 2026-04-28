@@ -984,6 +984,37 @@ const Game = (function() {
         updateUI();
     }
 
+    function startPuzzle(puzzleBoard) {
+        if (!puzzleBoard) return;
+        difficulty = 'puzzle';
+        challengeMode = 'puzzle';
+        challengeData = {};
+        board = puzzleBoard;
+        currentSeed = null;
+        gameState = 'idle';
+        time = 0;
+        clicks = 0;
+        history = [];
+        chordCount = 0;
+        usedUndo = false;
+        usedFlags = false;
+        usedHint = false;
+        usedPowerup = false;
+        combo = 0;
+        maxCombo = 0;
+        freezeUntil = 0;
+        campaignLevelId = null;
+        survivalLevel = 0;
+        lives = 3;
+        maxLives = 3;
+        survivalScore = 0;
+        speedrunStreak = 0;
+        if (typeof Powerups !== 'undefined') Powerups.initGame();
+        Replay.start();
+        stopTimer();
+        updateUI();
+    }
+
     function usePowerup(id) {
         if (gameState !== 'playing' && gameState !== 'idle') return false;
         if (typeof Powerups === 'undefined') return false;
@@ -1020,6 +1051,7 @@ const Game = (function() {
         startCampaignLevel,
         startSurvivalLevel,
         startEndlessLevel,
+        startPuzzle,
         usePowerup,
         get survivalLevel() { return survivalLevel; },
         get lives() { return lives; },

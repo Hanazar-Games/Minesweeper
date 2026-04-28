@@ -27,6 +27,7 @@ const UI = (function() {
         bindDifficultyEvents();
         bindAchievementsEvents();
         bindCampaignEvents();
+        bindPuzzleEvents();
         updateContinueButton();
         updateAchievementBadge();
     }
@@ -75,6 +76,10 @@ const UI = (function() {
                         break;
                     case 'difficulty':
                         showScreen('difficulty-screen');
+                        break;
+                    case 'puzzle':
+                        showScreen('puzzle-screen');
+                        initPuzzleEditor();
                         break;
                     case 'challenge':
                         showScreen('challenge-screen');
@@ -271,7 +276,8 @@ const UI = (function() {
             expert: '高级',
             master: '大师',
             giant: '巨型',
-            custom: '自定义'
+            custom: '自定义',
+            puzzle: '谜题'
         };
         document.getElementById('difficulty-label').textContent = 
             diffNames[detail.difficulty] || detail.difficulty;
@@ -1161,7 +1167,7 @@ const UI = (function() {
         tbody.innerHTML = '';
         const diffNames = {
             beginner: '初级', intermediate: '中级', 
-            expert: '高级', master: '大师', custom: '自定义'
+            expert: '高级', master: '大师', custom: '自定义', puzzle: '谜题'
         };
         Object.keys(s.byDifficulty).forEach(function(key) {
             var d = s.byDifficulty[key];
@@ -1226,7 +1232,7 @@ const UI = (function() {
         let currentAngle = 0;
         const diffNames = {
             beginner: '初级', intermediate: '中级', 
-            expert: '高级', master: '大师', custom: '自定义'
+            expert: '高级', master: '大师', custom: '自定义', puzzle: '谜题'
         };
 
         const pie = document.createElement('div');
@@ -1750,6 +1756,255 @@ const UI = (function() {
                 }
             }
         }
+    }
+
+    // ==================== 谜题工坊 ====================
+
+    var puzzleEditorElements = [];
+
+    function initPuzzleEditor() {
+        if (typeof Puzzle === 'undefined') return;
+        Puzzle.initEditor(9, 9);
+        document.getElementById('puzzle-width').value = 9;
+        document.getElementById('puzzle-height').value = 9;
+        document.getElementById('puzzle-share-code').value = '';
+        document.getElementById('puzzle-play-btn').disabled = true;
+        document.getElementById('puzzle-valid-status').textContent = '';
+        renderPuzzleEditor();
+        loadSavedPuzzles();
+    }
+
+    function renderPuzzleEditor() {
+        if (typeof Puzzle === 'undefined') return;
+        var container = document.getElementById('puzzle-editor-board');
+        if (!container) return;
+        var state = Puzzle.getEditorState();
+        var w = state.width;
+        var h = state.height;
+        container.innerHTML = '';
+        container.style.gridTemplateColumns = 'repeat(' + w + ', 28px)';
+        puzzleEditorElements = [];
+
+        for (var y = 0; y < h; y++) {
+            var row = [];
+            for (var x = 0; x < w; x++) {
+                var cell = document.createElement('div');
+                cell.className = 'puzzle-cell';
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+                updatePuzzleCell(cell, x, y);
+                cell.addEventListener('mousedown', handlePuzzleCellMouseDown);
+                cell.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+                container.appendChild(cell);
+                row.push(cell);
+            }
+            puzzleEditorElements.push(row);
+        }
+        document.getElementById('puzzle-mine-count').textContent = '地雷: ' + state.mineCount;
+    }
+
+    function updatePuzzleCell(el, x, y) {
+        if (!el) return;
+        var hasMine = Puzzle.hasMine(x, y);
+        var num = hasMine ? -1 : Puzzle.getCellNumber(x, y);
+        el.textContent = '';
+        el.className = 'puzzle-cell';
+        if (hasMine) {
+            el.classList.add('mine');
+            el.textContent = '💣';
+        } else if (num > 0) {
+            el.classList.add('number');
+            el.textContent = num;
+            var numColors = ['', 'blue', 'green', 'red', 'purple', 'maroon', 'turquoise', 'black', 'gray'];
+            el.style.color = numColors[num] || 'black';
+        }
+    }
+
+    function handlePuzzleCellMouseDown(e) {
+        e.preventDefault();
+        if (typeof Puzzle === 'undefined') return;
+        var x = parseInt(e.target.dataset.x);
+        var y = parseInt(e.target.dataset.y);
+        if (isNaN(x) || isNaN(y)) return;
+        if (e.button === 0) {
+            Puzzle.toggleMine(x, y);
+        } else if (e.button === 2) {
+            Puzzle.toggleRevealed(x, y);
+        }
+        updatePuzzleCell(e.target, x, y);
+        // 更新相邻格子的数字显示
+        var state = Puzzle.getEditorState();
+        for (var dy = -1; dy <= 1; dy++) {
+            for (var dx = -1; dx <= 1; dx++) {
+                var nx = x + dx;
+                var ny = y + dy;
+                if (nx < 0 || nx >= state.width || ny < 0 || ny >= state.height) continue;
+                if (puzzleEditorElements[ny] && puzzleEditorElements[ny][nx]) {
+                    updatePuzzleCell(puzzleEditorElements[ny][nx], nx, ny);
+                }
+            }
+        }
+        document.getElementById('puzzle-mine-count').textContent = '地雷: ' + state.mineCount;
+        document.getElementById('puzzle-valid-status').textContent = '';
+        document.getElementById('puzzle-play-btn').disabled = true;
+    }
+
+    function bindPuzzleEvents() {
+        var resizeBtn = document.getElementById('puzzle-resize-btn');
+        if (resizeBtn) {
+            resizeBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var w = parseInt(document.getElementById('puzzle-width').value) || 9;
+                var h = parseInt(document.getElementById('puzzle-height').value) || 9;
+                Puzzle.setEditorSize(w, h);
+                renderPuzzleEditor();
+            });
+        }
+
+        var clearBtn = document.getElementById('puzzle-clear-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                Puzzle.clearAll();
+                renderPuzzleEditor();
+            });
+        }
+
+        var randomBtn = document.getElementById('puzzle-random-btn');
+        if (randomBtn) {
+            randomBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var w = parseInt(document.getElementById('puzzle-width').value) || 9;
+                var h = parseInt(document.getElementById('puzzle-height').value) || 9;
+                Puzzle.randomPuzzle(w, h, 0.15);
+                renderPuzzleEditor();
+            });
+        }
+
+        var testBtn = document.getElementById('puzzle-test-btn');
+        if (testBtn) {
+            testBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var result = Puzzle.validatePuzzle();
+                var statusEl = document.getElementById('puzzle-valid-status');
+                if (result.valid) {
+                    statusEl.textContent = '✅ ' + result.reason;
+                    statusEl.style.color = '#22c55e';
+                    document.getElementById('puzzle-play-btn').disabled = false;
+                } else {
+                    statusEl.textContent = '⚠️ ' + result.reason;
+                    statusEl.style.color = '#ef4444';
+                    document.getElementById('puzzle-play-btn').disabled = true;
+                }
+            });
+        }
+
+        var shareBtn = document.getElementById('puzzle-share-btn');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var code = Puzzle.encodePuzzle();
+                var input = document.getElementById('puzzle-share-code');
+                input.value = code;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(code).then(function() {
+                        showHintOverlay('分享码已复制到剪贴板！');
+                    }).catch(function() {
+                        showHintOverlay(code);
+                    });
+                } else {
+                    showHintOverlay(code);
+                }
+            });
+        }
+
+        var playBtn = document.getElementById('puzzle-play-btn');
+        if (playBtn) {
+            playBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var result = Puzzle.validatePuzzle();
+                if (!result.valid) {
+                    showHintOverlay('谜题无效，请先通过测试');
+                    return;
+                }
+                var board = Puzzle.createPlayableBoard();
+                Game.startPuzzle(board);
+                showScreen('game-screen');
+            });
+        }
+
+        var loadBtn = document.getElementById('puzzle-load-btn');
+        if (loadBtn) {
+            loadBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var code = document.getElementById('puzzle-input-code').value.trim();
+                var data = Puzzle.decodePuzzle(code);
+                if (!data) {
+                    showHintOverlay('无效的分享码！');
+                    return;
+                }
+                Puzzle.loadFromData(data);
+                // 保存到收藏
+                savePuzzleToCollection(code);
+                var board = Puzzle.createPlayableBoard();
+                Game.startPuzzle(board);
+                showScreen('game-screen');
+            });
+        }
+    }
+
+    function savePuzzleToCollection(code) {
+        var list = Storage.get('puzzle_collection') || [];
+        // 去重，放到最前面
+        list = list.filter(function(c) { return c !== code; });
+        list.unshift(code);
+        if (list.length > 20) list = list.slice(0, 20);
+        Storage.set('puzzle_collection', list);
+        loadSavedPuzzles();
+    }
+
+    function loadSavedPuzzles() {
+        var list = Storage.get('puzzle_collection') || [];
+        var container = document.getElementById('puzzle-saved-list');
+        if (!container) return;
+        if (list.length === 0) {
+            container.innerHTML = '<p class="puzzle-empty">暂无收藏的谜题</p>';
+            return;
+        }
+        container.innerHTML = '';
+        list.forEach(function(code, idx) {
+            var data = Puzzle.decodePuzzle(code);
+            var info = data ? (data.width + '×' + data.height + ' · ' + data.mines.length + '雷') : '无效谜题';
+            var item = document.createElement('div');
+            item.className = 'puzzle-saved-item';
+            item.innerHTML = '<span class="puzzle-saved-info">' + info + '</span>' +
+                '<button class="puzzle-saved-play" data-code="' + code + '">▶️</button>' +
+                '<button class="puzzle-saved-delete" data-idx="' + idx + '">🗑️</button>';
+            container.appendChild(item);
+        });
+        // 绑定事件
+        container.querySelectorAll('.puzzle-saved-play').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var c = btn.dataset.code;
+                var d = Puzzle.decodePuzzle(c);
+                if (d) {
+                    Puzzle.loadFromData(d);
+                    Game.startPuzzle(Puzzle.createPlayableBoard());
+                    showScreen('game-screen');
+                }
+            });
+        });
+        container.querySelectorAll('.puzzle-saved-delete').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var i = parseInt(btn.dataset.idx);
+                var arr = Storage.get('puzzle_collection') || [];
+                arr.splice(i, 1);
+                Storage.set('puzzle_collection', arr);
+                loadSavedPuzzles();
+            });
+        });
     }
 
     return {
