@@ -101,6 +101,16 @@ const Game = (function() {
         if (challenge === 'no-undo') {
             challengeData.noUndo = true;
         }
+        // 无尽模式初始化
+        if (challenge === 'endless') {
+            if (typeof Endless !== 'undefined') {
+                Endless.init();
+                var ec = Endless.getBoardConfig();
+                width = ec.width;
+                height = ec.height;
+                mines = ec.mines;
+            }
+        }
 
         // 初始化道具
         if (typeof Powerups !== 'undefined') {
@@ -233,6 +243,13 @@ const Game = (function() {
         const cell = board.getCell(x, y);
         if (!cell || cell.isRevealed || cell.isFlagged) return;
 
+        // 无尽模式：第一次点击设置重生点
+        if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+            if (Endless.getState().spawnX < 0) {
+                Endless.setSpawn(x, y);
+            }
+        }
+
         saveState();
         clicks++;
         Replay.record('reveal', x, y);
@@ -244,10 +261,29 @@ const Game = (function() {
                 challengeData.revealsLeft--;
             }
             if (result.hitMine) {
+                // 无尽模式：扣血而不是直接输
+                if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+                    var hp = Endless.takeDamage(1);
+                    AudioManager.playLose();
+                    if (history.length > 0) {
+                        var prev = history.pop();
+                        board = prev.board;
+                        time = prev.time;
+                        clicks = prev.clicks;
+                    }
+                    updateUI();
+                    if (hp <= 0) {
+                        // 血量为0，触发无尽模式结束
+                        document.dispatchEvent(new CustomEvent('endlessGameOver', {
+                            detail: { score: Endless.getState().endlessScore }
+                        }));
+                        gameState = 'lost';
+                        stopTimer();
+                    }
+                }
                 // 盾牌保护
-                if (typeof Powerups !== 'undefined' && Powerups.hasShield()) {
+                else if (typeof Powerups !== 'undefined' && Powerups.hasShield()) {
                     Powerups.consumeShield();
-                    // 将地雷变为安全数字格
                     var scell = board.getCell(x, y);
                     if (scell) {
                         scell.isMine = false;
@@ -273,14 +309,12 @@ const Game = (function() {
                         lives--;
                         combo = 0;
                         AudioManager.playLose();
-                        // 恢复棋盘状态（撤销这次揭示）
                         if (history.length > 0) {
                             const prev = history.pop();
                             board = prev.board;
                             time = prev.time;
                             clicks = prev.clicks;
                         }
-                        // 显示扣命提示
                         document.dispatchEvent(new CustomEvent('lifeLost', {
                             detail: { lives: lives, maxLives: maxLives }
                         }));
@@ -296,6 +330,10 @@ const Game = (function() {
                 // combo 里程碑音效
                 if (combo === 5 || combo === 10 || combo === 20 || combo === 50) {
                     AudioManager.playCombo(combo);
+                }
+                if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+                    Endless.addRevealed(result.revealed ? result.revealed.length : 1);
+                    Endless.addScore(result.revealed ? result.revealed.length * 10 : 10);
                 }
                 if (board.checkWin()) {
                     win();
@@ -452,6 +490,21 @@ const Game = (function() {
             setTimeout(function() {
                 if (gameState === 'won') {
                     startSurvivalLevel(survivalLevel);
+                }
+            }, 2000);
+            return;
+        }
+
+        // 无尽模式：进入下一层
+        if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+            Endless.nextLevel();
+            AudioManager.playLevelUp();
+            document.dispatchEvent(new CustomEvent('endlessAdvance', {
+                detail: Endless.getState()
+            }));
+            setTimeout(function() {
+                if (gameState === 'won') {
+                    startEndlessLevel();
                 }
             }, 2000);
             return;
@@ -657,6 +710,7 @@ const Game = (function() {
             usedPowerup,
             chordCount,
             speedrunStreak,
+            endlessState: (challengeMode === 'endless' && typeof Endless !== 'undefined') ? Endless.getState() : null,
             history: history.map(function(h) {
                 return {
                     board: h.board ? {
@@ -707,6 +761,16 @@ const Game = (function() {
         usedPowerup = data.usedPowerup || false;
         chordCount = data.chordCount || 0;
         speedrunStreak = data.speedrunStreak || 0;
+
+        // 恢复无尽模式状态
+        if (challengeMode === 'endless' && data.endlessState && typeof Endless !== 'undefined') {
+            var es = data.endlessState;
+            Endless.init();
+            for (var i = 1; i < es.level; i++) {
+                Endless.nextLevel();
+            }
+            // 无法精确恢复 hp/score，但从第1关重新开始
+        }
 
         const b = data.board;
         board = new MinesweeperBoard(b.width, b.height, b.mineCount, currentSeed);
@@ -770,7 +834,8 @@ const Game = (function() {
             combo,
             maxCombo,
             survivalScore,
-            campaignLevelId
+            campaignLevelId,
+            endlessState: (challengeMode === 'endless' && typeof Endless !== 'undefined') ? Endless.getState() : null
         };
     }
 
@@ -859,6 +924,31 @@ const Game = (function() {
         updateUI();
     }
 
+    function startEndlessLevel() {
+        if (typeof Endless === 'undefined') return;
+        var ec = Endless.getBoardConfig();
+        currentSeed = Math.floor(Math.random() * 1000000000);
+        board = new MinesweeperBoard(ec.width, ec.height, ec.mines, currentSeed);
+        difficulty = 'intermediate';
+        challengeMode = 'endless';
+        challengeData = {};
+        gameState = 'idle';
+        time = 0;
+        clicks = 0;
+        history = [];
+        chordCount = 0;
+        usedUndo = false;
+        usedFlags = false;
+        usedHint = false;
+        usedPowerup = false;
+        combo = 0;
+        freezeUntil = 0;
+        if (typeof Powerups !== 'undefined') Powerups.initGame();
+        Replay.start();
+        stopTimer();
+        updateUI();
+    }
+
     function usePowerup(id) {
         if (gameState !== 'playing' && gameState !== 'idle') return false;
         if (typeof Powerups === 'undefined') return false;
@@ -894,6 +984,7 @@ const Game = (function() {
         startWithSeed,
         startCampaignLevel,
         startSurvivalLevel,
+        startEndlessLevel,
         usePowerup,
         get survivalLevel() { return survivalLevel; },
         get lives() { return lives; },

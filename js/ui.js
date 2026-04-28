@@ -54,7 +54,9 @@ const UI = (function() {
                 const action = btn.dataset.action;
                 switch (action) {
                     case 'play':
-                        showScreen('difficulty-screen');
+                        // 默认经典初级扫雷
+                        Game.start('beginner');
+                        showScreen('game-screen');
                         break;
                     case 'daily':
                         startDailyChallenge();
@@ -66,6 +68,10 @@ const UI = (function() {
                         if (Game.loadSaved()) {
                             showScreen('game-screen');
                         }
+                        break;
+                    case 'endless':
+                        Game.start('intermediate', null, 'endless');
+                        showScreen('game-screen');
                         break;
                     case 'challenge':
                         showScreen('challenge-screen');
@@ -286,6 +292,9 @@ const UI = (function() {
 
         // 生存模式 HUD
         updateSurvivalHUD(detail);
+
+        // 无尽模式 HUD
+        updateEndlessHUD(detail);
 
         // 道具栏更新
         updatePowerupHUD();
@@ -1515,10 +1524,22 @@ const UI = (function() {
         showHintOverlay('进入第 ' + (d.level + 1) + ' 关！生命: ' + '❤️'.repeat(d.lives));
     });
 
+    // 无尽进阶事件
+    document.addEventListener('endlessAdvance', function(e) {
+        var d = e.detail;
+        showHintOverlay('🎉 进入第 ' + d.level + ' 层！HP: ' + d.hp + '/' + d.maxHp);
+    });
+
     // 扣命事件
     document.addEventListener('lifeLost', function(e) {
         var d = e.detail;
         showHintOverlay('💔 失去一条命！剩余: ' + '❤️'.repeat(d.lives));
+    });
+
+    // 无尽游戏结束事件
+    document.addEventListener('endlessGameOver', function(e) {
+        var d = e.detail;
+        showGameOver(false, 0, 0, 0, false, 'endless');
     });
 
     // 时间冻结事件
@@ -1672,6 +1693,29 @@ const UI = (function() {
         if (levelEl) {
             levelEl.textContent = 'Lv.' + ((detail.survivalLevel || 0) + 1);
         }
+    }
+
+    function updateEndlessHUD(detail) {
+        var hud = document.getElementById('endless-hud');
+        var isEndless = detail.challengeMode === 'endless';
+        if (hud) hud.style.display = isEndless ? 'flex' : 'none';
+
+        if (!isEndless || !detail.endlessState) return;
+
+        var state = detail.endlessState;
+        var levelEl = document.getElementById('endless-level');
+        var hpEl = document.getElementById('endless-hp');
+        var hpBarEl = document.getElementById('endless-hp-bar');
+        var scoreEl = document.getElementById('endless-score');
+
+        if (levelEl) levelEl.textContent = 'Lv.' + state.level;
+        if (hpEl) hpEl.textContent = 'HP: ' + state.hp + '/' + state.maxHp;
+        if (hpBarEl) {
+            var pct = state.maxHp > 0 ? (state.hp / state.maxHp * 100) : 0;
+            hpBarEl.style.width = pct + '%';
+            hpBarEl.className = 'hp-bar-fill' + (state.hp <= 3 ? ' hp-low' : state.hp <= state.maxHp * 0.5 ? ' hp-mid' : ' hp-high');
+        }
+        if (scoreEl) scoreEl.textContent = 'Score: ' + state.score;
     }
 
     function updateFogOverlay(board) {

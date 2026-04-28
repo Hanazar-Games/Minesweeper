@@ -87,6 +87,10 @@
                         <span class="btn-icon">🔄</span>
                         <span class="btn-text">继续游戏</span>
                     </button>
+                    <button class="menu-btn" data-action="endless">
+                        <span class="btn-icon">♾️</span>
+                        <span class="btn-text">无尽模式</span>
+                    </button>
                     <button class="menu-btn" data-action="campaign">
                         <span class="btn-icon">🗺️</span>
                         <span class="btn-text">战役模式</span>
@@ -219,6 +223,16 @@
                 <span id="survival-combo"></span>
                 <span id="survival-score"></span>
                 <span id="survival-level"></span>
+            </div>
+
+            <!-- 无尽模式 HUD -->
+            <div class="endless-hud" id="endless-hud" style="display:none;">
+                <span id="endless-level"></span>
+                <div class="hp-bar">
+                    <div class="hp-bar-fill" id="endless-hp-bar"></div>
+                </div>
+                <span id="endless-hp"></span>
+                <span id="endless-score"></span>
             </div>
 
             <!-- 道具栏 -->
@@ -1158,6 +1172,7 @@
     <script src="js/solver.js"></script>
     <script src="js/campaign.js"></script>
     <script src="js/powerups.js"></script>
+    <script src="js/endless.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/i18n.js"></script>
