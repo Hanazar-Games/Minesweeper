@@ -24,6 +24,7 @@ const Puzzle = (function() {
     }
 
     function toggleMine(x, y) {
+        if (x < 0 || x >= editorWidth || y < 0 || y >= editorHeight) return;
         var idx = findMineIndex(x, y);
         if (idx >= 0) {
             editorMines.splice(idx, 1);
@@ -73,7 +74,10 @@ const Puzzle = (function() {
         for (var dy = -1; dy <= 1; dy++) {
             for (var dx = -1; dx <= 1; dx++) {
                 if (dx === 0 && dy === 0) continue;
-                if (hasMine(x + dx, y + dy)) count++;
+                var nx = x + dx;
+                var ny = y + dy;
+                if (nx < 0 || nx >= editorWidth || ny < 0 || ny >= editorHeight) continue;
+                if (hasMine(nx, ny)) count++;
             }
         }
         return count;
@@ -90,7 +94,8 @@ const Puzzle = (function() {
         editorMines = [];
         editorRevealed = [];
         var total = editorWidth * editorHeight;
-        var mineCount = Math.max(1, Math.min(total - 1, Math.floor(total * (density || 0.15))));
+        var d = typeof density === 'number' ? density : 0.15;
+        var mineCount = Math.max(1, Math.min(total - 1, Math.floor(total * d)));
         var positions = [];
         for (var y = 0; y < editorHeight; y++) {
             for (var x = 0; x < editorWidth; x++) {
@@ -262,17 +267,19 @@ const Puzzle = (function() {
     function createPlayableBoard() {
         var w = editorWidth;
         var h = editorHeight;
-        var mineCount = editorMines.length;
+        // 过滤越界雷
+        var validMines = editorMines.filter(function(m) {
+            return m.x >= 0 && m.x < w && m.y >= 0 && m.y < h;
+        });
+        var mineCount = validMines.length;
         // 使用固定种子 0，因为我们手动放置地雷
         var board = new MinesweeperBoard(w, h, mineCount, 0);
         // 清空自动生成的地雷，手动设置
         board.mines = [];
-        for (var i = 0; i < editorMines.length; i++) {
-            var m = editorMines[i];
+        for (var i = 0; i < validMines.length; i++) {
+            var m = validMines[i];
             board.mines.push({ x: m.x, y: m.y });
-            if (board.cells[m.y] && board.cells[m.y][m.x]) {
-                board.cells[m.y][m.x].isMine = true;
-            }
+            board.cells[m.y][m.x].isMine = true;
         }
         board.mineCount = mineCount;
         board.calculateNumbers();
@@ -289,7 +296,10 @@ const Puzzle = (function() {
         if (!data) return false;
         editorWidth = data.width;
         editorHeight = data.height;
-        editorMines = data.mines.slice();
+        // 过滤越界雷
+        editorMines = data.mines.filter(function(m) {
+            return m.x >= 0 && m.x < editorWidth && m.y >= 0 && m.y < editorHeight;
+        });
         editorRevealed = [];
         return true;
     }

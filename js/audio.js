@@ -74,9 +74,12 @@ const AudioManager = (function() {
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(options.filter || style.filter || 8000, context.currentTime);
 
-        const attack = (options.attack || adsrAttack) / 1000;
-        const decay = (options.decay || adsrDecay) / 1000;
-        const release = (options.release || adsrRelease) / 1000;
+        var attack = (options.attack !== undefined ? options.attack : adsrAttack) / 1000;
+        var decay = (options.decay !== undefined ? options.decay : adsrDecay) / 1000;
+        var release = (options.release !== undefined ? options.release : adsrRelease) / 1000;
+        attack = Math.max(0.001, attack);
+        decay = Math.max(0.001, decay);
+        release = Math.max(0.001, release);
 
         gain.gain.setValueAtTime(0, context.currentTime);
         gain.gain.linearRampToValueAtTime(finalVol, context.currentTime + attack);
@@ -275,6 +278,7 @@ const AudioManager = (function() {
 
     function startMusic() {
         if (!musicEnabled || !enabled) return;
+        stopMusic(); // 清理旧节点，防止内存泄漏
         resume();
         const context = getCtx();
 
@@ -446,6 +450,7 @@ const AudioManager = (function() {
         setSfxStyle,
         setAdsr,
         setMusicReverb,
+        restartMusic: startMusic,
         get enabled() { return enabled; }
     };
 })();

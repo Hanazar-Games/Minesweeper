@@ -1,5 +1,30 @@
 # 超级扫雷 - 更新日志
 
+## v1.4.1 (2026-04-27)
+
+### Bug 修复（v1.4.0 全局深度检查）
+- **🧩 谜题工坊关键修复**
+  - `getCellNumber` 添加边界检查，防止越界坐标影响边缘数字计算
+  - `toggleMine` 忽略越界坐标，防止脏数据流入
+  - `randomPuzzle` 修复 `density=0` 被误判为 falsy 的问题
+  - `createPlayableBoard` 过滤越界雷，确保 `mines` 与 `cells` 一致
+  - `loadFromData` 过滤越界雷坐标，防止恶意分享码注入
+  - CSS 补充缺失变量 `--cell-hidden`/`--cell-hover`/`--cell-revealed`/`--text-secondary`
+  - 编辑器数字颜色改为 CSS 类（`.puzzle-num-1~8`），适配深色/浅色主题
+  - 添加完整触摸事件支持（touchstart/touchend/touchcancel + 长按标记）
+  - Puzzle 模式下表情按钮/再玩一次/相同地图正确重玩同一谜题
+  - 隐藏 puzzle 模式的种子显示（种子为 null 无意义）
+  - 编辑器面板添加 `overflow: auto`，防止 16×16 在移动端撑破容器
+  - 编辑器操作音效：格子点击、验证通过/失败、分享码复制
+
+- **🎵 音频系统修复**
+  - `playTone` ADSR 添加最小值保护（0.001s），防止 `attack=0 && decay=0` 时 `exponentialRampToValueAtTime` 崩溃
+  - `startMusic` 开头调用 `stopMusic()`，防止重复调用导致音频节点内存泄漏
+  - M 键静音现在同时切换 SFX 和 Music（此前仅静音 SFX）
+  - 设置面板修改音乐风格后实时重启 BGM
+
+---
+
 ## v1.4.0 (2026-04-27)
 
 ### 新增功能

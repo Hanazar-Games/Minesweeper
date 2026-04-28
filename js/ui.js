@@ -170,7 +170,11 @@ const UI = (function() {
         document.getElementById('face-btn').addEventListener('click', () => {
             AudioManager.playClick();
             const state = Game.getState();
-            Game.start(state.difficulty, null, state.challengeMode, state.seed);
+            if (state.challengeMode === 'puzzle' && Game.replayPuzzle) {
+                Game.replayPuzzle();
+            } else {
+                Game.start(state.difficulty, null, state.challengeMode, state.seed);
+            }
         });
 
         document.getElementById('menu-btn').addEventListener('click', () => {
@@ -284,10 +288,14 @@ const UI = (function() {
 
         // 种子显示
         const seedEl = document.getElementById('seed-display');
-        if (seedEl && detail.seed) {
-            seedEl.textContent = '种子: ' + detail.seed;
-            seedEl.style.fontSize = '0.75rem';
-            seedEl.style.opacity = '0.6';
+        if (seedEl) {
+            if (detail.challengeMode === 'puzzle') {
+                seedEl.textContent = '';
+            } else if (detail.seed) {
+                seedEl.textContent = '种子: ' + detail.seed;
+                seedEl.style.fontSize = '0.75rem';
+                seedEl.style.opacity = '0.6';
+            }
         }
 
         // 3BV 和效率
@@ -504,7 +512,11 @@ const UI = (function() {
             AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
             const state = Game.getState();
-            Game.start(state.difficulty, null, state.challengeMode, state.seed);
+            if (state.challengeMode === 'puzzle' && Game.replayPuzzle) {
+                Game.replayPuzzle();
+            } else {
+                Game.start(state.difficulty, null, state.challengeMode, state.seed);
+            }
         });
 
         document.getElementById('go-menu-btn').addEventListener('click', () => {
@@ -534,7 +546,11 @@ const UI = (function() {
             AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
             const state = Game.getState();
-            Game.start(state.difficulty, null, state.challengeMode, state.seed);
+            if (state.challengeMode === 'puzzle' && Game.replayPuzzle) {
+                Game.replayPuzzle();
+            } else {
+                Game.start(state.difficulty, null, state.challengeMode, state.seed);
+            }
         });
 
         document.getElementById('hint-ok-btn').addEventListener('click', () => {
@@ -638,9 +654,18 @@ const UI = (function() {
                     break;
                 case 'm':
                     const soundToggle = document.getElementById('setting-sound');
+                    const musicToggle = document.getElementById('setting-music');
                     if (soundToggle) {
                         soundToggle.checked = !soundToggle.checked;
                         Settings.set('sound', soundToggle.checked);
+                    }
+                    if (musicToggle) {
+                        musicToggle.checked = !musicToggle.checked;
+                        Settings.set('music', musicToggle.checked);
+                    }
+                    if (typeof AudioManager !== 'undefined') {
+                        AudioManager.setEnabled(soundToggle ? soundToggle.checked : true);
+                        AudioManager.setMusicEnabled(musicToggle ? musicToggle.checked : true);
                     }
                     break;
                 case '1':
@@ -1794,6 +1819,9 @@ const UI = (function() {
                 cell.dataset.y = y;
                 updatePuzzleCell(cell, x, y);
                 cell.addEventListener('mousedown', handlePuzzleCellMouseDown);
+                cell.addEventListener('touchstart', handlePuzzleCellTouchStart, { passive: false });
+                cell.addEventListener('touchend', handlePuzzleCellTouchEnd, { passive: false });
+                cell.addEventListener('touchcancel', handlePuzzleCellTouchCancel, { passive: false });
                 cell.addEventListener('contextmenu', function(e) { e.preventDefault(); });
                 container.appendChild(cell);
                 row.push(cell);
@@ -1809,14 +1837,14 @@ const UI = (function() {
         var num = hasMine ? -1 : Puzzle.getCellNumber(x, y);
         el.textContent = '';
         el.className = 'puzzle-cell';
+        el.style.color = '';
         if (hasMine) {
             el.classList.add('mine');
             el.textContent = '💣';
         } else if (num > 0) {
             el.classList.add('number');
+            el.classList.add('puzzle-num-' + num);
             el.textContent = num;
-            var numColors = ['', 'blue', 'green', 'red', 'purple', 'maroon', 'turquoise', 'black', 'gray'];
-            el.style.color = numColors[num] || 'black';
         }
     }
 
@@ -1826,6 +1854,7 @@ const UI = (function() {
         var x = parseInt(e.target.dataset.x);
         var y = parseInt(e.target.dataset.y);
         if (isNaN(x) || isNaN(y)) return;
+        AudioManager.playClick();
         if (e.button === 0) {
             Puzzle.toggleMine(x, y);
         } else if (e.button === 2) {
@@ -1847,6 +1876,67 @@ const UI = (function() {
         document.getElementById('puzzle-mine-count').textContent = '地雷: ' + state.mineCount;
         document.getElementById('puzzle-valid-status').textContent = '';
         document.getElementById('puzzle-play-btn').disabled = true;
+    }
+
+    var puzzleLongPressTimer = null;
+    var puzzleTouchStartX = -1;
+    var puzzleTouchStartY = -1;
+
+    function handlePuzzleCellTouchStart(e) {
+        e.preventDefault();
+        if (typeof Puzzle === 'undefined') return;
+        var touch = e.changedTouches[0];
+        var target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (!target || !target.classList.contains('puzzle-cell')) return;
+        var x = parseInt(target.dataset.x);
+        var y = parseInt(target.dataset.y);
+        if (isNaN(x) || isNaN(y)) return;
+        puzzleTouchStartX = x;
+        puzzleTouchStartY = y;
+        puzzleLongPressTimer = setTimeout(function() {
+            Puzzle.toggleRevealed(x, y);
+            updatePuzzleCell(target, x, y);
+            puzzleLongPressTimer = null;
+        }, 500);
+    }
+
+    function handlePuzzleCellTouchEnd(e) {
+        e.preventDefault();
+        if (puzzleLongPressTimer) {
+            clearTimeout(puzzleLongPressTimer);
+            puzzleLongPressTimer = null;
+            var touch = e.changedTouches[0];
+            var target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!target || !target.classList.contains('puzzle-cell')) return;
+            var x = parseInt(target.dataset.x);
+            var y = parseInt(target.dataset.y);
+            if (isNaN(x) || isNaN(y)) return;
+            if (x === puzzleTouchStartX && y === puzzleTouchStartY) {
+                Puzzle.toggleMine(x, y);
+                updatePuzzleCell(target, x, y);
+                var state = Puzzle.getEditorState();
+                for (var dy = -1; dy <= 1; dy++) {
+                    for (var dx = -1; dx <= 1; dx++) {
+                        var nx = x + dx;
+                        var ny = y + dy;
+                        if (nx < 0 || nx >= state.width || ny < 0 || ny >= state.height) continue;
+                        if (puzzleEditorElements[ny] && puzzleEditorElements[ny][nx]) {
+                            updatePuzzleCell(puzzleEditorElements[ny][nx], nx, ny);
+                        }
+                    }
+                }
+                document.getElementById('puzzle-mine-count').textContent = '地雷: ' + state.mineCount;
+                document.getElementById('puzzle-valid-status').textContent = '';
+                document.getElementById('puzzle-play-btn').disabled = true;
+            }
+        }
+    }
+
+    function handlePuzzleCellTouchCancel(e) {
+        if (puzzleLongPressTimer) {
+            clearTimeout(puzzleLongPressTimer);
+            puzzleLongPressTimer = null;
+        }
     }
 
     function bindPuzzleEvents() {
@@ -1891,10 +1981,12 @@ const UI = (function() {
                     statusEl.textContent = '✅ ' + result.reason;
                     statusEl.style.color = '#22c55e';
                     document.getElementById('puzzle-play-btn').disabled = false;
+                    AudioManager.playWin();
                 } else {
                     statusEl.textContent = '⚠️ ' + result.reason;
                     statusEl.style.color = '#ef4444';
                     document.getElementById('puzzle-play-btn').disabled = true;
+                    AudioManager.playLose();
                 }
             });
         }
@@ -1909,6 +2001,7 @@ const UI = (function() {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(code).then(function() {
                         showHintOverlay('分享码已复制到剪贴板！');
+                        AudioManager.playPowerUp();
                     }).catch(function() {
                         showHintOverlay(code);
                     });
@@ -1928,7 +2021,7 @@ const UI = (function() {
                     return;
                 }
                 var board = Puzzle.createPlayableBoard();
-                Game.startPuzzle(board);
+                Game.startPuzzle(board, { code: Puzzle.encodePuzzle() });
                 showScreen('game-screen');
             });
         }
@@ -1947,7 +2040,7 @@ const UI = (function() {
                 // 保存到收藏
                 savePuzzleToCollection(code);
                 var board = Puzzle.createPlayableBoard();
-                Game.startPuzzle(board);
+                Game.startPuzzle(board, { code: code });
                 showScreen('game-screen');
             });
         }

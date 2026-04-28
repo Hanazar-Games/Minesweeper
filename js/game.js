@@ -29,6 +29,8 @@ const Game = (function() {
     let freezeUntil = 0;
     // 战役模式状态
     let campaignLevelId = null;
+    // 谜题模式状态
+    let puzzleData = null;
 
     const difficulties = {
         beginner: { width: 9, height: 9, mines: 10 },
@@ -74,6 +76,7 @@ const Game = (function() {
         maxCombo = 0;
         freezeUntil = 0;
         campaignLevelId = null;
+        puzzleData = null;
         // 统一重置所有模式专属状态，防止模式间污染
         survivalLevel = 0;
         lives = 3;
@@ -984,12 +987,13 @@ const Game = (function() {
         updateUI();
     }
 
-    function startPuzzle(puzzleBoard) {
+    function startPuzzle(puzzleBoard, pData) {
         if (!puzzleBoard) return;
         difficulty = 'puzzle';
         challengeMode = 'puzzle';
         challengeData = {};
         board = puzzleBoard;
+        puzzleData = pData || null;
         currentSeed = null;
         gameState = 'idle';
         time = 0;
@@ -1013,6 +1017,20 @@ const Game = (function() {
         Replay.start();
         stopTimer();
         updateUI();
+    }
+
+    function replayPuzzle() {
+        if (!puzzleData || typeof Puzzle === 'undefined') return false;
+        if (puzzleData.board) {
+            startPuzzle(puzzleData.board, puzzleData);
+        } else if (puzzleData.code) {
+            var data = Puzzle.decodePuzzle(puzzleData.code);
+            if (data) {
+                Puzzle.loadFromData(data);
+                startPuzzle(Puzzle.createPlayableBoard(), puzzleData);
+            }
+        }
+        return true;
     }
 
     function usePowerup(id) {
@@ -1052,6 +1070,7 @@ const Game = (function() {
         startSurvivalLevel,
         startEndlessLevel,
         startPuzzle,
+        replayPuzzle,
         usePowerup,
         get survivalLevel() { return survivalLevel; },
         get lives() { return lives; },

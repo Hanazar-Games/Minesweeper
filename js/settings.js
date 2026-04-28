@@ -130,6 +130,7 @@ const Settings = (function() {
                 AudioManager.setMusicReverb((settings.musicReverb || 20) / 100);
                 if (settings.music) {
                     AudioManager.setMusicEnabled(true);
+                    AudioManager.restartMusic();
                 } else {
                     AudioManager.setMusicEnabled(false);
                 }

@@ -23,6 +23,10 @@
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
     --transition: all 0.2s ease;
+    --cell-hidden: #334155;
+    --cell-hover: #475569;
+    --cell-revealed: #1e293b;
+    --text-secondary: #94a3b8;
 }
 
 /* 主题变体 */
@@ -30,6 +34,10 @@
     --primary: #3b82f6;
     --bg: #f8fafc;
     --bg-light: #e2e8f0;
+    --cell-hidden: #cbd5e1;
+    --cell-hover: #94a3b8;
+    --cell-revealed: #e2e8f0;
+    --text-secondary: #64748b;
     --bg-lighter: #cbd5e1;
     --text: #1e293b;
     --text-muted: #64748b;
@@ -2710,6 +2718,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 1.5rem;
+    overflow: auto;
 }
 
 .puzzle-panel h3 {
@@ -2793,6 +2802,24 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .puzzle-cell.number {
     background: var(--cell-revealed);
 }
+
+.puzzle-cell.puzzle-num-1 { color: #3b82f6; }
+.puzzle-cell.puzzle-num-2 { color: #22c55e; }
+.puzzle-cell.puzzle-num-3 { color: #ef4444; }
+.puzzle-cell.puzzle-num-4 { color: #a855f7; }
+.puzzle-cell.puzzle-num-5 { color: #f59e0b; }
+.puzzle-cell.puzzle-num-6 { color: #06b6d4; }
+.puzzle-cell.puzzle-num-7 { color: #ec4899; }
+.puzzle-cell.puzzle-num-8 { color: #64748b; }
+
+[data-theme="classic"] .puzzle-cell.puzzle-num-1 { color: #2563eb; }
+[data-theme="classic"] .puzzle-cell.puzzle-num-2 { color: #16a34a; }
+[data-theme="classic"] .puzzle-cell.puzzle-num-3 { color: #dc2626; }
+[data-theme="classic"] .puzzle-cell.puzzle-num-4 { color: #7c3aed; }
+[data-theme="classic"] .puzzle-cell.puzzle-num-5 { color: #d97706; }
+[data-theme="classic"] .puzzle-cell.puzzle-num-6 { color: #0891b2; }
+[data-theme="classic"] .puzzle-cell.puzzle-num-7 { color: #db2777; }
+[data-theme="classic"] .puzzle-cell.puzzle-num-8 { color: #475569; }
 
 .puzzle-info {
     display: flex;
