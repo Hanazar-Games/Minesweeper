@@ -78,6 +78,11 @@
                         <span class="btn-text">每日挑战</span>
                         <span id="daily-badge" class="menu-badge hidden">!</span>
                     </button>
+                    <button class="menu-btn" data-action="daily-quests">
+                        <span class="btn-icon">📋</span>
+                        <span class="btn-text">每日任务</span>
+                        <span id="quest-badge" class="menu-badge hidden">!</span>
+                    </button>
                     <button class="menu-btn" data-action="weekly">
                         <span class="btn-icon">📆</span>
                         <span class="btn-text">每周挑战</span>
@@ -115,6 +120,10 @@
                     <button class="menu-btn" data-action="stats">
                         <span class="btn-icon">📊</span>
                         <span class="btn-text">统计数据</span>
+                    </button>
+                    <button class="menu-btn" data-action="battle-log">
+                        <span class="btn-icon">📜</span>
+                        <span class="btn-text">作战日志</span>
                     </button>
                     <button class="menu-btn" data-action="leaderboard">
                         <span class="btn-icon">👑</span>
@@ -476,6 +485,31 @@
                             <p class="puzzle-empty">暂无收藏的谜题</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 每日任务 -->
+        <div id="daily-quests-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>📋 每日任务</h2>
+            </div>
+            <div class="quests-container">
+                <div class="quests-streak">
+                    <span class="streak-icon">🔥</span>
+                    <span class="streak-text">连续完成 <b id="quest-streak">0</b> 天</span>
+                </div>
+                <div class="quests-progress-bar">
+                    <div class="quests-progress-fill" id="quests-progress-fill"></div>
+                </div>
+                <div class="quests-list" id="quests-list">
+                    <!-- 动态生成任务卡片 -->
+                </div>
+                <div class="quests-rewards" id="quests-rewards" style="display:none;">
+                    <h3>🎁 今日奖励</h3>
+                    <div id="quests-reward-list"></div>
+                    <button class="primary-btn" id="quests-claim-btn">领取奖励</button>
                 </div>
             </div>
         </div>
@@ -1190,6 +1224,7 @@
                 <div class="gameover-buttons">
                     <button class="overlay-btn primary" id="play-again-btn">再玩一次</button>
                     <button class="overlay-btn" id="replay-same-btn">🔄 相同地图</button>
+                    <button class="overlay-btn" id="view-analysis-btn">📜 战后分析</button>
                     <button class="overlay-btn" id="share-seed-btn">🔗 分享种子</button>
                     <button class="overlay-btn" id="go-menu-btn">主菜单</button>
                 </div>
@@ -1216,6 +1251,47 @@
         <!-- 粒子容器 -->
         <div id="particles"></div>
 
+        <!-- 作战日志屏幕 -->
+        <div id="battle-log-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>📜 作战日志</h2>
+            </div>
+            <div class="battle-log-container">
+                <div class="battle-log-tabs">
+                    <button class="bl-tab active" data-bl-tab="list">历史记录</button>
+                    <button class="bl-tab" data-bl-tab="trends">趋势分析</button>
+                </div>
+                <div class="bl-panel active" id="bl-panel-list">
+                    <div id="battle-log-list" class="battle-log-list">
+                        <p class="bl-empty">暂无游戏记录，完成一局后即可查看详细分析。</p>
+                    </div>
+                    <button class="danger-btn" id="clear-battle-log-btn" style="margin-top:1rem;">🗑️ 清空日志</button>
+                </div>
+                <div class="bl-panel" id="bl-panel-trends">
+                    <div class="trend-section">
+                        <h3>效率趋势 (最近20局)</h3>
+                        <div id="bl-eff-trend" class="trend-graph"></div>
+                    </div>
+                    <div class="trend-section">
+                        <h3>胜率走势 (最近20局)</h3>
+                        <div id="bl-win-trend" class="trend-graph"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 战后分析详情屏幕 -->
+        <div id="battle-analysis-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="battle-log-screen">← 返回日志</button>
+                <h2>📊 战后分析</h2>
+            </div>
+            <div class="battle-analysis-container" id="battle-analysis-content">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
         <!-- 成就弹窗容器 -->
         <div id="achievement-toasts"></div>
     </div>
@@ -1230,6 +1306,8 @@
     <script src="js/powerups.js"></script>
     <script src="js/endless.js"></script>
     <script src="js/puzzle.js"></script>
+    <script src="js/daily-quests.js"></script>
+    <script src="js/battle-log.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/i18n.js"></script>

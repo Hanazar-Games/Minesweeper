@@ -16,6 +16,7 @@ const Game = (function() {
     let currentSeed = null;
     let chordCount = 0;
     let usedUndo = false;
+    let undoCount = 0;
     let usedFlags = false;
     let usedHint = false;
     let usedPowerup = false;
@@ -69,6 +70,7 @@ const Game = (function() {
         history = [];
         chordCount = 0;
         usedUndo = false;
+        undoCount = 0;
         usedFlags = false;
         usedHint = false;
         usedPowerup = false;
@@ -232,6 +234,7 @@ const Game = (function() {
         if (challengeData.noUndo) return; // 无撤销挑战
         if (history.length === 0) return;
         usedUndo = true;
+        undoCount++;
         const prev = history.pop();
         board = prev.board;
         time = prev.time;
@@ -341,6 +344,10 @@ const Game = (function() {
                     Endless.addRevealed(result.revealed ? result.revealed.length : 1);
                     Endless.addScore(result.revealed ? result.revealed.length * 10 : 10);
                 }
+                if (typeof DailyQuests !== 'undefined') {
+                    DailyQuests.checkEvent('reveal', { count: result.revealed ? result.revealed.length : 1 });
+                    DailyQuests.checkEvent('combo', { value: combo });
+                }
                 if (board.checkWin()) {
                     win();
                 }
@@ -428,6 +435,9 @@ const Game = (function() {
                 usedFlags = true;
                 AudioManager.playFlag();
                 Stats.recordFlagsPlaced(1);
+                if (typeof DailyQuests !== 'undefined') {
+                    DailyQuests.checkEvent('flag', { count: 1 });
+                }
             } else if (result.action === 'unflag') {
                 AudioManager.playUnflag();
             }
@@ -444,6 +454,10 @@ const Game = (function() {
         
         // 无尽模式：跳过普通统计和排行榜，直接处理进阶
         if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
+            if (typeof DailyQuests !== 'undefined') {
+                DailyQuests.checkEvent('win', { won: true, time: time, difficulty: difficulty, challengeMode: challengeMode, usedUndo: usedUndo });
+                DailyQuests.checkEvent('endless_level', { level: (typeof Endless !== 'undefined' ? Endless.getState().level : 1) });
+            }
             Achievements.check({
                 won: true, time, clicks, efficiency, difficulty, challengeMode,
                 noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
@@ -451,6 +465,7 @@ const Game = (function() {
                 width: board ? board.width : null, height: board ? board.height : null
             });
             Replay.stop();
+            recordBattleLog(true, efficiency);
             Endless.nextLevel();
             AudioManager.playLevelUp();
             document.dispatchEvent(new CustomEvent('endlessAdvance', {
@@ -509,6 +524,9 @@ const Game = (function() {
         // 战役模式完成
         if (campaignLevelId && typeof Campaign !== 'undefined') {
             var stars = Campaign.completeLevel(campaignLevelId, time, clicks, board.bv, usedHint, usedUndo, usedPowerup);
+            if (typeof DailyQuests !== 'undefined') {
+                DailyQuests.checkEvent('campaign_stars', { stars: stars });
+            }
             AudioManager.playLevelUp();
             document.dispatchEvent(new CustomEvent('campaignComplete', {
                 detail: { levelId: campaignLevelId, stars: stars }
@@ -517,6 +535,9 @@ const Game = (function() {
 
         // 生存模式：进入下一关
         if (challengeMode === 'survival') {
+            if (typeof DailyQuests !== 'undefined') {
+                DailyQuests.checkEvent('win', { won: true, time: time, difficulty: difficulty, challengeMode: challengeMode, usedUndo: usedUndo });
+            }
             Achievements.check({
                 won: true, time, clicks, efficiency, difficulty, challengeMode,
                 noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
@@ -526,6 +547,8 @@ const Game = (function() {
             survivalLevel++;
             survivalScore += Math.max(1000 - time * 5, 100) + combo * 10;
             lives = Math.min(maxLives, lives + 1);
+            Replay.stop();
+            recordBattleLog(true, efficiency);
             AudioManager.playLevelUp();
             document.dispatchEvent(new CustomEvent('survivalAdvance', {
                 detail: { level: survivalLevel, score: survivalScore, lives: lives }
@@ -557,6 +580,11 @@ const Game = (function() {
         AudioManager.playWin();
         createParticles();
         Replay.stop();
+        recordBattleLog(true, efficiency);
+        if (typeof DailyQuests !== 'undefined') {
+            DailyQuests.checkEvent('win', { won: true, time: time, difficulty: difficulty, challengeMode: challengeMode, usedUndo: usedUndo });
+            DailyQuests.checkEvent('combo', { value: maxCombo });
+        }
         Achievements.check({
             won: true,
             time,
@@ -594,6 +622,7 @@ const Game = (function() {
             var es = Endless.getState();
             showGameOver(false, time, board.bv, efficiency, false);
             Replay.stop();
+            recordBattleLog(false, efficiency);
             Achievements.check({
                 won: false, time, clicks, efficiency, difficulty, challengeMode,
                 noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
@@ -608,6 +637,7 @@ const Game = (function() {
 
         showGameOver(false, time, board.bv, efficiency, false);
         Replay.stop();
+        recordBattleLog(false, efficiency);
 
         // 速通挑战连胜中断
         if (challengeMode && normalizeChallengeKey(challengeMode) === 'speedrun') {
@@ -634,6 +664,30 @@ const Game = (function() {
             width: board ? board.width : null,
             height: board ? board.height : null
         });
+    }
+
+    function recordBattleLog(won, efficiency) {
+        if (typeof BattleLog === 'undefined') return;
+        try {
+            BattleLog.record({
+                board: board,
+                won: won,
+                difficulty: difficulty,
+                challengeMode: challengeMode,
+                seed: currentSeed,
+                time: time,
+                clicks: clicks,
+                chordCount: chordCount,
+                undoCount: undoCount,
+                usedHint: usedHint,
+                usedFlags: usedFlags,
+                usedPowerup: usedPowerup,
+                efficiency: efficiency,
+                replay: Replay.getRecording()
+            });
+        } catch (e) {
+            console.warn('BattleLog record failed:', e);
+        }
     }
 
     function showGameOver(won, t, bv, eff, isNewRecord) {
@@ -700,6 +754,9 @@ const Game = (function() {
         const solverResult = Solver.getHint(board);
         if (solverResult) {
             AudioManager.playHint();
+            if (typeof DailyQuests !== 'undefined') {
+                DailyQuests.checkEvent('hint', { count: 1 });
+            }
         }
         return solverResult;
     }
@@ -748,6 +805,7 @@ const Game = (function() {
             maxCombo,
             survivalScore,
             usedUndo,
+            undoCount,
             usedFlags,
             usedHint,
             usedPowerup,
@@ -799,6 +857,7 @@ const Game = (function() {
         maxCombo = data.maxCombo || 0;
         survivalScore = data.survivalScore || 0;
         usedUndo = data.usedUndo || false;
+        undoCount = data.undoCount || 0;
         usedFlags = data.usedFlags || false;
         usedHint = data.usedHint || false;
         usedPowerup = data.usedPowerup || false;
@@ -922,6 +981,7 @@ const Game = (function() {
         history = [];
         chordCount = 0;
         usedUndo = false;
+        undoCount = 0;
         usedFlags = false;
         usedHint = false;
         usedPowerup = false;
@@ -951,6 +1011,7 @@ const Game = (function() {
         history = [];
         chordCount = 0;
         usedUndo = false;
+        undoCount = 0;
         usedFlags = false;
         usedHint = false;
         usedPowerup = false;
@@ -976,6 +1037,7 @@ const Game = (function() {
         history = [];
         chordCount = 0;
         usedUndo = false;
+        undoCount = 0;
         usedFlags = false;
         usedHint = false;
         usedPowerup = false;
@@ -1001,6 +1063,7 @@ const Game = (function() {
         history = [];
         chordCount = 0;
         usedUndo = false;
+        undoCount = 0;
         usedFlags = false;
         usedHint = false;
         usedPowerup = false;
@@ -1039,6 +1102,9 @@ const Game = (function() {
         var result = Powerups.use(id, board);
         if (result) {
             usedPowerup = true;
+            if (typeof DailyQuests !== 'undefined') {
+                DailyQuests.checkEvent('powerup', { count: 1 });
+            }
             updateUI();
         }
         return result;

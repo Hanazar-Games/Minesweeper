@@ -28,8 +28,11 @@ const UI = (function() {
         bindAchievementsEvents();
         bindCampaignEvents();
         bindPuzzleEvents();
+        bindQuestEvents();
+        bindBattleLogEvents();
         updateContinueButton();
         updateAchievementBadge();
+        updateQuestBadge();
     }
 
     function showScreen(name) {
@@ -45,6 +48,10 @@ const UI = (function() {
             updateDifficultyBests();
         } else if (name === 'campaign-screen') {
             renderCampaign();
+        } else if (name === 'battle-log-screen') {
+            resetBattleLogTabs();
+            renderBattleLogList();
+            renderBattleLogTrends();
         }
     }
 
@@ -81,6 +88,10 @@ const UI = (function() {
                         showScreen('puzzle-screen');
                         initPuzzleEditor();
                         break;
+                    case 'daily-quests':
+                        showScreen('daily-quests-screen');
+                        renderDailyQuests();
+                        break;
                     case 'challenge':
                         showScreen('challenge-screen');
                         break;
@@ -104,6 +115,9 @@ const UI = (function() {
                     case 'achievements':
                         renderAchievements('all');
                         showScreen('achievements-screen');
+                        break;
+                    case 'battle-log':
+                        showScreen('battle-log-screen');
                         break;
                     case 'help':
                         showScreen('help-screen');
@@ -523,6 +537,22 @@ const UI = (function() {
             AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
             showScreen('main-menu');
+        });
+
+        document.getElementById('view-analysis-btn').addEventListener('click', () => {
+            AudioManager.playClick();
+            if (typeof BattleLog === 'undefined') {
+                showHintOverlay('战后分析模块未加载');
+                return;
+            }
+            var list = BattleLog.getList(1);
+            if (list.length > 0) {
+                document.getElementById('gameover-overlay').classList.add('hidden');
+                renderBattleAnalysis(list[0].id);
+                showScreen('battle-analysis-screen');
+            } else {
+                showHintOverlay('暂无战后分析数据，请先完成一局游戏。');
+            }
         });
 
         document.getElementById('share-seed-btn').addEventListener('click', () => {
@@ -2098,6 +2128,443 @@ const UI = (function() {
                 loadSavedPuzzles();
             });
         });
+    }
+
+    // ==================== 每日任务 ====================
+
+    function updateQuestBadge() {
+        var badge = document.getElementById('quest-badge');
+        if (!badge) return;
+        if (typeof DailyQuests !== 'undefined') {
+            var prog = DailyQuests.getProgress();
+            badge.classList.toggle('hidden', !prog.hasUnclaimed && prog.done < prog.total);
+        }
+    }
+
+    function renderDailyQuests() {
+        if (typeof DailyQuests === 'undefined') return;
+        var tasks = DailyQuests.getTasks();
+        var streak = DailyQuests.getStreak();
+        var container = document.getElementById('quests-list');
+        var progressEl = document.getElementById('quests-progress-fill');
+        var streakEl = document.getElementById('quest-streak');
+        var rewardsSection = document.getElementById('quests-rewards');
+        if (!container) return;
+
+        streakEl.textContent = streak;
+        var total = tasks.length;
+        var done = tasks.filter(function(t) { return t.completed; }).length;
+        progressEl.style.width = total > 0 ? ((done / total) * 100) + '%' : '0%';
+
+        container.innerHTML = '';
+        tasks.forEach(function(task, idx) {
+            var card = document.createElement('div');
+            card.className = 'quest-card' + (task.completed ? ' completed' : '');
+            var pct = task.target > 0 ? Math.min(100, Math.floor((task.progress / task.target) * 100)) : 0;
+            card.innerHTML =
+                '<div class="quest-header">' +
+                    '<span class="quest-name">' + task.name + '</span>' +
+                    '<span class="quest-status">' + (task.completed ? '✅ 完成' : task.progress + '/' + task.target) + '</span>' +
+                '</div>' +
+                '<div class="quest-desc">' + task.desc + '</div>' +
+                '<div class="quest-bar"><div class="quest-bar-fill" style="width:' + pct + '%"></div></div>';
+            container.appendChild(card);
+        });
+
+        var allDone = done >= total && total > 0;
+        rewardsSection.style.display = allDone ? 'block' : 'none';
+        if (allDone) {
+            renderQuestRewards();
+        }
+    }
+
+    function renderQuestRewards() {
+        var list = document.getElementById('quests-reward-list');
+        var btn = document.getElementById('quests-claim-btn');
+        if (!list || !btn) return;
+        var rewards = DailyQuests.getAllRewards();
+        if (rewards.length === 0 || rewards.every(function(r) {
+            return Object.keys(r).length === 0;
+        })) {
+            list.innerHTML = '<p>今日奖励已领取</p>';
+            btn.disabled = true;
+            btn.textContent = '已领取';
+            return;
+        }
+        var html = '';
+        rewards.forEach(function(r, i) {
+            html += '<div class="quest-reward-item">任务 ' + (i + 1) + '：';
+            var parts = [];
+            if (r.scanner) parts.push('🔍 ×' + r.scanner);
+            if (r.shield) parts.push('🛡️ ×' + r.shield);
+            if (r.freeze) parts.push('⏱️ ×' + r.freeze);
+            if (r.heatmap) parts.push('💡 ×' + r.heatmap);
+            html += (parts.length > 0 ? parts.join(' ') : '无') + '</div>';
+        });
+        list.innerHTML = html;
+        btn.disabled = false;
+        btn.textContent = '领取奖励';
+    }
+
+    document.addEventListener('questComplete', function(e) {
+        var task = e.detail.task;
+        showHintOverlay('📋 任务完成：' + task.name);
+        updateQuestBadge();
+        if (typeof DailyQuests !== 'undefined') {
+            var prog = DailyQuests.getProgress();
+            if (prog.hasUnclaimed) {
+                renderDailyQuests();
+            }
+        }
+    });
+
+    document.addEventListener('allQuestsComplete', function(e) {
+        showHintOverlay('🔥 今日任务全部完成！连续 ' + e.detail.streak + ' 天！');
+        updateQuestBadge();
+        renderDailyQuests();
+    });
+
+    function bindQuestEvents() {
+        var claimBtn = document.getElementById('quests-claim-btn');
+        if (claimBtn) {
+            claimBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var rewards = DailyQuests.getAllRewards();
+                if (typeof Powerups !== 'undefined') {
+                    rewards.forEach(function(r) {
+                        if (r.scanner) Powerups.addScanner(r.scanner);
+                        if (r.shield) Powerups.addShield(r.shield);
+                        if (r.freeze) Powerups.addFreeze(r.freeze);
+                        if (r.heatmap) Powerups.addHeatmap(r.heatmap);
+                    });
+                }
+                AudioManager.playWin();
+                showHintOverlay('🎁 奖励已领取！');
+                renderQuestRewards();
+                updateQuestBadge();
+            });
+        }
+    }
+
+    // ==================== 作战日志 ====================
+
+    function resetBattleLogTabs() {
+        var screen = document.getElementById('battle-log-screen');
+        if (!screen) return;
+        screen.querySelectorAll('.bl-tab').forEach(function(b) { b.classList.remove('active'); });
+        var firstTab = screen.querySelector('.bl-tab');
+        if (firstTab) firstTab.classList.add('active');
+        screen.querySelectorAll('.bl-panel').forEach(function(p) { p.classList.remove('active'); });
+        var firstPanel = screen.querySelector('.bl-panel');
+        if (firstPanel) firstPanel.classList.add('active');
+    }
+
+    function bindBattleLogEvents() {
+        if (typeof BattleLog === 'undefined') return;
+        var screen = document.getElementById('battle-log-screen');
+        if (!screen) return;
+        var tabBtns = screen.querySelectorAll('.bl-tab');
+        tabBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                AudioManager.playClick();
+                var target = btn.dataset.blTab;
+                tabBtns.forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                screen.querySelectorAll('.bl-panel').forEach(function(p) { p.classList.remove('active'); });
+                var panel = document.getElementById('bl-panel-' + target);
+                if (panel) panel.classList.add('active');
+            });
+        });
+
+        var clearBtn = document.getElementById('clear-battle-log-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                if (confirm('确定要清空所有作战日志吗？此操作不可恢复。')) {
+                    BattleLog.clear();
+                    renderBattleLogList();
+                    renderBattleLogTrends();
+                }
+            });
+        }
+    }
+
+    function renderBattleLogList() {
+        var container = document.getElementById('battle-log-list');
+        if (!container) return;
+        if (typeof BattleLog === 'undefined') {
+            container.innerHTML = '<div class="bl-empty">模块加载失败</div>';
+            return;
+        }
+        var list = BattleLog.getList();
+        if (list.length === 0) {
+            container.innerHTML = '<p class="bl-empty">暂无游戏记录，完成一局后即可查看详细分析。</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        var diffNames = {
+            beginner: '初级', intermediate: '中级', expert: '高级',
+            master: '大师', giant: '巨型', custom: '自定义', puzzle: '谜题'
+        };
+
+        list.forEach(function(entry) {
+            var card = document.createElement('div');
+            card.className = 'bl-card' + (entry.won ? ' won' : ' lost');
+
+            var dateStr = '';
+            try {
+                dateStr = new Date(entry.playedAt).toLocaleString('zh-CN', {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+            } catch (e) { dateStr = entry.playedAt || ''; }
+
+            var analysis = BattleLog.analyze(entry);
+            var grade = analysis ? analysis.overallGrade : 'C';
+            var gradeColor = {
+                S: '#fbbf24', A: '#22c55e', B: '#3b82f6',
+                C: '#94a3b8', D: '#f97316', F: '#ef4444'
+            };
+
+            var diffLabel = diffNames[entry.difficulty] || entry.difficulty || '自定义';
+            var timeVal = (entry.time !== undefined && entry.time !== null) ? entry.time : 0;
+            var effVal = (entry.efficiency !== undefined && entry.efficiency !== null) ? entry.efficiency : 0;
+            var w = entry.width || 0;
+            var h = entry.height || 0;
+            var m = entry.mineCount || 0;
+
+            card.innerHTML =
+                '<div class="bl-card-header">' +
+                    '<span class="bl-card-result">' + (entry.won ? '🏆 胜利' : '💥 失败') + '</span>' +
+                    '<span class="bl-card-grade" style="color:' + (gradeColor[grade] || '#94a3b8') + '">' + grade + '</span>' +
+                '</div>' +
+                '<div class="bl-card-body">' +
+                    '<div class="bl-card-info">' +
+                        '<span>' + diffLabel + '</span>' +
+                        '<span>⏱️ ' + timeVal + 's</span>' +
+                        '<span>📊 ' + effVal + '%</span>' +
+                    '</div>' +
+                    '<div class="bl-card-meta">' +
+                        '<span>' + dateStr + '</span>' +
+                        '<span>' + w + '×' + h + ' · ' + m + '雷</span>' +
+                    '</div>' +
+                '</div>';
+
+            card.addEventListener('click', function() {
+                AudioManager.playClick();
+                renderBattleAnalysis(entry.id);
+                showScreen('battle-analysis-screen');
+            });
+
+            container.appendChild(card);
+        });
+    }
+
+    function renderBattleLogTrends() {
+        if (typeof BattleLog === 'undefined') return;
+        var trends = BattleLog.getTrends();
+
+        // 效率趋势
+        var effContainer = document.getElementById('bl-eff-trend');
+        if (effContainer) {
+            effContainer.innerHTML = '';
+            var effData = trends.efficiency;
+            if (effData.length === 0) {
+                effContainer.innerHTML = '<div style="text-align:center;color:var(--text-muted)">暂无数据</div>';
+            } else {
+                var maxEff = 100;
+                effData.forEach(function(d, i) {
+                    var bar = document.createElement('div');
+                    bar.className = 'trend-bar';
+                    bar.style.height = Math.max(4, (d.value / maxEff) * 100) + '%';
+                    bar.style.background = d.won ? 'var(--secondary)' : 'var(--danger)';
+                    bar.dataset.label = '#' + (i + 1);
+                    effContainer.appendChild(bar);
+                });
+            }
+        }
+
+        // 胜率趋势
+        var winContainer = document.getElementById('bl-win-trend');
+        if (winContainer) {
+            winContainer.innerHTML = '';
+            var winData = trends.winRate;
+            if (winData.length === 0) {
+                winContainer.innerHTML = '<div style="text-align:center;color:var(--text-muted)">暂无数据</div>';
+            } else {
+                winData.forEach(function(d, i) {
+                    var bar = document.createElement('div');
+                    bar.className = 'trend-bar';
+                    bar.style.height = Math.max(4, d.winRate) + '%';
+                    bar.style.background = 'var(--primary)';
+                    bar.dataset.label = '#' + (i + 1);
+                    winContainer.appendChild(bar);
+                });
+            }
+        }
+    }
+
+    function renderBattleAnalysis(id) {
+        var container = document.getElementById('battle-analysis-content');
+        if (!container) return;
+        if (typeof BattleLog === 'undefined') {
+            container.innerHTML = '<p style="text-align:center;color:var(--text-muted)">模块加载失败</p>';
+            return;
+        }
+        var entry = BattleLog.getById(id);
+        if (!entry) {
+            container.innerHTML = '<p style="text-align:center;color:var(--text-muted)">记录不存在</p>';
+            return;
+        }
+
+        var analysis = BattleLog.analyze(entry);
+        var diffNames = {
+            beginner: '初级', intermediate: '中级', expert: '高级',
+            master: '大师', giant: '巨型', custom: '自定义', puzzle: '谜题'
+        };
+
+        var gradeColor = {
+            S: '#fbbf24', A: '#22c55e', B: '#3b82f6',
+            C: '#94a3b8', D: '#f97316', F: '#ef4444'
+        };
+
+        // 综合评级卡片
+        var overallGrade = analysis.overallGrade;
+        var overallColor = gradeColor[overallGrade] || '#94a3b8';
+
+        var html = '<div class="ba-overview">';
+        html += '<div class="ba-grade-circle" style="border-color:' + overallColor + ';color:' + overallColor + '">' +
+            '<div class="ba-grade-letter">' + overallGrade + '</div>' +
+            '<div class="ba-grade-label">综合评级</div>' +
+        '</div>';
+        var dateDisplay = '';
+        try {
+            dateDisplay = new Date(entry.playedAt).toLocaleString('zh-CN');
+        } catch (e) {
+            dateDisplay = entry.playedAt || '';
+        }
+
+        var wInfo = entry.width || 0;
+        var hInfo = entry.height || 0;
+        var mInfo = entry.mineCount || 0;
+
+        html += '<div class="ba-overview-info">' +
+            '<h3>' + (entry.won ? '🏆 胜利' : '💥 失败') + ' — ' + (diffNames[entry.difficulty] || entry.difficulty || '自定义') + '</h3>' +
+            '<p>' + wInfo + '×' + hInfo + ' · ' + mInfo + '雷 · 种子: ' + (entry.seed || '随机') + '</p>' +
+            '<p>' + dateDisplay + '</p>' +
+        '</div>';
+        html += '</div>';
+
+        // 关键指标网格
+        html += '<div class="ba-metrics">';
+        analysis.keyMetrics.forEach(function(m) {
+            var color = m.grade ? (gradeColor[m.grade] || '') : '';
+            html += '<div class="ba-metric-card">' +
+                '<div class="ba-metric-value" style="color:' + (color || 'var(--primary)') + '">' + m.value + '</div>' +
+                '<div class="ba-metric-label">' + m.label + '</div>' +
+                (m.grade ? '<div class="ba-metric-grade" style="color:' + color + '">' + m.grade + '</div>' : '') +
+            '</div>';
+        });
+        html += '</div>';
+
+        // 评语
+        if (analysis.commentary && analysis.commentary.length > 0) {
+            html += '<div class="ba-commentary">';
+            html += '<h4>💬 战术评语</h4>';
+            analysis.commentary.forEach(function(c) {
+                html += '<p>' + c + '</p>';
+            });
+            html += '</div>';
+        }
+
+        // 棋盘复盘（简化显示：显示地雷和错误标记）
+        html += '<div class="ba-board-section">';
+        html += '<h4>🗺️ 棋盘复盘</h4>';
+        var snapshot = entry.boardSnapshot;
+        var hasRevealedData = snapshot && snapshot.revealed;
+        if (!hasRevealedData && snapshot && snapshot.mines) {
+            html += '<p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;">棋盘过大，仅显示地雷与标记分布。</p>';
+        }
+        html += '<div class="ba-board-replay" style="grid-template-columns:repeat(' + entry.width + ',24px);">';
+        if (snapshot && snapshot.mines) {
+            var revealedSet = {};
+            var flaggedSet = {};
+            var misFlaggedSet = {};
+            if (hasRevealedData) {
+                snapshot.revealed.forEach(function(r) { revealedSet[r.x + ',' + r.y] = true; });
+            }
+            (snapshot.flagged || []).forEach(function(f) { flaggedSet[f.x + ',' + f.y] = true; });
+            (snapshot.misFlagged || []).forEach(function(m) { misFlaggedSet[m.x + ',' + m.y] = true; });
+
+            for (var y = 0; y < entry.height; y++) {
+                for (var x = 0; x < entry.width; x++) {
+                    var key = x + ',' + y;
+                    var isMine = snapshot.mines.some(function(m) { return m.x === x && m.y === y; });
+                    var cls = 'ba-cell';
+                    var content = '';
+                    if (hasRevealedData && revealedSet[key]) {
+                        if (isMine) {
+                            cls += ' mine-hit';
+                            content = '💥';
+                        } else {
+                            cls += ' revealed';
+                        }
+                    } else if (flaggedSet[key]) {
+                        if (misFlaggedSet[key]) {
+                            cls += ' misflagged';
+                            content = '❌';
+                        } else {
+                            cls += ' flagged';
+                            content = '🚩';
+                        }
+                    } else if (isMine) {
+                        cls += ' unrevealed-mine';
+                        content = '💣';
+                    } else {
+                        cls += ' hidden';
+                    }
+                    html += '<div class="' + cls + '">' + content + '</div>';
+                }
+            }
+        }
+        html += '</div>';
+        html += '<div class="ba-board-legend">' +
+            '<span><span class="ba-legend-dot" style="background:#ef4444"></span> 地雷</span>' +
+            '<span><span class="ba-legend-dot" style="background:#22c55e"></span> 正确标记</span>' +
+            '<span><span class="ba-legend-dot" style="background:#f59e0b"></span> 错误标记</span>' +
+        '</div>';
+        html += '</div>';
+
+        // 操作统计
+        html += '<div class="ba-stats-detail">';
+        html += '<h4>📈 操作详情</h4>';
+        html += '<div class="ba-stat-rows">';
+        html += '<div class="ba-stat-row"><span>总点击数</span><span>' + (entry.clicks || 0) + '</span></div>';
+        html += '<div class="ba-stat-row"><span>Chord 次数</span><span>' + (entry.chordCount || 0) + '</span></div>';
+        html += '<div class="ba-stat-row"><span>撤销次数</span><span>' + (entry.undoCount || 0) + '</span></div>';
+        html += '<div class="ba-stat-row"><span>正确旗帜</span><span>' + ((entry.flagStats && entry.flagStats.correct) || 0) + '</span></div>';
+        html += '<div class="ba-stat-row"><span>错误旗帜</span><span>' + ((entry.flagStats && entry.flagStats.incorrect) || 0) + '</span></div>';
+        html += '<div class="ba-stat-row"><span>平均手速</span><span>' + ((entry.clickAnalysis && entry.clickAnalysis.avgCps) || 0) + '/s</span></div>';
+        html += '<div class="ba-stat-row"><span>峰值手速</span><span>' + ((entry.clickAnalysis && entry.clickAnalysis.peakCps) || 0) + '/s</span></div>';
+        html += '<div class="ba-stat-row"><span>首次点击延迟</span><span>' + ((entry.clickAnalysis && entry.clickAnalysis.firstClickDelay) || 0) + 's</span></div>';
+        html += '</div>';
+        html += '</div>';
+
+        // 删除按钮
+        html += '<button class="danger-btn" id="delete-battle-entry-btn" style="margin-top:1rem;">🗑️ 删除此记录</button>';
+
+        container.innerHTML = html;
+
+        var deleteBtn = document.getElementById('delete-battle-entry-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                if (confirm('确定要删除这条记录吗？')) {
+                    BattleLog.deleteById(id);
+                    showScreen('battle-log-screen');
+                }
+            });
+        }
     }
 
     return {
