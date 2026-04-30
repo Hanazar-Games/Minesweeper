@@ -281,6 +281,13 @@
             </div>
 
             <div class="game-footer">
+                <div class="shadow-progress-bar hidden" id="shadow-progress-bar">
+                    <span class="shadow-progress-label">👻 影子</span>
+                    <div class="shadow-progress-track">
+                        <div id="shadow-progress-fill"></div>
+                    </div>
+                    <span class="shadow-progress-text" id="shadow-progress-text">0%</span>
+                </div>
                 <div class="progress-bar">
                     <div id="progress-fill"></div>
                 </div>
@@ -1221,6 +1228,7 @@
                     </div>
                 </div>
                 <div id="new-record" class="hidden">🎉 新纪录!</div>
+                <div id="shadow-race-result" class="hidden"></div>
                 <div class="gameover-buttons">
                     <button class="overlay-btn primary" id="play-again-btn">再玩一次</button>
                     <button class="overlay-btn" id="replay-same-btn">🔄 相同地图</button>
@@ -1308,6 +1316,7 @@
     <script src="js/puzzle.js"></script>
     <script src="js/daily-quests.js"></script>
     <script src="js/battle-log.js"></script>
+    <script src="js/shadow-race.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/i18n.js"></script>

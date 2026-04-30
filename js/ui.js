@@ -30,6 +30,7 @@ const UI = (function() {
         bindPuzzleEvents();
         bindQuestEvents();
         bindBattleLogEvents();
+        bindShadowRaceEvents();
         updateContinueButton();
         updateAchievementBadge();
         updateQuestBadge();
@@ -52,6 +53,13 @@ const UI = (function() {
             resetBattleLogTabs();
             renderBattleLogList();
             renderBattleLogTrends();
+        } else if (name === 'game-screen') {
+            // 进入游戏时重置影子竞速结果面板
+            var srResultEl = document.getElementById('shadow-race-result');
+            if (srResultEl) {
+                srResultEl.classList.add('hidden');
+                srResultEl.innerHTML = '';
+            }
         }
     }
 
@@ -257,6 +265,10 @@ const UI = (function() {
                 const cell = board.cells[y][x];
                 const el = cellElements[y][x];
                 updateCellElement(el, cell, board.gameOver);
+                // 已揭示的格子清除影子标记，避免视觉残留
+                if (cell.isRevealed) {
+                    el.classList.remove('shadow-flagged');
+                }
             }
         }
 
@@ -286,6 +298,19 @@ const UI = (function() {
         const safeCells = total - board.mineCount;
         const progress = safeCells > 0 ? ((board.revealedCount / safeCells) * 100) : 0;
         document.getElementById('progress-fill').style.width = Math.min(100, Math.max(0, progress)) + '%';
+
+        // 影子进度
+        var shadowBar = document.getElementById('shadow-progress-bar');
+        if (shadowBar) {
+            if (typeof ShadowRace !== 'undefined' && ShadowRace.isActive()) {
+                shadowBar.classList.remove('hidden');
+                var srState = ShadowRace.getState();
+                document.getElementById('shadow-progress-fill').style.width = srState.progress + '%';
+                document.getElementById('shadow-progress-text').textContent = srState.progress + '%';
+            } else {
+                shadowBar.classList.add('hidden');
+            }
+        }
 
         // 难度标签
         const diffNames = {
@@ -1581,10 +1606,11 @@ const UI = (function() {
         document.getElementById('go-time').textContent = d.time + 's';
         document.getElementById('go-3bv').textContent = d.bv;
         document.getElementById('go-eff').textContent = d.efficiency + '%';
-        
+
         const recordEl = document.getElementById('new-record');
         if (recordEl) recordEl.classList.toggle('hidden', !d.isNewRecord);
-        
+
+        // 影子竞速结果由 shadowRaceEnd 事件单独渲染
         document.getElementById('gameover-overlay').classList.remove('hidden');
         updateAchievementBadge();
     });
@@ -2289,6 +2315,106 @@ const UI = (function() {
         }
     }
 
+    // ==================== 影子挑战 ====================
+
+    function bindShadowRaceEvents() {
+        if (typeof ShadowRace === 'undefined') return;
+
+        // 影子动作：在棋盘上显示闪烁效果
+        document.addEventListener('shadowAction', function(e) {
+            var d = e.detail;
+            if (d.action === 'undo') {
+                clearAllShadowMarks();
+            } else if (d.action === 'reveal' || d.action === 'chord') {
+                flashShadowCell(d.x, d.y);
+            } else if (d.action === 'flag') {
+                markShadowCell(d.x, d.y, true);
+            } else if (d.action === 'unflag') {
+                markShadowCell(d.x, d.y, false);
+            }
+        });
+
+        // 影子进度更新
+        document.addEventListener('shadowProgress', function(e) {
+            var bar = document.getElementById('shadow-progress-bar');
+            var fill = document.getElementById('shadow-progress-fill');
+            var text = document.getElementById('shadow-progress-text');
+            if (bar && fill && text) {
+                bar.classList.remove('hidden');
+                fill.style.width = e.detail.progress + '%';
+                text.textContent = e.detail.progress + '%';
+            }
+        });
+
+        // 影子完成
+        document.addEventListener('shadowCompleted', function(e) {
+            var bar = document.getElementById('shadow-progress-bar');
+            var fill = document.getElementById('shadow-progress-fill');
+            var text = document.getElementById('shadow-progress-text');
+            if (bar && fill && text) {
+                bar.classList.remove('hidden');
+                fill.style.width = '100%';
+                text.textContent = '完成!';
+            }
+        });
+
+        // 影子竞速结束：渲染结果到游戏结束弹窗
+        document.addEventListener('shadowRaceEnd', function(e) {
+            renderShadowRaceResult(e.detail);
+        });
+    }
+
+    function flashShadowCell(x, y) {
+        if (!cellElements[y] || !cellElements[y][x]) return;
+        var el = cellElements[y][x];
+        el.classList.add('shadow-flash');
+        setTimeout(function() {
+            el.classList.remove('shadow-flash');
+        }, 400);
+    }
+
+    function markShadowCell(x, y, flagged) {
+        if (!cellElements[y] || !cellElements[y][x]) return;
+        var el = cellElements[y][x];
+        if (flagged) {
+            el.classList.add('shadow-flagged');
+        } else {
+            el.classList.remove('shadow-flagged');
+        }
+    }
+
+    function clearAllShadowMarks() {
+        document.querySelectorAll('.cell.shadow-flagged').forEach(function(el) {
+            el.classList.remove('shadow-flagged');
+        });
+    }
+
+    function renderShadowRaceResult(result) {
+        var container = document.getElementById('shadow-race-result');
+        if (!container) return;
+
+        var html = '<div class="sr-result-box">';
+        if (result.beatShadow) {
+            html += '<div class="sr-result-title won">🎉 你超越了影子！</div>';
+        } else {
+            html += '<div class="sr-result-title lost">👻 影子领先完成</div>';
+        }
+        html += '<div class="sr-result-stats">';
+        html += '<div class="sr-stat-row"><span>你的时间</span><span>' + (result.playerTime || 0) + 's</span></div>';
+        if (result.shadowTime !== null && result.shadowTime !== undefined) {
+            html += '<div class="sr-stat-row"><span>影子时间</span><span>' + (Math.round(result.shadowTime * 10) / 10) + 's</span></div>';
+            if (result.timeDiff !== null && result.timeDiff !== undefined) {
+                html += '<div class="sr-stat-row"><span>差距</span><span>' + (Math.round(result.timeDiff * 10) / 10) + 's</span></div>';
+            }
+        } else {
+            html += '<div class="sr-stat-row"><span>影子</span><span>未完成</span></div>';
+        }
+        html += '</div></div>';
+
+        container.innerHTML = html;
+        container.classList.remove('hidden');
+    }
+
     function renderBattleLogList() {
         var container = document.getElementById('battle-log-list');
         if (!container) return;
@@ -2348,13 +2474,38 @@ const UI = (function() {
                         '<span>' + dateStr + '</span>' +
                         '<span>' + w + '×' + h + ' · ' + m + '雷</span>' +
                     '</div>' +
+                '</div>' +
+                '<div class="bl-card-actions">' +
+                    '<button class="bl-card-btn challenge-btn">🏁 挑战影子</button>' +
                 '</div>';
 
-            card.addEventListener('click', function() {
+            card.addEventListener('click', function(e) {
+                if (e.target.classList.contains('challenge-btn')) return;
                 AudioManager.playClick();
                 renderBattleAnalysis(entry.id);
                 showScreen('battle-analysis-screen');
             });
+
+            var challengeBtn = card.querySelector('.challenge-btn');
+            if (challengeBtn && typeof ShadowRace !== 'undefined') {
+                challengeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    AudioManager.playClick();
+                    if (ShadowRace.setup(entry.id)) {
+                        var custom = null;
+                        if (entry.difficulty === 'custom') {
+                            custom = { width: entry.width, height: entry.height, mines: entry.mineCount };
+                        }
+                        Game.start(entry.difficulty, custom, null, entry.seed);
+                        showScreen('game-screen');
+                        setTimeout(function() {
+                            ShadowRace.start();
+                        }, 500);
+                    } else {
+                        showHintOverlay('该记录无法挑战（缺少种子或回放数据）');
+                    }
+                });
+            }
 
             container.appendChild(card);
         });
@@ -2550,10 +2701,33 @@ const UI = (function() {
         html += '</div>';
         html += '</div>';
 
+        // 挑战按钮
+        if (typeof ShadowRace !== 'undefined' && entry.seed !== null && entry.seed !== undefined) {
+            html += '<button class="overlay-btn" id="challenge-shadow-btn" style="margin-top:1rem;background:var(--secondary);color:white;">🏁 挑战此记录的影子</button>';
+        }
+
         // 删除按钮
         html += '<button class="danger-btn" id="delete-battle-entry-btn" style="margin-top:1rem;">🗑️ 删除此记录</button>';
 
         container.innerHTML = html;
+
+        var challengeBtn = document.getElementById('challenge-shadow-btn');
+        if (challengeBtn) {
+            challengeBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                if (ShadowRace.setup(id)) {
+                    var custom = null;
+                    if (entry.difficulty === 'custom') {
+                        custom = { width: entry.width, height: entry.height, mines: entry.mineCount };
+                    }
+                    Game.start(entry.difficulty, custom, null, entry.seed);
+                    showScreen('game-screen');
+                    setTimeout(function() {
+                        ShadowRace.start();
+                    }, 500);
+                }
+            });
+        }
 
         var deleteBtn = document.getElementById('delete-battle-entry-btn');
         if (deleteBtn) {

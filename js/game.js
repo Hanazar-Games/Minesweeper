@@ -42,6 +42,9 @@ const Game = (function() {
     };
 
     function start(diff, custom = null, challenge = null, seed = null) {
+        // 停止任何正在进行的影子挑战
+        if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
+
         difficulty = diff;
         challengeMode = challenge;
         challengeData = {};
@@ -581,6 +584,16 @@ const Game = (function() {
         createParticles();
         Replay.stop();
         recordBattleLog(true, efficiency);
+
+        // 影子挑战结束判定
+        if (typeof ShadowRace !== 'undefined' && ShadowRace.isActive()) {
+            var srResult = ShadowRace.onPlayerEnd(true, time);
+            if (srResult) {
+                document.dispatchEvent(new CustomEvent('shadowRaceEnd', { detail: srResult }));
+            }
+            ShadowRace.stop();
+        }
+
         if (typeof DailyQuests !== 'undefined') {
             DailyQuests.checkEvent('win', { won: true, time: time, difficulty: difficulty, challengeMode: challengeMode, usedUndo: usedUndo });
             DailyQuests.checkEvent('combo', { value: maxCombo });
@@ -638,6 +651,15 @@ const Game = (function() {
         showGameOver(false, time, board.bv, efficiency, false);
         Replay.stop();
         recordBattleLog(false, efficiency);
+
+        // 影子挑战结束判定
+        if (typeof ShadowRace !== 'undefined' && ShadowRace.isActive()) {
+            var srResult = ShadowRace.onPlayerEnd(false, time);
+            if (srResult) {
+                document.dispatchEvent(new CustomEvent('shadowRaceEnd', { detail: srResult }));
+            }
+            ShadowRace.stop();
+        }
 
         // 速通挑战连胜中断
         if (challengeMode && normalizeChallengeKey(challengeMode) === 'speedrun') {
@@ -723,6 +745,7 @@ const Game = (function() {
         if (gameState === 'playing') {
             gameState = 'paused';
             stopTimer();
+            if (typeof ShadowRace !== 'undefined') ShadowRace.pause();
             updateUI();
         }
     }
@@ -731,6 +754,7 @@ const Game = (function() {
         if (gameState === 'paused') {
             gameState = 'playing';
             startTimer();
+            if (typeof ShadowRace !== 'undefined') ShadowRace.resume();
             updateUI();
         }
     }
