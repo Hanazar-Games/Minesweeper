@@ -1,5 +1,20 @@
 # 超级扫雷 - 更新日志
 
+## v1.6.2 (2026-04-29)
+
+### Bug 修复（v1.6.1 影子挑战核心逻辑深度检查）
+- **seed=0 数据丢失**：`battle-log.js` 中 `data.seed || null` 将 `seed=0` 误判为无种子，改为显式 `null/undefined` 判断，确保种子 `0` 正确保存
+- **挑战按钮时序崩溃**：作战日志卡片/分析页的 `setup()` 在 `Game.start()` 之前执行，`Game.start()` 内部的 `ShadowRace.stop()` 会清除刚设置的状态，导致影子挑战完全无法启动。改为先 `Game.start()` 再 `setup()`
+- **noGuess/symmetry 雷分布不一致**：`shadow-race.js` 新增预生成地雷机制，使用历史记录保存的 `noGuess` 和对称模式设置，在第一个 `reveal` 动作前完成地雷生成，确保 undo 回退时不会回到无雷状态，且雷分布与原始记录完全一致
+- **影子动作类型传递错误**：`shadowAction` 事件之前硬传递 `type='flag'`，导致 unflag/question/clear 全部被 UI 渲染为 flag。改为传递 `result.action`，UI 同步处理 `question`/`clear` 正确移除幽灵标记
+- **shadowCompleted 后无限循环**：`tick()` 在影子完成后仍继续调度 `requestAnimationFrame`，造成无意义循环。添加 `shadowCompleted` 提前退出
+- **种子显示一致性**：`renderBoard` 和战后分析详情中 `detail.seed` / `entry.seed` 为 `0` 时均正确显示 `0` 而非隐藏或显示"随机"
+- **战后分析颜色去硬编码**：`.ba-cell.unrevealed-mine` 深红 `#7f1d1d` → `var(--danger)`，适配全部主题
+- **竞速结果精度统一**：`playerTime` 显示增加 `Math.round(...*10)/10`，与 `shadowTime` / `timeDiff` 保持相同精度
+- **平局样式补充**：`.sr-result-title.draw` 新增 `var(--primary)` 颜色，平局结果视觉更突出
+
+---
+
 ## v1.6.1 (2026-04-29)
 
 ### Bug 修复（v1.6.0 影子挑战 UI/UX/SFX/BGM 深度检查）

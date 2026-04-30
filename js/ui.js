@@ -330,7 +330,7 @@ const UI = (function() {
         if (seedEl) {
             if (detail.challengeMode === 'puzzle') {
                 seedEl.textContent = '';
-            } else if (detail.seed) {
+            } else if (detail.seed !== null && detail.seed !== undefined) {
                 seedEl.textContent = '种子: ' + detail.seed;
                 seedEl.style.fontSize = '0.75rem';
                 seedEl.style.opacity = '0.6';
@@ -2353,7 +2353,7 @@ const UI = (function() {
                 }
             } else if (d.action === 'flag') {
                 markShadowCell(d.x, d.y, true);
-            } else if (d.action === 'unflag') {
+            } else if (d.action === 'unflag' || d.action === 'question' || d.action === 'clear') {
                 markShadowCell(d.x, d.y, false);
             }
         });
@@ -2419,14 +2419,14 @@ const UI = (function() {
 
         var html = '<div class="sr-result-box">';
         if (result.draw) {
-            html += '<div class="sr-result-title">⚖️ 平局！你与影子同时完成</div>';
+            html += '<div class="sr-result-title draw">⚖️ 平局！你与影子同时完成</div>';
         } else if (result.beatShadow) {
             html += '<div class="sr-result-title won">🎉 你超越了影子！</div>';
         } else {
             html += '<div class="sr-result-title lost">👻 影子领先完成</div>';
         }
         html += '<div class="sr-result-stats">';
-        html += '<div class="sr-stat-row"><span>你的时间</span><span>' + (result.playerTime || 0) + 's</span></div>';
+        html += '<div class="sr-stat-row"><span>你的时间</span><span>' + (Math.round((result.playerTime || 0) * 10) / 10) + 's</span></div>';
         if (result.shadowTime !== null && result.shadowTime !== undefined) {
             html += '<div class="sr-stat-row"><span>影子时间</span><span>' + (Math.round(result.shadowTime * 10) / 10) + 's</span></div>';
             if (result.timeDiff !== null && result.timeDiff !== undefined) {
@@ -2521,17 +2521,17 @@ const UI = (function() {
                 challengeBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     AudioManager.playClick();
-                    if (ShadowRace.setup(entry.id)) {
-                        var custom = null;
-                        if (entry.difficulty === 'custom') {
-                            custom = { width: entry.width, height: entry.height, mines: entry.mineCount };
-                        }
-                        Game.start(entry.difficulty, custom, null, entry.seed);
-                        showScreen('game-screen');
-                        setTimeout(function() {
-                            ShadowRace.start();
-                        }, 500);
+                    var custom = null;
+                    if (entry.difficulty === 'custom') {
+                        custom = { width: entry.width, height: entry.height, mines: entry.mineCount };
                     }
+                    Game.start(entry.difficulty, custom, null, entry.seed);
+                    showScreen('game-screen');
+                    setTimeout(function() {
+                        if (ShadowRace.setup(entry.id)) {
+                            ShadowRace.start();
+                        }
+                    }, 500);
                 });
             }
 
@@ -2629,7 +2629,7 @@ const UI = (function() {
 
         html += '<div class="ba-overview-info">' +
             '<h3>' + (entry.won ? '🏆 胜利' : '💥 失败') + ' — ' + (diffNames[entry.difficulty] || entry.difficulty || '自定义') + '</h3>' +
-            '<p>' + wInfo + '×' + hInfo + ' · ' + mInfo + '雷 · 种子: ' + (entry.seed || '随机') + '</p>' +
+            '<p>' + wInfo + '×' + hInfo + ' · ' + mInfo + '雷 · 种子: ' + ((entry.seed !== null && entry.seed !== undefined) ? entry.seed : '随机') + '</p>' +
             '<p>' + dateDisplay + '</p>' +
         '</div>';
         html += '</div>';
@@ -2744,17 +2744,17 @@ const UI = (function() {
         if (challengeBtn) {
             challengeBtn.addEventListener('click', function() {
                 AudioManager.playClick();
-                if (ShadowRace.setup(id)) {
-                    var custom = null;
-                    if (entry.difficulty === 'custom') {
-                        custom = { width: entry.width, height: entry.height, mines: entry.mineCount };
-                    }
-                    Game.start(entry.difficulty, custom, null, entry.seed);
-                    showScreen('game-screen');
-                    setTimeout(function() {
-                        ShadowRace.start();
-                    }, 500);
+                var custom = null;
+                if (entry.difficulty === 'custom') {
+                    custom = { width: entry.width, height: entry.height, mines: entry.mineCount };
                 }
+                Game.start(entry.difficulty, custom, null, entry.seed);
+                showScreen('game-screen');
+                setTimeout(function() {
+                    if (ShadowRace.setup(id)) {
+                        ShadowRace.start();
+                    }
+                }, 500);
             });
         }
 

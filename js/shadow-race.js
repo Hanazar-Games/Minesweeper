@@ -48,6 +48,19 @@ const ShadowRace = (function() {
         // 创建影子棋盘（相同种子确保相同雷分布）
         shadowBoard = new MinesweeperBoard(entry.width, entry.height, entry.mineCount, entry.seed);
 
+        // 预生成地雷：找到第一个 reveal 动作，使用原始游戏的 noGuess 和对称模式设置
+        // 这样 shadowHistory 的初始状态就包含正确雷分布，undo 不会回退到无雷状态
+        var firstReveal = shadowReplay.find(function(a) { return a.action === 'reveal'; });
+        if (firstReveal) {
+            var noGuess = (entry.noGuess !== undefined) ? entry.noGuess : ((typeof Settings !== 'undefined') ? Settings.get('noGuess') : false);
+            var symmetry = (entry.challengeMode === 'symmetry') ? 'point' : null;
+            shadowBoard.generateMines(firstReveal.x, firstReveal.y, noGuess ? 1 : 0, symmetry);
+            shadowBoard.firstClick = false;
+        } else {
+            console.warn('ShadowRace: no reveal action found in replay');
+            return false;
+        }
+
         return true;
     }
 
@@ -83,13 +96,13 @@ const ShadowRace = (function() {
      * 每帧检查并执行到期的影子动作
      */
     function tick() {
-        if (!active || paused) return;
+        if (!active || paused || shadowCompleted) return;
 
         var elapsed = Date.now() - shadowStartTime;
         var progressed = false;
 
         // 执行所有到期的动作（恢复后会立即追赶暂停期间积压的动作）
-        while (nextActionIndex < shadowReplay.length &&
+        while (!shadowCompleted && nextActionIndex < shadowReplay.length &&
                shadowReplay[nextActionIndex].time <= elapsed) {
             executeShadowAction(shadowReplay[nextActionIndex]);
             nextActionIndex++;
@@ -179,7 +192,7 @@ const ShadowRace = (function() {
         if (cellChanged || type === 'undo') {
             document.dispatchEvent(new CustomEvent('shadowAction', {
                 detail: {
-                    action: type,
+                    action: (result && result.action) || type,
                     x: x,
                     y: y,
                     result: result,

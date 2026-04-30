@@ -3438,7 +3438,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .ba-cell.unrevealed-mine {
-    background: #7f1d1d;
+    background: var(--danger);
 }
 
 .ba-board-legend {
@@ -3660,6 +3660,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .sr-result-title.lost {
     color: var(--danger);
+}
+
+.sr-result-title.draw {
+    color: var(--primary);
 }
 
 .sr-result-stats {
