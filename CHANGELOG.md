@@ -1,5 +1,19 @@
 # 超级扫雷 - 更新日志
 
+## v1.6.1 (2026-04-29)
+
+### Bug 修复（v1.6.0 影子挑战 UI/UX/SFX/BGM 深度检查）
+- **相同地图按钮**：`replay-same-btn` / `play-again-btn` / `quit-btn` / `go-menu-btn` 在影子挑战模式下正确处理 ShadowRace 生命周期，避免状态丢失或残留
+- **question 标记设置同步**：影子挑战的 flag/unflag 操作现在读取 `Settings.get('question')`，不再硬编码 `false`，与玩家当前设置保持一致
+- **平局判定**：`onPlayerEnd` 新增 `draw` 标志，当玩家与影子时间完全相同时正确显示平局结果
+- **主题颜色去硬编码**：`shadowFlash` 动画绿色 `rgba(52,211,153)` → `var(--secondary)`；进度条渐变 `#34d399` → `var(--primary)`，适配全部11种强调色
+- **视觉反馈完整性**：`reveal` 和 `chord` 操作现在会闪烁所有实际被揭示的格子（包括 floodReveal 扩散的格子），不再只闪烁中心格
+- **挑战按钮过滤**：作战日志卡片和战后分析详情页的挑战按钮仅在记录同时包含 `seed` + `replay` 时显示，避免旧数据/无效记录误点
+- **数据验证强化**：`ShadowRace.setup()` 新增 `width/height/mineCount` 有效性检查，防止损坏记录导致棋盘创建异常
+- **模式边界保护**：无尽模式/生存模式的胜利/失败结算流程补充 `ShadowRace.stop()`，彻底杜绝跨模式状态泄漏
+
+---
+
 ## v1.6.0 (2026-04-29)
 
 ### 新增功能

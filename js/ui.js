@@ -543,6 +543,7 @@ const UI = (function() {
         document.getElementById('quit-btn').addEventListener('click', () => {
             AudioManager.playClick();
             document.getElementById('pause-overlay').classList.add('hidden');
+            if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             Game.pause();
             showScreen('main-menu');
         });
@@ -550,17 +551,22 @@ const UI = (function() {
         document.getElementById('play-again-btn').addEventListener('click', () => {
             AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
+            var shadowEntryId = (typeof ShadowRace !== 'undefined' && ShadowRace.getEntry()) ? ShadowRace.getEntry().id : null;
             const state = Game.getState();
             if (state.challengeMode === 'puzzle' && Game.replayPuzzle) {
                 Game.replayPuzzle();
             } else {
                 Game.start(state.difficulty, null, state.challengeMode, state.seed);
             }
+            if (shadowEntryId && typeof ShadowRace !== 'undefined' && ShadowRace.setup(shadowEntryId)) {
+                setTimeout(function() { ShadowRace.start(); }, 500);
+            }
         });
 
         document.getElementById('go-menu-btn').addEventListener('click', () => {
             AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
+            if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             showScreen('main-menu');
         });
 
@@ -600,11 +606,15 @@ const UI = (function() {
         document.getElementById('replay-same-btn').addEventListener('click', () => {
             AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
+            var shadowEntryId = (typeof ShadowRace !== 'undefined' && ShadowRace.getEntry()) ? ShadowRace.getEntry().id : null;
             const state = Game.getState();
             if (state.challengeMode === 'puzzle' && Game.replayPuzzle) {
                 Game.replayPuzzle();
             } else {
                 Game.start(state.difficulty, null, state.challengeMode, state.seed);
+            }
+            if (shadowEntryId && typeof ShadowRace !== 'undefined' && ShadowRace.setup(shadowEntryId)) {
+                setTimeout(function() { ShadowRace.start(); }, 500);
             }
         });
 
@@ -2325,8 +2335,22 @@ const UI = (function() {
             var d = e.detail;
             if (d.action === 'undo') {
                 clearAllShadowMarks();
-            } else if (d.action === 'reveal' || d.action === 'chord') {
+            } else if (d.action === 'reveal') {
                 flashShadowCell(d.x, d.y);
+                if (d.result && d.result.revealed && Array.isArray(d.result.revealed)) {
+                    d.result.revealed.forEach(function(cell) {
+                        if (cell.x !== d.x || cell.y !== d.y) {
+                            flashShadowCell(cell.x, cell.y);
+                        }
+                    });
+                }
+            } else if (d.action === 'chord') {
+                flashShadowCell(d.x, d.y);
+                if (d.result && d.result.revealed && Array.isArray(d.result.revealed)) {
+                    d.result.revealed.forEach(function(cell) {
+                        flashShadowCell(cell.x, cell.y);
+                    });
+                }
             } else if (d.action === 'flag') {
                 markShadowCell(d.x, d.y, true);
             } else if (d.action === 'unflag') {
@@ -2394,7 +2418,9 @@ const UI = (function() {
         if (!container) return;
 
         var html = '<div class="sr-result-box">';
-        if (result.beatShadow) {
+        if (result.draw) {
+            html += '<div class="sr-result-title">⚖️ 平局！你与影子同时完成</div>';
+        } else if (result.beatShadow) {
             html += '<div class="sr-result-title won">🎉 你超越了影子！</div>';
         } else {
             html += '<div class="sr-result-title lost">👻 影子领先完成</div>';
@@ -2459,7 +2485,7 @@ const UI = (function() {
             var h = entry.height || 0;
             var m = entry.mineCount || 0;
 
-            card.innerHTML =
+            var cardHtml =
                 '<div class="bl-card-header">' +
                     '<span class="bl-card-result">' + (entry.won ? '🏆 胜利' : '💥 失败') + '</span>' +
                     '<span class="bl-card-grade" style="color:' + (gradeColor[grade] || '#94a3b8') + '">' + grade + '</span>' +
@@ -2474,10 +2500,14 @@ const UI = (function() {
                         '<span>' + dateStr + '</span>' +
                         '<span>' + w + '×' + h + ' · ' + m + '雷</span>' +
                     '</div>' +
-                '</div>' +
-                '<div class="bl-card-actions">' +
+                '</div>';
+            var canChallengeCard = entry.seed !== null && entry.seed !== undefined && entry.replay && entry.replay.length > 0;
+            if (canChallengeCard) {
+                cardHtml += '<div class="bl-card-actions">' +
                     '<button class="bl-card-btn challenge-btn">🏁 挑战影子</button>' +
                 '</div>';
+            }
+            card.innerHTML = cardHtml;
 
             card.addEventListener('click', function(e) {
                 if (e.target.classList.contains('challenge-btn')) return;
@@ -2501,8 +2531,6 @@ const UI = (function() {
                         setTimeout(function() {
                             ShadowRace.start();
                         }, 500);
-                    } else {
-                        showHintOverlay('该记录无法挑战（缺少种子或回放数据）');
                     }
                 });
             }
@@ -2701,8 +2729,9 @@ const UI = (function() {
         html += '</div>';
         html += '</div>';
 
-        // 挑战按钮
-        if (typeof ShadowRace !== 'undefined' && entry.seed !== null && entry.seed !== undefined) {
+        // 挑战按钮（需同时有种子和回放数据）
+        var canChallenge = entry.seed !== null && entry.seed !== undefined && entry.replay && entry.replay.length > 0;
+        if (typeof ShadowRace !== 'undefined' && canChallenge) {
             html += '<button class="overlay-btn" id="challenge-shadow-btn" style="margin-top:1rem;background:var(--secondary);color:white;">🏁 挑战此记录的影子</button>';
         }
 

@@ -469,6 +469,7 @@ const Game = (function() {
             });
             Replay.stop();
             recordBattleLog(true, efficiency);
+            if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             Endless.nextLevel();
             AudioManager.playLevelUp();
             document.dispatchEvent(new CustomEvent('endlessAdvance', {
@@ -552,6 +553,7 @@ const Game = (function() {
             lives = Math.min(maxLives, lives + 1);
             Replay.stop();
             recordBattleLog(true, efficiency);
+            if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             AudioManager.playLevelUp();
             document.dispatchEvent(new CustomEvent('survivalAdvance', {
                 detail: { level: survivalLevel, score: survivalScore, lives: lives }
@@ -636,6 +638,7 @@ const Game = (function() {
             showGameOver(false, time, board.bv, efficiency, false);
             Replay.stop();
             recordBattleLog(false, efficiency);
+            if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             Achievements.check({
                 won: false, time, clicks, efficiency, difficulty, challengeMode,
                 noUndo: !usedUndo, noFlags: !usedFlags, chordCount,

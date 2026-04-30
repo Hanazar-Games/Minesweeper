@@ -33,6 +33,10 @@ const ShadowRace = (function() {
             console.warn('ShadowRace: entry has no replay', entryId);
             return false;
         }
+        if (!entry.width || !entry.height || !entry.mineCount) {
+            console.warn('ShadowRace: entry has invalid board dimensions', entryId);
+            return false;
+        }
 
         shadowEntry = entry;
         shadowReplay = entry.replay.slice();
@@ -164,7 +168,8 @@ const ShadowRace = (function() {
             result = shadowBoard.reveal(x, y);
             cellChanged = result && (result.changed || result.revealed);
         } else if (type === 'flag' || type === 'unflag') {
-            result = shadowBoard.toggleFlag(x, y, false);
+            var useQuestion = (typeof Settings !== 'undefined') ? Settings.get('question') : false;
+            result = shadowBoard.toggleFlag(x, y, useQuestion);
             cellChanged = result && result.changed;
         } else if (type === 'chord') {
             result = shadowBoard.chord(x, y);
@@ -229,8 +234,17 @@ const ShadowRace = (function() {
 
         // 判定胜负
         if (won && shadowCompleted) {
-            result.beatShadow = playerTime < shadowTime;
-            result.timeDiff = Math.abs(playerTime - shadowTime);
+            if (playerTime < shadowTime) {
+                result.beatShadow = true;
+                result.timeDiff = shadowTime - playerTime;
+            } else if (playerTime > shadowTime) {
+                result.beatShadow = false;
+                result.timeDiff = playerTime - shadowTime;
+            } else {
+                result.beatShadow = false;
+                result.timeDiff = 0;
+                result.draw = true;
+            }
         } else if (won && !shadowCompleted) {
             result.beatShadow = true;
             result.timeDiff = null;
