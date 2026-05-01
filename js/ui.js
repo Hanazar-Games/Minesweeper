@@ -2369,8 +2369,6 @@ const UI = (function() {
         var gridHtml = '';
         if (data.totalRecords === 0) {
             gridHtml = '<div class="bl-empty">暂无数据，完成一局后即可生成热图。</div>';
-        } else if (data.maxValue === 0) {
-            gridHtml = '<div class="bl-empty">该筛选条件下暂无有效数据。</div>';
         } else {
             gridHtml = '<div class="heatmap-grid">';
             for (var y = 0; y < 20; y++) {
@@ -2399,7 +2397,7 @@ const UI = (function() {
         gridEl.innerHTML = gridHtml;
 
         // 无数据时隐藏图例、统计和洞察
-        if (data.totalRecords === 0 || data.maxValue === 0) {
+        if (data.totalRecords === 0) {
             legendEl.innerHTML = '';
             statsEl.innerHTML = '';
             insightsEl.innerHTML = '';
@@ -2457,7 +2455,7 @@ const UI = (function() {
             filterGroup.addEventListener('click', function(e) {
                 var btn = e.target.closest('.heatmap-filter-btn');
                 if (!btn) return;
-                AudioManager.playClick();
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
                 currentHeatmapDiff = btn.dataset.hmDiff;
                 filterGroup.querySelectorAll('.heatmap-filter-btn').forEach(function(b) {
                     b.classList.remove('active');
@@ -2472,7 +2470,7 @@ const UI = (function() {
             typeGroup.addEventListener('click', function(e) {
                 var btn = e.target.closest('.heatmap-type-btn');
                 if (!btn) return;
-                AudioManager.playClick();
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
                 currentHeatmapType = btn.dataset.hmType;
                 typeGroup.querySelectorAll('.heatmap-type-btn').forEach(function(b) {
                     b.classList.remove('active');
