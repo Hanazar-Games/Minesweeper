@@ -33,14 +33,13 @@ const ShadowRace = (function() {
             console.warn('ShadowRace: entry has no replay', entryId);
             return false;
         }
-        if (!entry.width || !entry.height || !entry.mineCount) {
+        if (!entry.width || !entry.height || entry.mineCount === null || entry.mineCount === undefined || entry.mineCount < 0) {
             console.warn('ShadowRace: entry has invalid board dimensions', entryId);
             return false;
         }
 
         shadowEntry = entry;
         shadowReplay = entry.replay.slice();
-        active = true;
         nextActionIndex = 0;
         shadowCompleted = false;
         shadowHistory = [];
@@ -48,19 +47,12 @@ const ShadowRace = (function() {
         // 创建影子棋盘（相同种子确保相同雷分布）
         shadowBoard = new MinesweeperBoard(entry.width, entry.height, entry.mineCount, entry.seed);
 
-        // 预生成地雷：找到第一个 reveal 动作，使用原始游戏的 noGuess 和对称模式设置
-        // 这样 shadowHistory 的初始状态就包含正确雷分布，undo 不会回退到无雷状态
-        var firstReveal = shadowReplay.find(function(a) { return a.action === 'reveal'; });
-        if (firstReveal) {
-            var noGuess = (entry.noGuess !== undefined) ? entry.noGuess : ((typeof Settings !== 'undefined') ? Settings.get('noGuess') : false);
-            var symmetry = (entry.challengeMode === 'symmetry') ? 'point' : null;
-            shadowBoard.generateMines(firstReveal.x, firstReveal.y, noGuess ? 1 : 0, symmetry);
-            shadowBoard.firstClick = false;
-        } else {
-            console.warn('ShadowRace: no reveal action found in replay');
-            return false;
+        // 设置对称模式（如果原始游戏使用了）
+        if (entry.challengeMode === 'symmetry') {
+            shadowBoard.symmetryMode = 'point';
         }
 
+        active = true;
         return true;
     }
 
@@ -102,11 +94,14 @@ const ShadowRace = (function() {
         var progressed = false;
 
         // 执行所有到期的动作（恢复后会立即追赶暂停期间积压的动作）
-        while (!shadowCompleted && nextActionIndex < shadowReplay.length &&
+        var tickStart = Date.now();
+        while (active && nextActionIndex < shadowReplay.length &&
                shadowReplay[nextActionIndex].time <= elapsed) {
             executeShadowAction(shadowReplay[nextActionIndex]);
             nextActionIndex++;
             progressed = true;
+            // 单帧最多执行 8ms，防止积压过多动作导致卡顿
+            if (Date.now() - tickStart > 8) break;
         }
 
         // 派发进度更新事件
@@ -122,7 +117,7 @@ const ShadowRace = (function() {
         }
 
         // 检查影子是否完成
-        if (!shadowCompleted && shadowBoard && shadowBoard.checkWin()) {
+        if (shadowBoard && shadowBoard.checkWin()) {
             shadowCompleted = true;
             document.dispatchEvent(new CustomEvent('shadowCompleted', {
                 detail: {
@@ -133,12 +128,12 @@ const ShadowRace = (function() {
         }
 
         // 所有动作已执行且未完成 → 停止（异常数据保护）
-        if (nextActionIndex >= shadowReplay.length && !shadowCompleted) {
+        if (nextActionIndex >= shadowReplay.length) {
             return;
         }
 
-        // 继续动画
-        if (active && !paused) {
+        // 继续动画（仅当仍活跃时）
+        if (active && !paused && !shadowCompleted) {
             animationId = requestAnimationFrame(tick);
         }
     }
@@ -165,23 +160,36 @@ const ShadowRace = (function() {
             return;
         }
 
-        // 保存当前状态（用于后续 undo）
-        shadowHistory.push({
-            board: shadowBoard.clone()
-        });
-        // 限制历史栈大小，防止极端情况内存泄漏
-        if (shadowHistory.length > 200) {
-            shadowHistory.shift();
+        // 保存当前状态（用于后续 undo）—— 仅 reveal 和 chord 前需要保存
+        // 原始游戏中 flag/unflag 不调用 saveState，因此 undo 会回退到上一次 reveal/chord
+        if (type === 'reveal' || type === 'chord') {
+            shadowHistory.push({
+                board: shadowBoard.clone()
+            });
+            // 限制历史栈大小，防止极端情况内存泄漏
+            if (shadowHistory.length > 200) {
+                shadowHistory.shift();
+            }
         }
 
         var result = null;
         var cellChanged = false;
 
         if (type === 'reveal') {
+            // 如果这是第一个 reveal，使用原始游戏的 noGuess 设置生成地雷
+            if (shadowBoard.firstClick) {
+                var noGuess = (shadowEntry.noGuess !== undefined) ? shadowEntry.noGuess : ((typeof Settings !== 'undefined') ? Settings.get('noGuess') : false);
+                var symmetry = (shadowEntry.challengeMode === 'symmetry') ? 'point' : null;
+                shadowBoard.generateMines(x, y, noGuess ? 1 : 0, symmetry);
+                shadowBoard.firstClick = false;
+            }
             result = shadowBoard.reveal(x, y);
             cellChanged = result && (result.changed || result.revealed);
-        } else if (type === 'flag' || type === 'unflag') {
-            var useQuestion = (typeof Settings !== 'undefined') ? Settings.get('question') : false;
+            if (result && result.hitMine) {
+                shadowBoard.gameOver = true;
+            }
+        } else if (type === 'flag') {
+            var useQuestion = (shadowEntry.question !== undefined) ? shadowEntry.question : ((typeof Settings !== 'undefined') ? Settings.get('question') : false);
             result = shadowBoard.toggleFlag(x, y, useQuestion);
             cellChanged = result && result.changed;
         } else if (type === 'chord') {
@@ -189,7 +197,7 @@ const ShadowRace = (function() {
             cellChanged = result && (result.changed || result.revealed);
         }
 
-        if (cellChanged || type === 'undo') {
+        if (cellChanged) {
             document.dispatchEvent(new CustomEvent('shadowAction', {
                 detail: {
                     action: (result && result.action) || type,

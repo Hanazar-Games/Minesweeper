@@ -868,6 +868,7 @@ const Game = (function() {
     function loadSaved() {
         const data = Storage.get('saved_game');
         if (!data) return false;
+        if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
 
         difficulty = data.difficulty;
         time = data.time || 0;
