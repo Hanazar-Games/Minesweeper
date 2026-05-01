@@ -2342,7 +2342,28 @@ const UI = (function() {
         var insightsEl = document.getElementById('heatmap-insights');
         if (!gridEl || !legendEl || !statsEl || !insightsEl) return;
 
-        var data = BattleLog.generateHeatmapData(currentHeatmapDiff, currentHeatmapType);
+        // 同步按钮 active 状态与当前变量（防止离开再返回后不同步）
+        var screen = document.getElementById('battle-log-screen');
+        if (screen) {
+            screen.querySelectorAll('.heatmap-filter-btn').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.hmDiff === currentHeatmapDiff);
+            });
+            screen.querySelectorAll('.heatmap-type-btn').forEach(function(b) {
+                b.classList.toggle('active', b.dataset.hmType === currentHeatmapType);
+            });
+        }
+
+        var data;
+        try {
+            data = BattleLog.generateHeatmapData(currentHeatmapDiff, currentHeatmapType);
+        } catch (e) {
+            console.warn('renderHeatmap failed:', e);
+            gridEl.innerHTML = '<div class="bl-empty">热图渲染出错，请刷新重试。</div>';
+            legendEl.innerHTML = '';
+            statsEl.innerHTML = '';
+            insightsEl.innerHTML = '';
+            return;
+        }
 
         // 渲染热图网格
         var gridHtml = '';
@@ -2355,24 +2376,35 @@ const UI = (function() {
             for (var y = 0; y < 20; y++) {
                 for (var x = 0; x < 20; x++) {
                     var val = data.grid[y][x];
-                    var intensity = data.maxValue > 0 ? (val / data.maxValue) : 0;
-                    var color = '';
-                    if (currentHeatmapType === 'clicks') {
-                        var l = 95 - Math.round(intensity * 55);
-                        color = 'hsl(210, 80%, ' + l + '%)';
-                    } else if (currentHeatmapType === 'wins') {
-                        var lw = 95 - Math.round(intensity * 55);
-                        color = 'hsl(140, 70%, ' + lw + '%)';
+                    var opacity, color;
+                    if (currentHeatmapType === 'wins') {
+                        // 胜率热图使用绝对百分比（0~100），更直观
+                        opacity = 0.08 + (val / 100) * 0.92;
+                        color = 'rgba(34, 197, 94, ' + opacity + ')';
                     } else {
-                        var ld = 95 - Math.round(intensity * 55);
-                        color = 'hsl(0, 75%, ' + ld + '%)';
+                        var intensity = data.maxValue > 0 ? (val / data.maxValue) : 0;
+                        opacity = 0.08 + intensity * 0.92;
+                        if (currentHeatmapType === 'clicks') {
+                            color = 'rgba(59, 130, 246, ' + opacity + ')';
+                        } else {
+                            color = 'rgba(239, 68, 68, ' + opacity + ')';
+                        }
                     }
-                    gridHtml += '<div class="heatmap-cell" style="background:' + color + '" title="' + val + '"></div>';
+                    var titleText = (currentHeatmapType === 'wins') ? (val + '%') : val;
+                    gridHtml += '<div class="heatmap-cell" style="background:' + color + '" title="' + titleText + '"></div>';
                 }
             }
             gridHtml += '</div>';
         }
         gridEl.innerHTML = gridHtml;
+
+        // 无数据时隐藏图例、统计和洞察
+        if (data.totalRecords === 0 || data.maxValue === 0) {
+            legendEl.innerHTML = '';
+            statsEl.innerHTML = '';
+            insightsEl.innerHTML = '';
+            return;
+        }
 
         // 渲染图例
         var legendLabels = {
@@ -2391,12 +2423,13 @@ const UI = (function() {
         // 渲染统计
         var diffNames = { all: '全部', beginner: '初级', intermediate: '中级', expert: '高级' };
         var typeNames = { clicks: '点击热图', wins: '胜率热图', danger: '危险热图' };
+        var peakLabel = (currentHeatmapType === 'wins') ? ('峰值: ' + data.maxValue + '%') : ('峰值: ' + data.maxValue);
         statsEl.innerHTML =
             '<div class="heatmap-stats">' +
                 '<span>难度: ' + (diffNames[currentHeatmapDiff] || currentHeatmapDiff) + '</span>' +
                 '<span>类型: ' + (typeNames[currentHeatmapType] || currentHeatmapType) + '</span>' +
                 '<span>样本: ' + data.totalRecords + ' 局</span>' +
-                '<span>峰值: ' + data.maxValue + '</span>' +
+                '<span>' + peakLabel + '</span>' +
             '</div>';
 
         // 渲染洞察
@@ -2415,32 +2448,39 @@ const UI = (function() {
         var screen = document.getElementById('battle-log-screen');
         if (!screen) return;
 
-        var diffBtns = screen.querySelectorAll('.heatmap-filter-btn');
-        diffBtns.forEach(function(btn) {
-            // 移除旧监听器（通过克隆替换）
-            var newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', function() {
-                AudioManager.playClick();
-                currentHeatmapDiff = newBtn.dataset.hmDiff;
-                diffBtns.forEach(function(b) { b.classList.remove('active'); });
-                newBtn.classList.add('active');
-                renderHeatmap();
-            });
-        });
+        // 使用事件委托避免 cloneNode 导致的引用失效问题
+        var filterGroup = screen.querySelector('.heatmap-filter-group');
+        var typeGroup = screen.querySelector('.heatmap-type-group');
 
-        var typeBtns = screen.querySelectorAll('.heatmap-type-btn');
-        typeBtns.forEach(function(btn) {
-            var newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', function() {
+        if (filterGroup && !filterGroup.dataset.bound) {
+            filterGroup.dataset.bound = '1';
+            filterGroup.addEventListener('click', function(e) {
+                var btn = e.target.closest('.heatmap-filter-btn');
+                if (!btn) return;
                 AudioManager.playClick();
-                currentHeatmapType = newBtn.dataset.hmType;
-                typeBtns.forEach(function(b) { b.classList.remove('active'); });
-                newBtn.classList.add('active');
+                currentHeatmapDiff = btn.dataset.hmDiff;
+                filterGroup.querySelectorAll('.heatmap-filter-btn').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
                 renderHeatmap();
             });
-        });
+        }
+
+        if (typeGroup && !typeGroup.dataset.bound) {
+            typeGroup.dataset.bound = '1';
+            typeGroup.addEventListener('click', function(e) {
+                var btn = e.target.closest('.heatmap-type-btn');
+                if (!btn) return;
+                AudioManager.playClick();
+                currentHeatmapType = btn.dataset.hmType;
+                typeGroup.querySelectorAll('.heatmap-type-btn').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+                renderHeatmap();
+            });
+        }
     }
 
     // ==================== 影子挑战 ====================

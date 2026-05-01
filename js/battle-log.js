@@ -429,6 +429,9 @@ const BattleLog = (function() {
             grid.push(row);
         }
 
+        // 用于 wins 热图的辅助统计：每个格子的 [winCount, totalCount]
+        var winStats = {};
+
         var totalRecords = 0;
         var totalActions = 0;
         var cornerHits = 0;
@@ -440,47 +443,69 @@ const BattleLog = (function() {
             if (!entry || !entry.replay) continue;
             if (difficulty !== 'all' && entry.difficulty !== difficulty) continue;
 
-            var w = entry.width || 9;
-            var h = entry.height || 9;
+            var w = Math.max(1, entry.width || 9);
+            var h = Math.max(1, entry.height || 9);
             var replay = entry.replay;
-            totalRecords++;
 
             if (type === 'clicks') {
+                totalRecords++;
                 for (var j = 0; j < replay.length; j++) {
                     var a = replay[j];
                     if (a.action === 'reveal' || a.action === 'flag' || a.action === 'chord') {
-                        var gx = Math.min(19, Math.floor((a.x || 0) / w * 20));
-                        var gy = Math.min(19, Math.floor((a.y || 0) / h * 20));
+                        var gx = Math.max(0, Math.min(19, Math.floor((a.x || 0) / w * 20)));
+                        var gy = Math.max(0, Math.min(19, Math.floor((a.y || 0) / h * 20)));
                         grid[gy][gx]++;
                         totalActions++;
-                        if (gx <= 2 && gy <= 2) cornerHits++;
-                        else if (gx >= 8 && gx <= 11 && gy >= 8 && gy <= 11) centerHits++;
+                        // 四个角落区域都计入 corner
+                        var isCorner = (gx <= 2 && gy <= 2) || (gx >= 17 && gy <= 2) ||
+                                       (gx <= 2 && gy >= 17) || (gx >= 17 && gy >= 17);
+                        var isCenter = (gx >= 8 && gx <= 11 && gy >= 8 && gy <= 11);
+                        if (isCorner) cornerHits++;
+                        else if (isCenter) centerHits++;
                         else edgeHits++;
                     }
                 }
-            } else if (type === 'wins' && entry.won) {
+            } else if (type === 'wins') {
+                totalRecords++;
                 for (var k = 0; k < replay.length; k++) {
                     var b = replay[k];
                     if (b.action === 'reveal') {
-                        var gxw = Math.min(19, Math.floor((b.x || 0) / w * 20));
-                        var gyw = Math.min(19, Math.floor((b.y || 0) / h * 20));
-                        grid[gyw][gxw]++;
+                        var gxw = Math.max(0, Math.min(19, Math.floor((b.x || 0) / w * 20)));
+                        var gyw = Math.max(0, Math.min(19, Math.floor((b.y || 0) / h * 20)));
+                        var key = gxw + ',' + gyw;
+                        if (!winStats[key]) winStats[key] = [0, 0];
+                        winStats[key][0] += entry.won ? 1 : 0; // win count
+                        winStats[key][1] += 1; // total count
                     }
                 }
-            } else if (type === 'danger' && !entry.won) {
-                // 找出最后一个 reveal 动作（踩雷位置）
-                var lastReveal = null;
-                for (var m = replay.length - 1; m >= 0; m--) {
-                    if (replay[m].action === 'reveal') {
-                        lastReveal = replay[m];
-                        break;
+            } else if (type === 'danger') {
+                if (!entry.won) totalRecords++;
+                // 从 boardSnapshot 中获取所有雷的位置，统计踩雷的 reveal
+                var mines = (entry.boardSnapshot && entry.boardSnapshot.mines) ? entry.boardSnapshot.mines : [];
+                var mineSet = {};
+                for (var mi = 0; mi < mines.length; mi++) {
+                    mineSet[mines[mi].x + ',' + mines[mi].y] = true;
+                }
+                for (var ri = 0; ri < replay.length; ri++) {
+                    var ra = replay[ri];
+                    if (ra.action === 'reveal' && mineSet[(ra.x || 0) + ',' + (ra.y || 0)]) {
+                        var gxd = Math.max(0, Math.min(19, Math.floor((ra.x || 0) / w * 20)));
+                        var gyd = Math.max(0, Math.min(19, Math.floor((ra.y || 0) / h * 20)));
+                        grid[gyd][gxd]++;
                     }
                 }
-                if (lastReveal) {
-                    var gxd = Math.min(19, Math.floor((lastReveal.x || 0) / w * 20));
-                    var gyd = Math.min(19, Math.floor((lastReveal.y || 0) / h * 20));
-                    grid[gyd][gxd]++;
-                }
+            }
+        }
+
+        // 对 wins 热图：将胜率百分比转换为 grid 值 (0-100)
+        if (type === 'wins') {
+            var keys = Object.keys(winStats);
+            for (var ki = 0; ki < keys.length; ki++) {
+                var parts = keys[ki].split(',');
+                var wx = parseInt(parts[0], 10);
+                var wy = parseInt(parts[1], 10);
+                var stat = winStats[keys[ki]];
+                grid[wy][wx] = stat[1] > 0 ? Math.round((stat[0] / stat[1]) * 100) : 0;
             }
         }
 
@@ -514,7 +539,7 @@ const BattleLog = (function() {
                 }
                 insights.push('共分析了 ' + totalRecords + ' 局，' + totalActions + ' 次操作。');
             } else if (type === 'wins') {
-                insights.push('基于 ' + totalRecords + ' 场胜利的数据分析。');
+                insights.push('基于 ' + totalRecords + ' 局数据的胜率分析。');
                 insights.push('绿色越深，表示你在该区域胜率越高。');
             } else if (type === 'danger') {
                 insights.push('基于 ' + totalRecords + ' 场失败的数据分析。');
