@@ -415,6 +415,121 @@ const BattleLog = (function() {
         return best;
     }
 
+    /**
+     * 生成雷区热图数据
+     * @param {string} difficulty - 'all' | 'beginner' | 'intermediate' | 'expert'
+     * @param {string} type - 'clicks' | 'wins' | 'danger'
+     * @returns {Object} { grid: number[20][20], maxValue: number, totalRecords: number, insights: string[] }
+     */
+    function generateHeatmapData(difficulty, type) {
+        var grid = [];
+        for (var y = 0; y < 20; y++) {
+            var row = [];
+            for (var x = 0; x < 20; x++) row.push(0);
+            grid.push(row);
+        }
+
+        var totalRecords = 0;
+        var totalActions = 0;
+        var cornerHits = 0;
+        var edgeHits = 0;
+        var centerHits = 0;
+
+        for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            if (!entry || !entry.replay) continue;
+            if (difficulty !== 'all' && entry.difficulty !== difficulty) continue;
+
+            var w = entry.width || 9;
+            var h = entry.height || 9;
+            var replay = entry.replay;
+            totalRecords++;
+
+            if (type === 'clicks') {
+                for (var j = 0; j < replay.length; j++) {
+                    var a = replay[j];
+                    if (a.action === 'reveal' || a.action === 'flag' || a.action === 'chord') {
+                        var gx = Math.min(19, Math.floor((a.x || 0) / w * 20));
+                        var gy = Math.min(19, Math.floor((a.y || 0) / h * 20));
+                        grid[gy][gx]++;
+                        totalActions++;
+                        if (gx <= 2 && gy <= 2) cornerHits++;
+                        else if (gx >= 8 && gx <= 11 && gy >= 8 && gy <= 11) centerHits++;
+                        else edgeHits++;
+                    }
+                }
+            } else if (type === 'wins' && entry.won) {
+                for (var k = 0; k < replay.length; k++) {
+                    var b = replay[k];
+                    if (b.action === 'reveal') {
+                        var gxw = Math.min(19, Math.floor((b.x || 0) / w * 20));
+                        var gyw = Math.min(19, Math.floor((b.y || 0) / h * 20));
+                        grid[gyw][gxw]++;
+                    }
+                }
+            } else if (type === 'danger' && !entry.won) {
+                // 找出最后一个 reveal 动作（踩雷位置）
+                var lastReveal = null;
+                for (var m = replay.length - 1; m >= 0; m--) {
+                    if (replay[m].action === 'reveal') {
+                        lastReveal = replay[m];
+                        break;
+                    }
+                }
+                if (lastReveal) {
+                    var gxd = Math.min(19, Math.floor((lastReveal.x || 0) / w * 20));
+                    var gyd = Math.min(19, Math.floor((lastReveal.y || 0) / h * 20));
+                    grid[gyd][gxd]++;
+                }
+            }
+        }
+
+        // 计算最大值
+        var maxValue = 0;
+        for (var r = 0; r < 20; r++) {
+            for (var c = 0; c < 20; c++) {
+                if (grid[r][c] > maxValue) maxValue = grid[r][c];
+            }
+        }
+
+        // 生成洞察
+        var insights = [];
+        if (totalRecords === 0) {
+            insights.push('暂无该难度下的记录，完成一局后即可生成热图。');
+        } else if (maxValue === 0) {
+            insights.push('该筛选条件下暂无有效数据。');
+        } else {
+            if (type === 'clicks') {
+                var totalH = cornerHits + edgeHits + centerHits;
+                if (totalH > 0) {
+                    var cornerPct = Math.round((cornerHits / totalH) * 100);
+                    var centerPct = Math.round((centerHits / totalH) * 100);
+                    if (cornerPct > 25) {
+                        insights.push('你倾向于从角落开始探索，这是经典的高效开局策略。');
+                    } else if (centerPct > 30) {
+                        insights.push('你更喜欢从中心区域开始，这可以获得更多的数字信息。');
+                    } else {
+                        insights.push('你的开局位置分布比较均衡。');
+                    }
+                }
+                insights.push('共分析了 ' + totalRecords + ' 局，' + totalActions + ' 次操作。');
+            } else if (type === 'wins') {
+                insights.push('基于 ' + totalRecords + ' 场胜利的数据分析。');
+                insights.push('绿色越深，表示你在该区域胜率越高。');
+            } else if (type === 'danger') {
+                insights.push('基于 ' + totalRecords + ' 场失败的数据分析。');
+                insights.push('红色越深，表示你在该区域越容易踩雷。');
+            }
+        }
+
+        return {
+            grid: grid,
+            maxValue: maxValue,
+            totalRecords: totalRecords,
+            insights: insights
+        };
+    }
+
     load();
 
     return {
@@ -425,6 +540,7 @@ const BattleLog = (function() {
         deleteById: deleteById,
         clear: clear,
         getTrends: getTrends,
-        getBestForDifficulty: getBestForDifficulty
+        getBestForDifficulty: getBestForDifficulty,
+        generateHeatmapData: generateHeatmapData
     };
 })();

@@ -1269,6 +1269,7 @@
                 <div class="battle-log-tabs">
                     <button class="bl-tab active" data-bl-tab="list">历史记录</button>
                     <button class="bl-tab" data-bl-tab="trends">趋势分析</button>
+                    <button class="bl-tab" data-bl-tab="heatmap">雷区热图</button>
                 </div>
                 <div class="bl-panel active" id="bl-panel-list">
                     <div id="battle-log-list" class="battle-log-list">
@@ -1284,6 +1285,27 @@
                     <div class="trend-section">
                         <h3>胜率走势 (最近20局)</h3>
                         <div id="bl-win-trend" class="trend-graph"></div>
+                    </div>
+                </div>
+                <div class="bl-panel" id="bl-panel-heatmap">
+                    <div class="heatmap-controls">
+                        <div class="heatmap-filter-group">
+                            <button class="heatmap-filter-btn active" data-hm-diff="all">全部</button>
+                            <button class="heatmap-filter-btn" data-hm-diff="beginner">初级</button>
+                            <button class="heatmap-filter-btn" data-hm-diff="intermediate">中级</button>
+                            <button class="heatmap-filter-btn" data-hm-diff="expert">高级</button>
+                        </div>
+                        <div class="heatmap-type-group">
+                            <button class="heatmap-type-btn active" data-hm-type="clicks">🔵 点击热图</button>
+                            <button class="heatmap-type-btn" data-hm-type="wins">🟢 胜率热图</button>
+                            <button class="heatmap-type-btn" data-hm-type="danger">🔴 危险热图</button>
+                        </div>
+                    </div>
+                    <div id="heatmap-content">
+                        <div id="heatmap-grid"></div>
+                        <div id="heatmap-legend"></div>
+                        <div id="heatmap-stats"></div>
+                        <div id="heatmap-insights"></div>
                     </div>
                 </div>
             </div>

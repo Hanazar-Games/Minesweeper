@@ -53,6 +53,7 @@ const UI = (function() {
             resetBattleLogTabs();
             renderBattleLogList();
             renderBattleLogTrends();
+            renderHeatmap();
         } else if (name === 'game-screen') {
             // 进入游戏时重置影子竞速结果面板
             var srResultEl = document.getElementById('shadow-race-result');
@@ -2320,9 +2321,126 @@ const UI = (function() {
                     BattleLog.clear();
                     renderBattleLogList();
                     renderBattleLogTrends();
+                    renderHeatmap();
                 }
             });
         }
+
+        bindHeatmapEvents();
+    }
+
+    // ==================== 雷区热图 ====================
+
+    var currentHeatmapDiff = 'all';
+    var currentHeatmapType = 'clicks';
+
+    function renderHeatmap() {
+        if (typeof BattleLog === 'undefined') return;
+        var gridEl = document.getElementById('heatmap-grid');
+        var legendEl = document.getElementById('heatmap-legend');
+        var statsEl = document.getElementById('heatmap-stats');
+        var insightsEl = document.getElementById('heatmap-insights');
+        if (!gridEl || !legendEl || !statsEl || !insightsEl) return;
+
+        var data = BattleLog.generateHeatmapData(currentHeatmapDiff, currentHeatmapType);
+
+        // 渲染热图网格
+        var gridHtml = '';
+        if (data.totalRecords === 0) {
+            gridHtml = '<div class="bl-empty">暂无数据，完成一局后即可生成热图。</div>';
+        } else if (data.maxValue === 0) {
+            gridHtml = '<div class="bl-empty">该筛选条件下暂无有效数据。</div>';
+        } else {
+            gridHtml = '<div class="heatmap-grid">';
+            for (var y = 0; y < 20; y++) {
+                for (var x = 0; x < 20; x++) {
+                    var val = data.grid[y][x];
+                    var intensity = data.maxValue > 0 ? (val / data.maxValue) : 0;
+                    var color = '';
+                    if (currentHeatmapType === 'clicks') {
+                        var l = 95 - Math.round(intensity * 55);
+                        color = 'hsl(210, 80%, ' + l + '%)';
+                    } else if (currentHeatmapType === 'wins') {
+                        var lw = 95 - Math.round(intensity * 55);
+                        color = 'hsl(140, 70%, ' + lw + '%)';
+                    } else {
+                        var ld = 95 - Math.round(intensity * 55);
+                        color = 'hsl(0, 75%, ' + ld + '%)';
+                    }
+                    gridHtml += '<div class="heatmap-cell" style="background:' + color + '" title="' + val + '"></div>';
+                }
+            }
+            gridHtml += '</div>';
+        }
+        gridEl.innerHTML = gridHtml;
+
+        // 渲染图例
+        var legendLabels = {
+            clicks: ['低', '中', '高'],
+            wins: ['低胜率', '中胜率', '高胜率'],
+            danger: ['低风险', '中风险', '高风险']
+        };
+        var legendLabel = legendLabels[currentHeatmapType] || ['低', '中', '高'];
+        legendEl.innerHTML =
+            '<div class="heatmap-legend">' +
+                '<span>' + legendLabel[0] + '</span>' +
+                '<div class="heatmap-legend-bar" data-type="' + currentHeatmapType + '"></div>' +
+                '<span>' + legendLabel[2] + '</span>' +
+            '</div>';
+
+        // 渲染统计
+        var diffNames = { all: '全部', beginner: '初级', intermediate: '中级', expert: '高级' };
+        var typeNames = { clicks: '点击热图', wins: '胜率热图', danger: '危险热图' };
+        statsEl.innerHTML =
+            '<div class="heatmap-stats">' +
+                '<span>难度: ' + (diffNames[currentHeatmapDiff] || currentHeatmapDiff) + '</span>' +
+                '<span>类型: ' + (typeNames[currentHeatmapType] || currentHeatmapType) + '</span>' +
+                '<span>样本: ' + data.totalRecords + ' 局</span>' +
+                '<span>峰值: ' + data.maxValue + '</span>' +
+            '</div>';
+
+        // 渲染洞察
+        var insightsHtml = '';
+        if (data.insights.length > 0) {
+            insightsHtml = '<div class="heatmap-insights">';
+            for (var i = 0; i < data.insights.length; i++) {
+                insightsHtml += '<div class="heatmap-insight-item">💡 ' + data.insights[i] + '</div>';
+            }
+            insightsHtml += '</div>';
+        }
+        insightsEl.innerHTML = insightsHtml;
+    }
+
+    function bindHeatmapEvents() {
+        var screen = document.getElementById('battle-log-screen');
+        if (!screen) return;
+
+        var diffBtns = screen.querySelectorAll('.heatmap-filter-btn');
+        diffBtns.forEach(function(btn) {
+            // 移除旧监听器（通过克隆替换）
+            var newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                currentHeatmapDiff = newBtn.dataset.hmDiff;
+                diffBtns.forEach(function(b) { b.classList.remove('active'); });
+                newBtn.classList.add('active');
+                renderHeatmap();
+            });
+        });
+
+        var typeBtns = screen.querySelectorAll('.heatmap-type-btn');
+        typeBtns.forEach(function(btn) {
+            var newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', function() {
+                AudioManager.playClick();
+                currentHeatmapType = newBtn.dataset.hmType;
+                typeBtns.forEach(function(b) { b.classList.remove('active'); });
+                newBtn.classList.add('active');
+                renderHeatmap();
+            });
+        });
     }
 
     // ==================== 影子挑战 ====================
