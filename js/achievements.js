@@ -46,6 +46,12 @@ const Achievements = (function() {
         { id: 'efficiency_95', name: '登峰造极', desc: '单局效率达到95%', icon: '📊', category: 'skill', condition: (s, g) => g.won && g.efficiency >= 95 },
         { id: 'one_click', name: '一击即中', desc: '只用1次点击获胜（3BV=1）', icon: '🎯', category: 'skill', condition: (s, g) => g.won && g.clicks <= 1 },
 
+        // 模式道馆
+        { id: 'pattern_beginner', name: '道馆入门', desc: '完成第一个模式训练', icon: '🥋', category: 'skill', condition: (s) => typeof PatternDojo !== 'undefined' && Object.values(PatternDojo.getProgress()).some(p => p && p.completed > 0) },
+        { id: 'pattern_bronze', name: '铜牌训练师', desc: '获得第一个铜牌评级', icon: '🥉', category: 'skill', condition: (s) => typeof PatternDojo !== 'undefined' && Object.values(PatternDojo.getProgress()).some(p => p && p.rating === 'bronze') },
+        { id: 'pattern_silver', name: '银牌训练师', desc: '获得第一个银牌评级', icon: '🥈', category: 'skill', condition: (s) => typeof PatternDojo !== 'undefined' && Object.values(PatternDojo.getProgress()).some(p => p && p.rating === 'silver') },
+        { id: 'pattern_gold', name: '金牌训练师', desc: '获得第一个金牌评级', icon: '🥇', category: 'skill', condition: (s) => typeof PatternDojo !== 'undefined' && Object.values(PatternDojo.getProgress()).some(p => p && p.rating === 'gold') },
+
         // 挑战模式
         { id: 'daily_first', name: '每日打卡', desc: '完成第一次每日挑战', icon: '📅', category: 'challenge', condition: (s, g) => g.challengeMode === 'daily' && g.won },
         { id: 'speedrun_3', name: '速通三连', desc: '速通模式连胜3局', icon: '🏃', category: 'challenge', condition: (s) => ((s.challenges.speedrun && s.challenges.speedrun.best) || 0) >= 3 },

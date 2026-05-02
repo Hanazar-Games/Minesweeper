@@ -31,6 +31,7 @@ const UI = (function() {
         bindQuestEvents();
         bindBattleLogEvents();
         bindShadowRaceEvents();
+        bindPatternDojoEvents();
         updateContinueButton();
         updateAchievementBadge();
         updateQuestBadge();
@@ -54,6 +55,8 @@ const UI = (function() {
             renderBattleLogList();
             renderBattleLogTrends();
             renderHeatmap();
+        } else if (name === 'pattern-dojo-screen') {
+            renderDojoGallery();
         } else if (name === 'game-screen') {
             // 进入游戏时重置影子竞速结果面板
             var srResultEl = document.getElementById('shadow-race-result');
@@ -103,6 +106,9 @@ const UI = (function() {
                         break;
                     case 'challenge':
                         showScreen('challenge-screen');
+                        break;
+                    case 'pattern-dojo':
+                        showScreen('pattern-dojo-screen');
                         break;
                     case 'campaign':
                         showScreen('campaign-screen');
@@ -2923,6 +2929,351 @@ const UI = (function() {
                     showScreen('battle-log-screen');
                 }
             });
+        }
+    }
+
+    // ==================== 模式训练道馆 ====================
+
+    var dojoCurrentPattern = null;
+    var dojoCurrentBoardIndex = 0;
+    var dojoSelectedMines = [];
+    var dojoTrainingStartTime = 0;
+    var dojoTrainingTimer = null;
+    var dojoTrainingActive = false;
+
+    function renderDojoGallery() {
+        if (typeof PatternDojo === 'undefined') return;
+        var container = document.getElementById('dojo-gallery');
+        if (!container) return;
+
+        var patterns = PatternDojo.getPatterns();
+        var progress = PatternDojo.getProgress();
+        var html = '<div class="dojo-intro">💡 掌握经典推理模式，提升扫雷技巧。完成当前模式训练即可解锁下一模式。</div>';
+        html += '<div class="dojo-cards">';
+
+        for (var i = 0; i < patterns.length; i++) {
+            var p = patterns[i];
+            var prog = progress[p.id] || { unlocked: false, completed: 0, correct: 0, rating: 'none' };
+            var isUnlocked = prog.unlocked;
+            var ratingClass = prog.rating;
+            var accuracy = prog.completed > 0 ? Math.round((prog.correct / prog.completed) * 100) : 0;
+            var stars = ratingClass === 'gold' ? '⭐⭐⭐' : ratingClass === 'silver' ? '⭐⭐' : ratingClass === 'bronze' ? '⭐' : '';
+
+            html += '<div class="dojo-card' + (isUnlocked ? '' : ' locked') + '" data-pattern="' + p.id + '">';
+            html += '<div class="dojo-card-header">';
+            html += '<span class="dojo-card-name">' + escapeHtml(p.name) + '</span>';
+            html += '<span class="dojo-card-level">' + '⭐'.repeat(p.level) + '</span>';
+            html += '</div>';
+            html += '<div class="dojo-card-desc">' + escapeHtml(p.description) + '</div>';
+            if (isUnlocked) {
+                html += '<div class="dojo-card-stats">';
+                html += '<span>完成: ' + prog.completed + '/' + p.trainingBoards.length + '</span>';
+                html += '<span>准确率: ' + accuracy + '%</span>';
+                html += '</div>';
+                if (stars) html += '<div class="dojo-card-rating">' + stars + '</div>';
+            } else {
+                html += '<div class="dojo-card-locked">🔒 完成前一模式解锁</div>';
+            }
+            html += '</div>';
+        }
+
+        html += '</div>';
+        container.innerHTML = html;
+
+        // 绑定卡片点击
+        container.querySelectorAll('.dojo-card').forEach(function(card) {
+            card.addEventListener('click', function() {
+                var pid = card.dataset.pattern;
+                if (!pid) return;
+                if (!PatternDojo.isUnlocked(pid)) {
+                    showHintOverlay('请先完成前一模式的训练以解锁此模式。');
+                    return;
+                }
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                showDojoDetail(pid);
+            });
+        });
+    }
+
+    function showDojoDetail(patternId) {
+        var pattern = PatternDojo.getPattern(patternId);
+        if (!pattern) return;
+        dojoCurrentPattern = patternId;
+
+        document.getElementById('dojo-gallery').classList.add('hidden');
+        document.getElementById('dojo-detail').classList.remove('hidden');
+        document.getElementById('dojo-training').classList.add('hidden');
+
+        document.getElementById('dojo-detail-title').textContent = pattern.name;
+        document.getElementById('dojo-detail-level').textContent = '难度: ' + '⭐'.repeat(pattern.level);
+        document.getElementById('dojo-detail-desc').textContent = pattern.description;
+        document.getElementById('dojo-example-explanation').textContent = pattern.explanation;
+
+        // 渲染示例棋盘
+        renderDojoExampleBoard(pattern.exampleBoard, pattern.exampleMines);
+
+        // 渲染进度
+        var prog = PatternDojo.getProgress(patternId);
+        var statsHtml = '';
+        if (prog && prog.completed > 0) {
+            var accuracy = Math.round((prog.correct / prog.completed) * 100);
+            statsHtml += '<div class="dojo-stat-row"><span>已完成训练</span><span>' + prog.completed + ' 题</span></div>';
+            statsHtml += '<div class="dojo-stat-row"><span>准确率</span><span>' + accuracy + '%</span></div>';
+            if (prog.bestTime !== null) {
+                statsHtml += '<div class="dojo-stat-row"><span>最佳用时</span><span>' + (prog.bestTime / 1000).toFixed(1) + 's</span></div>';
+            }
+            var ratingText = prog.rating === 'gold' ? '🥇 金牌' : prog.rating === 'silver' ? '🥈 银牌' : prog.rating === 'bronze' ? '🥉 铜牌' : '暂无评级';
+            statsHtml += '<div class="dojo-stat-row"><span>评级</span><span>' + ratingText + '</span></div>';
+        } else {
+            statsHtml += '<div class="dojo-stat-empty">尚未开始训练，点击"开始训练"进入第一题。</div>';
+        }
+        document.getElementById('dojo-progress-stats').innerHTML = statsHtml;
+    }
+
+    function renderDojoExampleBoard(board, mines) {
+        var container = document.getElementById('dojo-example-board');
+        if (!container) return;
+        var mineSet = {};
+        for (var i = 0; i < mines.length; i++) {
+            mineSet[mines[i].x + ',' + mines[i].y] = true;
+        }
+        var html = '<div class="dojo-mini-board">';
+        for (var y = 0; y < board.length; y++) {
+            for (var x = 0; x < board[y].length; x++) {
+                var val = board[y][x];
+                var isMine = mineSet[x + ',' + y];
+                var cellClass = 'dojo-mini-cell';
+                if (val === -1) {
+                    cellClass += isMine ? ' mine' : ' unrevealed';
+                } else {
+                    cellClass += ' revealed num-' + val;
+                }
+                var content = val === -1 ? (isMine ? '💣' : '') : (val === 0 ? '' : val);
+                html += '<div class="' + cellClass + '">' + content + '</div>';
+            }
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    function startDojoTraining() {
+        if (!dojoCurrentPattern) return;
+        var pattern = PatternDojo.getPattern(dojoCurrentPattern);
+        if (!pattern) return;
+
+        document.getElementById('dojo-detail').classList.add('hidden');
+        document.getElementById('dojo-training').classList.remove('hidden');
+
+        dojoCurrentBoardIndex = 0;
+        dojoSelectedMines = [];
+        loadDojoTrainingBoard();
+    }
+
+    function loadDojoTrainingBoard() {
+        var pattern = PatternDojo.getPattern(dojoCurrentPattern);
+        if (!pattern) return;
+        var board = PatternDojo.getTrainingBoard(dojoCurrentPattern, dojoCurrentBoardIndex);
+        if (!board) return;
+
+        document.getElementById('dojo-training-title').textContent = pattern.name;
+        document.getElementById('dojo-training-counter').textContent = (dojoCurrentBoardIndex + 1) + ' / ' + pattern.trainingBoards.length;
+        document.getElementById('dojo-confirm-btn').classList.remove('hidden');
+        document.getElementById('dojo-next-btn').classList.add('hidden');
+        document.getElementById('dojo-feedback').classList.add('hidden');
+        document.getElementById('dojo-feedback').innerHTML = '';
+
+        dojoSelectedMines = [];
+        dojoTrainingStartTime = Date.now();
+        dojoTrainingActive = true;
+        startDojoTimer();
+
+        renderDojoTrainingBoard(board.grid);
+    }
+
+    function startDojoTimer() {
+        if (dojoTrainingTimer) clearInterval(dojoTrainingTimer);
+        dojoTrainingTimer = setInterval(function() {
+            if (!dojoTrainingActive) return;
+            var elapsed = Date.now() - dojoTrainingStartTime;
+            var el = document.getElementById('dojo-timer');
+            if (el) el.textContent = (elapsed / 1000).toFixed(1) + 's';
+        }, 100);
+    }
+
+    function stopDojoTimer() {
+        if (dojoTrainingTimer) {
+            clearInterval(dojoTrainingTimer);
+            dojoTrainingTimer = null;
+        }
+        dojoTrainingActive = false;
+    }
+
+    function renderDojoTrainingBoard(grid) {
+        var container = document.getElementById('dojo-board');
+        if (!container) return;
+        var html = '<div class="dojo-train-board">';
+        for (var y = 0; y < grid.length; y++) {
+            for (var x = 0; x < grid[y].length; x++) {
+                var val = grid[y][x];
+                var cellClass = 'dojo-train-cell';
+                var content = '';
+                var clickable = false;
+                if (val === -1) {
+                    cellClass += ' unrevealed';
+                    clickable = true;
+                } else {
+                    cellClass += ' revealed num-' + val;
+                    content = val === 0 ? '' : val;
+                }
+                var dataAttr = clickable ? ' data-x="' + x + '" data-y="' + y + '"' : '';
+                html += '<div class="' + cellClass + '"' + dataAttr + '>' + content + '</div>';
+            }
+        }
+        html += '</div>';
+        container.innerHTML = html;
+
+        // 绑定点击
+        container.querySelectorAll('.dojo-train-cell.unrevealed').forEach(function(cell) {
+            cell.addEventListener('click', function() {
+                if (!dojoTrainingActive) return;
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                var x = parseInt(cell.dataset.x);
+                var y = parseInt(cell.dataset.y);
+                toggleDojoMineSelection(x, y, cell);
+            });
+        });
+    }
+
+    function toggleDojoMineSelection(x, y, cellEl) {
+        var idx = -1;
+        for (var i = 0; i < dojoSelectedMines.length; i++) {
+            if (dojoSelectedMines[i].x === x && dojoSelectedMines[i].y === y) {
+                idx = i; break;
+            }
+        }
+        if (idx >= 0) {
+            dojoSelectedMines.splice(idx, 1);
+            cellEl.classList.remove('marked-mine');
+        } else {
+            dojoSelectedMines.push({ x: x, y: y });
+            cellEl.classList.add('marked-mine');
+        }
+    }
+
+    function confirmDojoAnswer() {
+        if (!dojoTrainingActive || !dojoCurrentPattern) return;
+        stopDojoTimer();
+
+        var result = PatternDojo.checkAnswer(dojoCurrentPattern, dojoCurrentBoardIndex, dojoSelectedMines);
+        var timeMs = Date.now() - dojoTrainingStartTime;
+
+        var feedbackEl = document.getElementById('dojo-feedback');
+        feedbackEl.classList.remove('hidden');
+
+        if (result.correct) {
+            if (typeof AudioManager !== 'undefined') AudioManager.playWin();
+            feedbackEl.className = 'dojo-feedback correct';
+            feedbackEl.innerHTML = '<div class="dojo-feedback-icon">✅</div><div class="dojo-feedback-text">正确！' + escapeHtml(result.explanation || '') + '</div>';
+            PatternDojo.recordResult(dojoCurrentPattern, true, timeMs);
+        } else {
+            if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+            feedbackEl.className = 'dojo-feedback wrong';
+            feedbackEl.innerHTML = '<div class="dojo-feedback-icon">❌</div><div class="dojo-feedback-text">' + escapeHtml(result.reason || '') + '</div>';
+            PatternDojo.recordResult(dojoCurrentPattern, false, timeMs);
+
+            // 高亮正确答案
+            if (result.expected) {
+                var boardEl = document.getElementById('dojo-board');
+                if (boardEl) {
+                    result.expected.forEach(function(m) {
+                        var cell = boardEl.querySelector('.dojo-train-cell[data-x="' + m.x + '"][data-y="' + m.y + '"]');
+                        if (cell) cell.classList.add('correct-mine');
+                    });
+                }
+            }
+        }
+
+        document.getElementById('dojo-confirm-btn').classList.add('hidden');
+        var pattern = PatternDojo.getPattern(dojoCurrentPattern);
+        if (pattern && dojoCurrentBoardIndex < pattern.trainingBoards.length - 1) {
+            document.getElementById('dojo-next-btn').classList.remove('hidden');
+        } else {
+            document.getElementById('dojo-next-btn').textContent = '🏠 返回图鉴';
+            document.getElementById('dojo-next-btn').classList.remove('hidden');
+        }
+    }
+
+    function nextDojoBoard() {
+        var pattern = PatternDojo.getPattern(dojoCurrentPattern);
+        if (!pattern) return;
+        if (dojoCurrentBoardIndex < pattern.trainingBoards.length - 1) {
+            dojoCurrentBoardIndex++;
+            if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+            loadDojoTrainingBoard();
+        } else {
+            if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+            document.getElementById('dojo-training').classList.add('hidden');
+            document.getElementById('dojo-detail').classList.remove('hidden');
+            // 刷新详情页的进度显示
+            showDojoDetail(dojoCurrentPattern);
+        }
+    }
+
+    function backToDojoGallery() {
+        if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+        dojoCurrentPattern = null;
+        stopDojoTimer();
+        document.getElementById('dojo-detail').classList.add('hidden');
+        document.getElementById('dojo-training').classList.add('hidden');
+        document.getElementById('dojo-gallery').classList.remove('hidden');
+        renderDojoGallery();
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function bindPatternDojoEvents() {
+        if (typeof PatternDojo === 'undefined') return;
+
+        var detailBack = document.getElementById('dojo-detail-back');
+        if (detailBack) {
+            detailBack.addEventListener('click', backToDojoGallery);
+        }
+
+        var startBtn = document.getElementById('dojo-start-training');
+        if (startBtn) {
+            startBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                startDojoTraining();
+            });
+        }
+
+        var trainingBack = document.getElementById('dojo-training-back');
+        if (trainingBack) {
+            trainingBack.addEventListener('click', function() {
+                if (dojoTrainingActive) {
+                    if (!confirm('确定要退出训练吗？当前进度将不会保存。')) return;
+                }
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                stopDojoTimer();
+                document.getElementById('dojo-training').classList.add('hidden');
+                document.getElementById('dojo-detail').classList.remove('hidden');
+            });
+        }
+
+        var confirmBtn = document.getElementById('dojo-confirm-btn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                confirmDojoAnswer();
+            });
+        }
+
+        var nextBtn = document.getElementById('dojo-next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', nextDojoBoard);
         }
     }
 

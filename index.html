@@ -112,6 +112,10 @@
                         <span class="btn-icon">🏆</span>
                         <span class="btn-text">挑战模式</span>
                     </button>
+                    <button class="menu-btn" data-action="pattern-dojo">
+                        <span class="btn-icon">🥋</span>
+                        <span class="btn-text">模式道馆</span>
+                    </button>
                     <button class="menu-btn" data-action="achievements">
                         <span class="btn-icon">🏆</span>
                         <span class="btn-text">成就</span>
@@ -1311,6 +1315,54 @@
             </div>
         </div>
 
+        <!-- 模式训练道馆 -->
+        <div id="pattern-dojo-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>🥋 模式道馆</h2>
+            </div>
+            <div class="dojo-container">
+                <!-- 模式图鉴 -->
+                <div id="dojo-gallery" class="dojo-gallery"></div>
+                <!-- 模式详情 -->
+                <div id="dojo-detail" class="dojo-detail hidden">
+                    <div class="dojo-detail-header">
+                        <button id="dojo-detail-back" class="back-btn">← 返回图鉴</button>
+                        <h3 id="dojo-detail-title"></h3>
+                    </div>
+                    <div class="dojo-detail-body">
+                        <div class="dojo-detail-level" id="dojo-detail-level"></div>
+                        <p id="dojo-detail-desc" class="dojo-detail-desc"></p>
+                        <div class="dojo-example-section">
+                            <h4>📖 示例</h4>
+                            <div id="dojo-example-board" class="dojo-example-board"></div>
+                            <p id="dojo-example-explanation" class="dojo-example-explanation"></p>
+                        </div>
+                        <div class="dojo-progress-section">
+                            <div id="dojo-progress-stats"></div>
+                        </div>
+                        <button id="dojo-start-training" class="btn primary">开始训练</button>
+                    </div>
+                </div>
+                <!-- 训练面板 -->
+                <div id="dojo-training" class="dojo-training hidden">
+                    <div class="dojo-training-header">
+                        <button id="dojo-training-back" class="back-btn">← 返回</button>
+                        <h3 id="dojo-training-title"></h3>
+                        <div id="dojo-training-counter">1 / 5</div>
+                    </div>
+                    <div class="dojo-instruction" id="dojo-instruction">点击未揭示的格子来标记所有确定的雷，然后点击确认。</div>
+                    <div id="dojo-board" class="dojo-board"></div>
+                    <div class="dojo-controls">
+                        <div class="dojo-timer" id="dojo-timer">0.0s</div>
+                        <button id="dojo-confirm-btn" class="btn primary">✅ 确认答案</button>
+                        <button id="dojo-next-btn" class="btn primary hidden">➡️ 下一题</button>
+                    </div>
+                    <div id="dojo-feedback" class="dojo-feedback hidden"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- 战后分析详情屏幕 -->
         <div id="battle-analysis-screen" class="screen hidden">
             <div class="screen-header">
@@ -1337,6 +1389,7 @@
     <script src="js/endless.js"></script>
     <script src="js/puzzle.js"></script>
     <script src="js/daily-quests.js"></script>
+    <script src="js/pattern-dojo.js"></script>
     <script src="js/battle-log.js"></script>
     <script src="js/shadow-race.js"></script>
     <script src="js/game.js"></script>
