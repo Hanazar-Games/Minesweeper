@@ -32,12 +32,22 @@ const UI = (function() {
         bindBattleLogEvents();
         bindShadowRaceEvents();
         bindPatternDojoEvents();
+        bindThunderRushEvents();
         updateContinueButton();
         updateAchievementBadge();
         updateQuestBadge();
     }
 
     function showScreen(name) {
+        // 如果正在雷暴突袭游戏中，确认是否退出
+        if (currentScreen === 'thunder-rush' && typeof ThunderRush !== 'undefined') {
+            var trState = ThunderRush.getState();
+            if (trState.gameState === 'playing') {
+                if (!confirm('雷暴突袭正在进行中，确定要退出吗？')) return;
+                ThunderRush.stopGame();
+            }
+        }
+
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById(name).classList.remove('hidden');
         currentScreen = name.replace('-screen', '');
@@ -57,6 +67,8 @@ const UI = (function() {
             renderHeatmap();
         } else if (name === 'pattern-dojo-screen') {
             renderDojoGallery();
+        } else if (name === 'thunder-rush-screen') {
+            showThunderRushStart();
         } else if (name === 'game-screen') {
             // 进入游戏时重置影子竞速结果面板
             var srResultEl = document.getElementById('shadow-race-result');
@@ -109,6 +121,9 @@ const UI = (function() {
                         break;
                     case 'pattern-dojo':
                         showScreen('pattern-dojo-screen');
+                        break;
+                    case 'thunder-rush':
+                        showScreen('thunder-rush-screen');
                         break;
                     case 'campaign':
                         showScreen('campaign-screen');
@@ -3037,8 +3052,10 @@ const UI = (function() {
         for (var i = 0; i < mines.length; i++) {
             mineSet[mines[i].x + ',' + mines[i].y] = true;
         }
-        var html = '<div class="dojo-mini-board">';
-        for (var y = 0; y < board.length; y++) {
+        var cols = board[0] ? board[0].length : 5;
+        var rows = board.length;
+        var html = '<div class="dojo-mini-board" style="grid-template-columns: repeat(' + cols + ', 32px); grid-template-rows: repeat(' + rows + ', 32px);">';
+        for (var y = 0; y < rows; y++) {
             for (var x = 0; x < board[y].length; x++) {
                 var val = board[y][x];
                 var isMine = mineSet[x + ',' + y];
@@ -3078,7 +3095,9 @@ const UI = (function() {
         document.getElementById('dojo-training-title').textContent = pattern.name;
         document.getElementById('dojo-training-counter').textContent = (dojoCurrentBoardIndex + 1) + ' / ' + pattern.trainingBoards.length;
         document.getElementById('dojo-confirm-btn').classList.remove('hidden');
-        document.getElementById('dojo-next-btn').classList.add('hidden');
+        var nextBtn = document.getElementById('dojo-next-btn');
+        nextBtn.classList.add('hidden');
+        nextBtn.textContent = '➡️ 下一题';
         document.getElementById('dojo-feedback').classList.add('hidden');
         document.getElementById('dojo-feedback').innerHTML = '';
 
@@ -3111,8 +3130,10 @@ const UI = (function() {
     function renderDojoTrainingBoard(grid) {
         var container = document.getElementById('dojo-board');
         if (!container) return;
-        var html = '<div class="dojo-train-board">';
-        for (var y = 0; y < grid.length; y++) {
+        var cols = grid[0] ? grid[0].length : 5;
+        var rows = grid.length;
+        var html = '<div class="dojo-train-board" style="grid-template-columns: repeat(' + cols + ', 48px); grid-template-rows: repeat(' + rows + ', 48px);">';
+        for (var y = 0; y < rows; y++) {
             for (var x = 0; x < grid[y].length; x++) {
                 var val = grid[y][x];
                 var cellClass = 'dojo-train-cell';
@@ -3274,6 +3295,327 @@ const UI = (function() {
         var nextBtn = document.getElementById('dojo-next-btn');
         if (nextBtn) {
             nextBtn.addEventListener('click', nextDojoBoard);
+        }
+    }
+
+    // ============ 雷暴突袭 (Thunder Rush) ============
+
+    var thunderLoopId = null;
+    var thunderGameActive = false;
+    var thunderLongPressTimer = null;
+
+    function bindThunderRushEvents() {
+        if (typeof ThunderRush === 'undefined') return;
+        ThunderRush.init();
+
+        var startBtn = document.getElementById('thunder-start-btn');
+        if (startBtn) {
+            startBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                startThunderRush();
+            });
+        }
+
+        var giveupBtn = document.getElementById('thunder-giveup-btn');
+        if (giveupBtn) {
+            giveupBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                if (confirm('确定要放弃当前挑战吗？')) {
+                    ThunderRush.stopGame();
+                    showThunderRushStart();
+                }
+            });
+        }
+
+        var restartBtn = document.getElementById('thunder-restart-btn');
+        if (restartBtn) {
+            restartBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                startThunderRush();
+            });
+        }
+
+        var backBtn = document.getElementById('thunder-back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                showScreen('main-menu');
+            });
+        }
+
+        // 棋盘事件委托
+        var boardEl = document.getElementById('thunder-board');
+        if (boardEl) {
+            boardEl.addEventListener('click', function(e) {
+                var cell = e.target.closest('.thunder-cell');
+                if (!cell) return;
+                var x = parseInt(cell.dataset.x);
+                var y = parseInt(cell.dataset.y);
+                if (isNaN(x) || isNaN(y)) return;
+                var changed = ThunderRush.handleCellClick(x, y, false);
+                if (changed) {
+                    renderThunderRushBoard();
+                    updateThunderHUD(ThunderRush.getState());
+                }
+            });
+
+            boardEl.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                var cell = e.target.closest('.thunder-cell');
+                if (!cell) return;
+                var x = parseInt(cell.dataset.x);
+                var y = parseInt(cell.dataset.y);
+                if (isNaN(x) || isNaN(y)) return;
+                var changed = ThunderRush.handleCellClick(x, y, true);
+                if (changed) {
+                    renderThunderRushBoard();
+                    updateThunderHUD(ThunderRush.getState());
+                }
+            });
+
+            // 移动端触摸长按标记
+            boardEl.addEventListener('touchstart', function(e) {
+                var cell = e.target.closest('.thunder-cell');
+                if (!cell) return;
+                var x = parseInt(cell.dataset.x);
+                var y = parseInt(cell.dataset.y);
+                if (isNaN(x) || isNaN(y)) return;
+
+                var trState = ThunderRush.getState();
+                if (trState.firstClick) return; // 首次点击前不允许标记
+
+                if (thunderLongPressTimer) clearTimeout(thunderLongPressTimer);
+                thunderLongPressTimer = setTimeout(function() {
+                    thunderLongPressTimer = null;
+                    if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                    var changed = ThunderRush.handleCellClick(x, y, true);
+                    if (changed) {
+                        renderThunderRushBoard();
+                        updateThunderHUD(ThunderRush.getState());
+                    }
+                }, 500);
+            }, { passive: true });
+
+            boardEl.addEventListener('touchend', function(e) {
+                if (thunderLongPressTimer) {
+                    clearTimeout(thunderLongPressTimer);
+                    thunderLongPressTimer = null;
+                    // 短按当作左键点击
+                    var cell = e.target.closest('.thunder-cell');
+                    if (!cell) return;
+                    var x = parseInt(cell.dataset.x);
+                    var y = parseInt(cell.dataset.y);
+                    if (isNaN(x) || isNaN(y)) return;
+                    var changed = ThunderRush.handleCellClick(x, y, false);
+                    if (changed) {
+                        renderThunderRushBoard();
+                        updateThunderHUD(ThunderRush.getState());
+                    }
+                }
+            }, { passive: true });
+
+            boardEl.addEventListener('touchcancel', function(e) {
+                if (thunderLongPressTimer) {
+                    clearTimeout(thunderLongPressTimer);
+                    thunderLongPressTimer = null;
+                }
+            }, { passive: true });
+        }
+    }
+
+    function startThunderRush() {
+        ThunderRush.startGame();
+        thunderGameActive = true;
+
+        document.getElementById('thunder-start').classList.add('hidden');
+        document.getElementById('thunder-over').classList.add('hidden');
+        document.getElementById('thunder-game').classList.remove('hidden');
+
+        renderThunderRushBoard();
+        thunderLoop();
+    }
+
+    function showThunderRushStart() {
+        thunderGameActive = false;
+        if (thunderLoopId) {
+            clearTimeout(thunderLoopId);
+            thunderLoopId = null;
+        }
+
+        var stats = ThunderRush.getStats();
+        document.getElementById('thunder-best-score').textContent = stats.bestScore;
+        document.getElementById('thunder-best-streak').textContent = stats.bestStreak;
+
+        document.getElementById('thunder-game').classList.add('hidden');
+        document.getElementById('thunder-over').classList.add('hidden');
+        document.getElementById('thunder-start').classList.remove('hidden');
+    }
+
+    function showThunderRushOver() {
+        thunderGameActive = false;
+        if (thunderLoopId) {
+            clearTimeout(thunderLoopId);
+            thunderLoopId = null;
+        }
+
+        var state = ThunderRush.getState();
+        var stats = ThunderRush.getStats();
+
+        document.getElementById('thunder-final-score').textContent = state.score;
+        document.getElementById('thunder-final-solved').textContent = state.solvedCount;
+        document.getElementById('thunder-final-streak').textContent = state.maxStreak;
+
+        var newRecordEl = document.getElementById('thunder-new-record');
+        if (state.score >= stats.bestScore && state.score > 0) {
+            newRecordEl.classList.remove('hidden');
+        } else {
+            newRecordEl.classList.add('hidden');
+        }
+
+        document.getElementById('thunder-game').classList.add('hidden');
+        document.getElementById('thunder-over').classList.remove('hidden');
+    }
+
+    function thunderLoop() {
+        if (!thunderGameActive) return;
+
+        var state = ThunderRush.getState();
+        updateThunderHUD(state);
+
+        if (state.gameState === 'ended') {
+            showThunderRushOver();
+            return;
+        }
+
+        thunderLoopId = setTimeout(thunderLoop, 100);
+    }
+
+    function updateThunderHUD(state) {
+        var timerText = document.getElementById('thunder-timer-text');
+        var timerBar = document.getElementById('thunder-timer-bar');
+        var scoreEl = document.getElementById('thunder-score');
+        var streakEl = document.getElementById('thunder-streak');
+        var puzzleNumEl = document.getElementById('thunder-puzzle-num');
+        var levelBadge = document.getElementById('thunder-level-badge');
+
+        if (timerText) timerText.textContent = state.timePool.toFixed(1);
+        if (timerBar) {
+            var pct = Math.max(0, Math.min(100, (state.timePool / 60) * 100));
+            timerBar.style.width = pct + '%';
+            timerBar.classList.remove('warning', 'danger');
+            if (pct < 15) timerBar.classList.add('danger');
+            else if (pct < 35) timerBar.classList.add('warning');
+        }
+        if (scoreEl) scoreEl.textContent = state.score;
+        if (streakEl) streakEl.textContent = state.streak;
+        if (puzzleNumEl) puzzleNumEl.textContent = state.puzzleCount;
+        if (levelBadge && state.board) levelBadge.textContent = state.board.levelName || '';
+    }
+
+    function renderThunderRushBoard() {
+        var boardEl = document.getElementById('thunder-board');
+        if (!boardEl) return;
+
+        var state = ThunderRush.getState();
+        var board = state.board;
+        if (!board) return;
+
+        var expectedCells = board.width * board.height;
+        var existingCells = boardEl.querySelectorAll('.thunder-cell');
+
+        if (existingCells.length !== expectedCells) {
+            boardEl.innerHTML = '';
+            boardEl.style.gridTemplateColumns = 'repeat(' + board.width + ', var(--thunder-cell, 56px))';
+            for (var y = 0; y < board.height; y++) {
+                for (var x = 0; x < board.width; x++) {
+                    var cell = document.createElement('div');
+                    cell.className = 'thunder-cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    boardEl.appendChild(cell);
+                }
+            }
+            existingCells = boardEl.querySelectorAll('.thunder-cell');
+        }
+
+        for (var y = 0; y < board.height; y++) {
+            for (var x = 0; x < board.width; x++) {
+                var idx = y * board.width + x;
+                var cell = existingCells[idx];
+                if (!cell) continue;
+
+                var isRev = false;
+                for (var i = 0; i < board.revealed.length; i++) {
+                    if (board.revealed[i].x === x && board.revealed[i].y === y) {
+                        isRev = true;
+                        break;
+                    }
+                }
+
+                var isFlag = false;
+                for (var i = 0; i < board.flagged.length; i++) {
+                    if (board.flagged[i].x === x && board.flagged[i].y === y) {
+                        isFlag = true;
+                        break;
+                    }
+                }
+
+                var isMine = false;
+                for (var i = 0; i < board.mines.length; i++) {
+                    if (board.mines[i].x === x && board.mines[i].y === y) {
+                        isMine = true;
+                        break;
+                    }
+                }
+
+                cell.className = 'thunder-cell';
+                cell.textContent = '';
+
+                if (isRev) {
+                    cell.classList.add('revealed');
+                    if (isMine) {
+                        cell.classList.add('mine-hit');
+                        cell.textContent = '💣';
+                    } else {
+                        var num = 0;
+                        for (var dy = -1; dy <= 1; dy++) {
+                            for (var dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                var nx = x + dx;
+                                var ny = y + dy;
+                                var neighborMine = false;
+                                for (var m = 0; m < board.mines.length; m++) {
+                                    if (board.mines[m].x === nx && board.mines[m].y === ny) {
+                                        neighborMine = true;
+                                        break;
+                                    }
+                                }
+                                if (neighborMine) num++;
+                            }
+                        }
+                        if (num > 0) {
+                            cell.textContent = num;
+                            cell.classList.add('number-' + num);
+                        }
+                    }
+                } else if (isFlag) {
+                    cell.classList.add('flagged');
+                    cell.textContent = '🚩';
+                } else {
+                    // 检查是否是刚踩中的雷（视觉反馈）
+                    var isHit = false;
+                    for (var i = 0; i < state.hitCells.length; i++) {
+                        if (state.hitCells[i].x === x && state.hitCells[i].y === y) {
+                            isHit = true;
+                            break;
+                        }
+                    }
+                    if (isHit) {
+                        cell.classList.add('mine-hit');
+                        cell.textContent = '💣';
+                    }
+                }
+            }
         }
     }
 

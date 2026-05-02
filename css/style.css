@@ -4270,3 +4270,284 @@ input[type="range"]::-webkit-slider-thumb:hover {
         flex-wrap: wrap;
     }
 }
+
+/* ========== 雷暴突袭 (Thunder Rush) ========== */
+
+.thunder-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.thunder-panel {
+    text-align: center;
+}
+
+.thunder-logo {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    animation: thunder-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes thunder-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.thunder-desc {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.thunder-rules {
+    background: var(--bg-light);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.thunder-rules p {
+    margin: 0.4rem 0;
+    color: var(--text);
+}
+
+.thunder-bests {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.thunder-bests span {
+    color: var(--primary);
+    font-weight: bold;
+}
+
+.thunder-hud {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.thunder-hud-item {
+    background: var(--bg-light);
+    border-radius: 8px;
+    padding: 0.5rem;
+}
+
+.thunder-hud-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.thunder-hud-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--text);
+    font-family: var(--font-display);
+}
+
+.thunder-timer-bar-container {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-lighter);
+    border-radius: 3px;
+    margin: 0.25rem 0;
+    overflow: hidden;
+}
+
+.thunder-timer-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary), var(--primary));
+    border-radius: 3px;
+    transition: width 0.1s linear;
+}
+
+.thunder-timer-bar.warning {
+    background: linear-gradient(90deg, var(--warning), var(--danger));
+}
+
+.thunder-timer-bar.danger {
+    background: var(--danger);
+    animation: timer-flash 0.5s ease-in-out infinite;
+}
+
+@keyframes timer-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.thunder-level-badge {
+    display: inline-block;
+    background: var(--primary);
+    color: #fff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+}
+
+.thunder-board {
+    display: grid;
+    grid-template-columns: repeat(5, var(--thunder-cell, 56px));
+    grid-template-rows: repeat(5, var(--thunder-cell, 56px));
+    gap: 3px;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    padding: 8px;
+    background: var(--bg-light);
+    border-radius: 8px;
+    width: fit-content;
+}
+
+.thunder-cell {
+    width: var(--thunder-cell, 56px);
+    height: var(--thunder-cell, 56px);
+    background: var(--cell-hidden);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s, background 0.2s;
+}
+
+.thunder-cell:hover {
+    background: var(--cell-hover);
+    transform: scale(1.05);
+}
+
+.thunder-cell:active {
+    transform: scale(0.95);
+}
+
+.thunder-cell.revealed {
+    background: var(--cell-revealed);
+    cursor: default;
+}
+
+.thunder-cell.revealed:hover {
+    transform: none;
+}
+
+.thunder-cell.flagged {
+    background: var(--warning);
+}
+
+.thunder-cell.mine-hit {
+    background: var(--danger);
+    animation: mine-flash 0.3s ease-in-out;
+}
+
+@keyframes mine-flash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.thunder-cell.number-1 { color: #3b82f6; }
+.thunder-cell.number-2 { color: #22c55e; }
+.thunder-cell.number-3 { color: #ef4444; }
+.thunder-cell.number-4 { color: #a855f7; }
+.thunder-cell.number-5 { color: #f97316; }
+.thunder-cell.number-6 { color: #14b8a6; }
+.thunder-cell.number-7 { color: #f43f5e; }
+.thunder-cell.number-8 { color: #64748b; }
+
+.thunder-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.thunder-over-icon {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+}
+
+.thunder-over-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.thunder-stat {
+    background: var(--bg-light);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.thunder-stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.thunder-stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary);
+    font-family: var(--font-display);
+}
+
+.thunder-new-record {
+    color: var(--warning);
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    animation: thunder-pulse 1s ease-in-out infinite;
+}
+
+.secondary-btn {
+    padding: 0.6rem 1.2rem;
+    background: var(--bg-lighter);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.15s, background 0.2s;
+}
+
+.secondary-btn:hover {
+    transform: translateY(-1px);
+    background: var(--bg-light);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.thunder-btn-large {
+    padding: 0.8rem 2rem;
+    font-size: 1.1rem;
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+    .thunder-board {
+        --thunder-cell: 48px;
+    }
+
+    .thunder-hud {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .thunder-over-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .thunder-bests {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

@@ -707,6 +707,13 @@ const PatternDojo = (function() {
         return { correct: true, expected: expected };
     }
 
+    function getRatingValue(rating) {
+        if (rating === 'gold') return 3;
+        if (rating === 'silver') return 2;
+        if (rating === 'bronze') return 1;
+        return 0;
+    }
+
     function recordResult(patternId, isCorrect, timeMs) {
         var p = progress[patternId];
         if (!p) return;
@@ -718,20 +725,25 @@ const PatternDojo = (function() {
             p.bestTime = timeMs;
         }
 
-        // 评级计算
+        // 评级计算（只升级不降级）
         var accuracy = p.completed > 0 ? (p.correct / p.completed) : 0;
+        var newRating = p.rating;
         if (p.completed >= 5) {
             if (accuracy >= 0.9 && p.bestTime !== null && p.bestTime < 10000) {
-                p.rating = 'gold';
+                newRating = 'gold';
             } else if (accuracy >= 0.8) {
-                p.rating = 'silver';
+                newRating = 'silver';
             } else if (accuracy >= 0.6) {
-                p.rating = 'bronze';
+                newRating = 'bronze';
             } else {
-                p.rating = 'none';
+                newRating = 'none';
             }
         } else if (p.completed >= 3 && accuracy >= 0.6) {
-            p.rating = 'bronze';
+            newRating = 'bronze';
+        }
+        // 只升级，保留已获得的高评级
+        if (getRatingValue(newRating) > getRatingValue(p.rating)) {
+            p.rating = newRating;
         }
 
         // 解锁下一个模式

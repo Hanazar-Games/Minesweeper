@@ -71,6 +71,14 @@ const Achievements = (function() {
         { id: 'campaign_clear', name: '战役通关', desc: '完成全部15关战役', icon: '👑', category: 'challenge', condition: (s) => (s.campaign && s.campaign.levelsCompleted) >= 15 },
         { id: 'campaign_perfect', name: '完美战役', desc: '获得战役全部45颗星', icon: '⭐', category: 'challenge', condition: (s) => (s.campaign && s.campaign.totalStars) >= 45 },
 
+        // 雷暴突袭
+        { id: 'thunder_first', name: '雷暴初体验', desc: '首次游玩雷暴突袭', icon: '⚡', category: 'challenge', condition: (s, g) => g && g.thunderRush === true },
+        { id: 'thunder_5', name: '闪电快手', desc: '雷暴突袭完成5题', icon: '⚡', category: 'challenge', condition: (s, g) => g && g.thunderRush === true && (g.solved || 0) >= 5 },
+        { id: 'thunder_10', name: '雷暴行者', desc: '雷暴突袭完成10题', icon: '⛈️', category: 'challenge', condition: (s, g) => g && g.thunderRush === true && (g.solved || 0) >= 10 },
+        { id: 'thunder_20', name: '雷霆万钧', desc: '雷暴突袭完成20题', icon: '🌩️', category: 'challenge', condition: (s, g) => g && g.thunderRush === true && (g.solved || 0) >= 20 },
+        { id: 'thunder_streak_5', name: '连击风暴', desc: '雷暴突袭达到5连击', icon: '🔥', category: 'challenge', condition: (s, g) => g && g.thunderRush === true && (g.streak || 0) >= 5 },
+        { id: 'thunder_score_1000', name: '千分大师', desc: '雷暴突袭得分超过1000', icon: '💯', category: 'challenge', condition: (s, g) => g && g.thunderRush === true && (g.score || 0) >= 1000 },
+
         // 生存模式
         { id: 'survival_3', name: '生存者', desc: '生存模式达到第3关', icon: '🛡️', category: 'challenge', condition: (s) => (s.survival && s.survival.bestLevel) >= 3 },
         { id: 'survival_10', name: '绝地求生', desc: '生存模式达到第10关', icon: '🔥', category: 'challenge', condition: (s) => (s.survival && s.survival.bestLevel) >= 10 },

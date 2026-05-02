@@ -116,6 +116,10 @@
                         <span class="btn-icon">🥋</span>
                         <span class="btn-text">模式道馆</span>
                     </button>
+                    <button class="menu-btn" data-action="thunder-rush">
+                        <span class="btn-icon">⚡</span>
+                        <span class="btn-text">雷暴突袭</span>
+                    </button>
                     <button class="menu-btn" data-action="achievements">
                         <span class="btn-icon">🏆</span>
                         <span class="btn-text">成就</span>
@@ -1363,6 +1367,86 @@
             </div>
         </div>
 
+        <!-- 雷暴突袭 -->
+        <div id="thunder-rush-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>⚡ 雷暴突袭</h2>
+            </div>
+            <div class="thunder-container">
+                <!-- 开始界面 -->
+                <div id="thunder-start" class="thunder-panel">
+                    <div class="thunder-logo">⚡</div>
+                    <h3>雷暴突袭</h3>
+                    <p class="thunder-desc">在有限时间内连续解决微型扫雷谜题！</p>
+                    <div class="thunder-rules">
+                        <p>🎯 完成谜题 +时间奖励</p>
+                        <p>💣 踩到雷 -20秒</p>
+                        <p>🔥 连击获得分数倍率</p>
+                        <p>⏰ 时间耗尽则游戏结束</p>
+                    </div>
+                    <div class="thunder-bests">
+                        <div>最高得分: <span id="thunder-best-score">0</span></div>
+                        <div>最高连击: <span id="thunder-best-streak">0</span></div>
+                    </div>
+                    <button id="thunder-start-btn" class="primary-btn thunder-btn-large">开始挑战</button>
+                </div>
+
+                <!-- 游戏界面 -->
+                <div id="thunder-game" class="thunder-panel hidden">
+                    <div class="thunder-hud">
+                        <div class="thunder-hud-item">
+                            <span class="thunder-hud-label">时间</span>
+                            <div class="thunder-timer-bar-container">
+                                <div id="thunder-timer-bar" class="thunder-timer-bar"></div>
+                            </div>
+                            <span id="thunder-timer-text" class="thunder-hud-value">60.0</span>
+                        </div>
+                        <div class="thunder-hud-item">
+                            <span class="thunder-hud-label">得分</span>
+                            <span id="thunder-score" class="thunder-hud-value">0</span>
+                        </div>
+                        <div class="thunder-hud-item">
+                            <span class="thunder-hud-label">连击</span>
+                            <span id="thunder-streak" class="thunder-hud-value">0</span>
+                        </div>
+                        <div class="thunder-hud-item">
+                            <span class="thunder-hud-label">题号</span>
+                            <span id="thunder-puzzle-num" class="thunder-hud-value">1</span>
+                        </div>
+                    </div>
+                    <div class="thunder-level-badge" id="thunder-level-badge">入门</div>
+                    <div id="thunder-board" class="thunder-board"></div>
+                    <div class="thunder-controls">
+                        <button id="thunder-giveup-btn" class="secondary-btn">放弃</button>
+                    </div>
+                </div>
+
+                <!-- 结束界面 -->
+                <div id="thunder-over" class="thunder-panel hidden">
+                    <div class="thunder-over-icon">⏰</div>
+                    <h3>时间到！</h3>
+                    <div class="thunder-over-stats">
+                        <div class="thunder-stat">
+                            <span class="thunder-stat-label">最终得分</span>
+                            <span id="thunder-final-score" class="thunder-stat-value">0</span>
+                        </div>
+                        <div class="thunder-stat">
+                            <span class="thunder-stat-label">完成题数</span>
+                            <span id="thunder-final-solved" class="thunder-stat-value">0</span>
+                        </div>
+                        <div class="thunder-stat">
+                            <span class="thunder-stat-label">最高连击</span>
+                            <span id="thunder-final-streak" class="thunder-stat-value">0</span>
+                        </div>
+                    </div>
+                    <div id="thunder-new-record" class="thunder-new-record hidden">🎉 新纪录！</div>
+                    <button id="thunder-restart-btn" class="primary-btn thunder-btn-large">再来一局</button>
+                    <button id="thunder-back-btn" class="secondary-btn">返回菜单</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 战后分析详情屏幕 -->
         <div id="battle-analysis-screen" class="screen hidden">
             <div class="screen-header">
@@ -1390,6 +1474,7 @@
     <script src="js/puzzle.js"></script>
     <script src="js/daily-quests.js"></script>
     <script src="js/pattern-dojo.js"></script>
+    <script src="js/thunder-rush.js"></script>
     <script src="js/battle-log.js"></script>
     <script src="js/shadow-race.js"></script>
     <script src="js/game.js"></script>

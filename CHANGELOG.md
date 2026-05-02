@@ -1,5 +1,22 @@
 # 超级扫雷 - 更新日志
 
+## v1.8.0 (2026-04-29)
+
+### 新功能
+- **模式训练道馆 (Pattern Dojo)**：10种经典扫雷推理模式训练模块，每种5道训练题，含解锁/评级/成就集成
+- **雷暴突袭 (Thunder Rush)**：快节奏连续微型扫雷挑战模式
+  - 5×5微型棋盘，时间池机制（初始60秒）
+  - 连击倍率系统（1.2× ~ 3.0×）
+  - 难度递增（3雷 → 8雷）
+  - 完整统计持久化与成就集成
+  - 移动端触摸长按标记支持
+
+### Bug 修复
+- **Pattern Dojo 评级降级**：`recordResult()` 中评级计算改为只升级不降级，保留玩家已获得的高评级
+- **Thunder Rush 踩雷无视觉反馈**：新增 `hitCells` 状态，踩雷后格子显示红色高亮与💣图标
+- **Thunder Rush 移动端无法标记**：添加 `touchstart`/`touchend`/`touchcancel` 长按事件委托（500ms阈值），与主游戏保持一致
+- **Thunder Rush 按钮样式缺失**：`btn primary`/`btn secondary` 改为项目中实际存在的 `.primary-btn`/`.secondary-btn`，并补充 `.thunder-btn-large` 样式
+
 ## v1.6.2 (2026-04-29)
 
 ### Bug 修复（v1.6.1 影子挑战核心逻辑深度检查）
