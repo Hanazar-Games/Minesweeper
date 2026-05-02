@@ -67,7 +67,7 @@ const UI = (function() {
     function bindMenuEvents() {
         document.querySelectorAll('.menu-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 const action = btn.dataset.action;
                 switch (action) {
                     case 'play':
@@ -140,7 +140,7 @@ const UI = (function() {
         document.querySelectorAll('.difficulty-card').forEach(card => {
             card.addEventListener('click', (e) => {
                 if (e.target.tagName === 'INPUT') return;
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 const diff = card.dataset.diff;
                 if (diff === 'custom') {
                     var w = parseInt(document.getElementById('custom-width').value) || 20;
@@ -191,7 +191,7 @@ const UI = (function() {
         });
 
         document.getElementById('face-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             const state = Game.getState();
             if (state.challengeMode === 'puzzle' && Game.replayPuzzle) {
                 Game.replayPuzzle();
@@ -201,29 +201,29 @@ const UI = (function() {
         });
 
         document.getElementById('menu-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Game.pause();
             document.getElementById('pause-overlay').classList.remove('hidden');
         });
 
         document.getElementById('pause-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Game.pause();
             document.getElementById('pause-overlay').classList.remove('hidden');
         });
 
         document.getElementById('undo-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Game.undo();
         });
 
         document.getElementById('hint-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             showHint();
         });
 
         document.getElementById('auto-flag-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Game.autoFlag();
         });
 
@@ -234,14 +234,14 @@ const UI = (function() {
                 var keys = ['scanner', 'shield', 'freeze', 'heatmap'];
                 var key = keys[i];
                 if (key) {
-                    AudioManager.playClick();
+                    if (typeof AudioManager !== "undefined") AudioManager.playClick();
                     Game.usePowerup(key);
                 }
             });
         });
 
         document.getElementById('save-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             if (Game.save()) {
                 showHintOverlay('游戏已保存！');
                 updateContinueButton();
@@ -464,16 +464,16 @@ const UI = (function() {
 
         if (e.button === 0) {
             // 左键
-            AudioManager.playReveal();
+            if (typeof AudioManager !== "undefined") AudioManager.playReveal();
             Game.reveal(x, y);
         } else if (e.button === 2) {
             // 右键
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Game.flag(x, y);
         } else if (e.button === 1) {
             // 中键 = chord
             if (Settings.get('chord')) {
-                AudioManager.playChord();
+                if (typeof AudioManager !== "undefined") AudioManager.playChord();
                 Game.chord(x, y);
             }
         }
@@ -499,7 +499,7 @@ const UI = (function() {
             clearTimeout(longPressTimer);
         }
         longPressTimer = setTimeout(() => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Game.flag(x, y);
             longPressTimer = null;
         }, 500);
@@ -514,7 +514,7 @@ const UI = (function() {
             const x = parseInt(e.target.dataset.x);
             const y = parseInt(e.target.dataset.y);
             if (!isNaN(x) && !isNaN(y)) {
-                AudioManager.playReveal();
+                if (typeof AudioManager !== "undefined") AudioManager.playReveal();
                 Game.reveal(x, y);
             }
         }
@@ -529,20 +529,20 @@ const UI = (function() {
 
     function bindOverlayEvents() {
         document.getElementById('resume-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             document.getElementById('pause-overlay').classList.add('hidden');
             Game.resume();
         });
 
         document.getElementById('restart-pause-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             document.getElementById('pause-overlay').classList.add('hidden');
             const state = Game.getState();
             Game.start(state.difficulty, null, state.challengeMode, state.seed);
         });
 
         document.getElementById('quit-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             document.getElementById('pause-overlay').classList.add('hidden');
             if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             Game.pause();
@@ -550,7 +550,7 @@ const UI = (function() {
         });
 
         document.getElementById('play-again-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
             var shadowEntryId = (typeof ShadowRace !== 'undefined' && ShadowRace.getEntry()) ? ShadowRace.getEntry().id : null;
             const state = Game.getState();
@@ -565,14 +565,14 @@ const UI = (function() {
         });
 
         document.getElementById('go-menu-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
             if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             showScreen('main-menu');
         });
 
         document.getElementById('view-analysis-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             if (typeof BattleLog === 'undefined') {
                 showHintOverlay('战后分析模块未加载');
                 return;
@@ -588,7 +588,7 @@ const UI = (function() {
         });
 
         document.getElementById('share-seed-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             const seed = Game.getSeed();
             const state = Game.getState();
             const diff = state.difficulty;
@@ -605,7 +605,7 @@ const UI = (function() {
         });
 
         document.getElementById('replay-same-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             document.getElementById('gameover-overlay').classList.add('hidden');
             var shadowEntryId = (typeof ShadowRace !== 'undefined' && ShadowRace.getEntry()) ? ShadowRace.getEntry().id : null;
             const state = Game.getState();
@@ -620,14 +620,14 @@ const UI = (function() {
         });
 
         document.getElementById('hint-ok-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             document.getElementById('hint-overlay').classList.add('hidden');
         });
 
         var modeInfoOk = document.getElementById('mode-info-ok-btn');
         if (modeInfoOk) {
             modeInfoOk.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.getElementById('mode-info-overlay').classList.add('hidden');
             });
         }
@@ -676,7 +676,7 @@ const UI = (function() {
                     case 'Enter':
                         e.preventDefault();
                         if (focusVisible) {
-                            AudioManager.playReveal();
+                            if (typeof AudioManager !== "undefined") AudioManager.playReveal();
                             Game.reveal(focusX, focusY);
                         }
                         return;
@@ -684,7 +684,7 @@ const UI = (function() {
                     case 'F':
                         e.preventDefault();
                         if (focusVisible) {
-                            AudioManager.playClick();
+                            if (typeof AudioManager !== "undefined") AudioManager.playClick();
                             Game.flag(focusX, focusY);
                         }
                         return;
@@ -692,7 +692,7 @@ const UI = (function() {
                     case 'C':
                         e.preventDefault();
                         if (focusVisible) {
-                            AudioManager.playChord();
+                            if (typeof AudioManager !== "undefined") AudioManager.playChord();
                             Game.chord(focusX, focusY);
                         }
                         return;
@@ -730,8 +730,8 @@ const UI = (function() {
                         Settings.set('music', musicToggle.checked);
                     }
                     if (typeof AudioManager !== 'undefined') {
-                        AudioManager.setEnabled(soundToggle ? soundToggle.checked : true);
-                        AudioManager.setMusicEnabled(musicToggle ? musicToggle.checked : true);
+                        if (typeof AudioManager !== "undefined") AudioManager.setEnabled(soundToggle ? soundToggle.checked : true);
+                        if (typeof AudioManager !== "undefined") AudioManager.setMusicEnabled(musicToggle ? musicToggle.checked : true);
                     }
                     break;
                 case '1':
@@ -760,7 +760,7 @@ const UI = (function() {
     function bindNavigationEvents() {
         document.querySelectorAll('.back-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 const target = btn.dataset.back;
                 showScreen(target);
             });
@@ -771,7 +771,7 @@ const UI = (function() {
         // 旧版主题按钮（兼容游戏内可能存在的元素）
         document.querySelectorAll('.theme-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 Settings.set('theme', btn.dataset.theme);
@@ -781,7 +781,7 @@ const UI = (function() {
         // 设置标签页导航
         document.querySelectorAll('.settings-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 const target = tab.dataset.settingsTab;
                 document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
@@ -794,7 +794,7 @@ const UI = (function() {
         // 样式预设
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 applyStylePreset(btn.dataset.preset);
@@ -804,7 +804,7 @@ const UI = (function() {
         // 模式选择
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 Settings.set('colorMode', btn.dataset.mode);
@@ -826,7 +826,7 @@ const UI = (function() {
         // 配色
         document.querySelectorAll('.color-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 Settings.set('accentColor', btn.dataset.color);
@@ -846,7 +846,7 @@ const UI = (function() {
         // 语言
         document.querySelectorAll('.lang-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 Settings.set('language', btn.dataset.lang);
@@ -907,31 +907,31 @@ const UI = (function() {
         // 试听按钮
         document.querySelectorAll('.preview-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 const type = btn.dataset.preview;
-                if (type === 'click') AudioManager.playClick();
-                else if (type === 'success') AudioManager.playWin();
-                else if (type === 'error') AudioManager.playLose();
-                else if (type === 'flag') AudioManager.playFlag();
+                if (type === 'click') { if (typeof AudioManager !== "undefined") AudioManager.playClick(); }
+                else if (type === 'success') { if (typeof AudioManager !== "undefined") AudioManager.playWin(); }
+                else if (type === 'error') { if (typeof AudioManager !== "undefined") AudioManager.playLose(); }
+                else if (type === 'flag') { if (typeof AudioManager !== "undefined") AudioManager.playFlag(); }
             });
         });
 
         // 恢复默认按钮
         (function(el) { if (el) el.addEventListener('click', function() {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Settings.set('sfxVolume', 70);
             Settings.set('sfxStyle', 'classic');
             loadSettingsUI();
         }); })(document.getElementById('reset-sfx-default'));
         (function(el) { if (el) el.addEventListener('click', function() {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Settings.set('musicVolume', 30);
             Settings.set('musicTempo', 100);
             Settings.set('musicStyle', 'orchestral');
             loadSettingsUI();
         }); })(document.getElementById('reset-music-default'));
         (function(el) { if (el) el.addEventListener('click', function() {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Settings.set('adsrAttack', 5);
             Settings.set('adsrDecay', 50);
             Settings.set('adsrRelease', 30);
@@ -957,7 +957,7 @@ const UI = (function() {
         }
 
         (function(el) { if (el) el.addEventListener('click', function() {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Settings.set('animations', true);
             Settings.set('animFade', true);
             Settings.set('animHover', true);
@@ -977,7 +977,7 @@ const UI = (function() {
         bindToggle('setting-no-webaudio', 'noWebAudio');
 
         (function(el) { if (el) el.addEventListener('click', function() {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Settings.set('reducedMotion', false);
             Settings.set('noBlur', false);
             Settings.set('noParticles', false);
@@ -998,11 +998,11 @@ const UI = (function() {
 
         // 样式操作
         (function(el) { if (el) el.addEventListener('click', function() {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             showHintOverlay('样式预设已保存！');
         }); })(document.getElementById('save-style-preset'));
         (function(el) { if (el) el.addEventListener('click', function() {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             Settings.reset();
             loadSettingsUI();
             showHintOverlay('样式已恢复默认');
@@ -1010,7 +1010,7 @@ const UI = (function() {
 
         // 恢复全部默认
         (function(el) { if (el) el.addEventListener('click', function() {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             if (confirm('确定要恢复全部默认设置吗？此操作不可恢复。')) {
                 Settings.reset();
                 loadSettingsUI();
@@ -1025,7 +1025,7 @@ const UI = (function() {
             el.addEventListener('change', () => {
                 Settings.set(key, el.checked);
                 if (key === 'sound' || key === 'music') {
-                    AudioManager.playClick();
+                    if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 }
             });
         }
@@ -1217,7 +1217,7 @@ const UI = (function() {
     function bindStatsEvents() {
         document.querySelectorAll('.stats-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.querySelectorAll('.stats-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 document.querySelectorAll('.stats-panel').forEach(p => p.classList.remove('active'));
@@ -1226,7 +1226,7 @@ const UI = (function() {
         });
 
         document.getElementById('reset-stats-btn').addEventListener('click', () => {
-            AudioManager.playClick();
+            if (typeof AudioManager !== "undefined") AudioManager.playClick();
             if (confirm('确定要重置所有统计数据吗？此操作不可恢复。')) {
                 Stats.reset();
                 renderStats();
@@ -1392,7 +1392,7 @@ const UI = (function() {
     function bindLeaderboardEvents() {
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 renderLeaderboard(btn.dataset.filter);
@@ -1403,7 +1403,7 @@ const UI = (function() {
     function bindChallengeEvents() {
         document.querySelectorAll('.challenge-play').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 const item = btn.closest('.challenge-item');
                 const challenge = item.dataset.challenge;
                 
@@ -1505,7 +1505,7 @@ const UI = (function() {
     }
 
     function startDailyChallenge() {
-        AudioManager.playClick();
+        if (typeof AudioManager !== "undefined") AudioManager.playClick();
         var today = new Date();
         var dateStr = today.getFullYear() + '' + (today.getMonth() + 1) + '' + today.getDate();
         var seed = 0;
@@ -1526,7 +1526,7 @@ const UI = (function() {
     }
 
     function startWeeklyChallenge() {
-        AudioManager.playClick();
+        if (typeof AudioManager !== "undefined") AudioManager.playClick();
         var now = new Date();
         var weekStart = new Date(now);
         weekStart.setDate(now.getDate() - now.getDay());
@@ -1551,7 +1551,7 @@ const UI = (function() {
     function bindAchievementsEvents() {
         document.querySelectorAll('.ach-filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 document.querySelectorAll('.ach-filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 renderAchievements(btn.dataset.achFilter);
@@ -1722,7 +1722,7 @@ const UI = (function() {
 
             if (progress.unlocked) {
                 node.addEventListener('click', function() {
-                    AudioManager.playClick();
+                    if (typeof AudioManager !== "undefined") AudioManager.playClick();
                     Game.startCampaignLevel(level.id);
                     showScreen('game-screen');
                     showModeInfo(level);
@@ -1737,7 +1737,7 @@ const UI = (function() {
         var resetBtn = document.getElementById('reset-campaign-btn');
         if (resetBtn) {
             resetBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 if (confirm('确定要重置战役进度吗？所有关卡将重新锁定。')) {
                     Campaign.resetProgress();
                     renderCampaign();
@@ -1921,7 +1921,7 @@ const UI = (function() {
         var x = parseInt(e.target.dataset.x);
         var y = parseInt(e.target.dataset.y);
         if (isNaN(x) || isNaN(y)) return;
-        AudioManager.playClick();
+        if (typeof AudioManager !== "undefined") AudioManager.playClick();
         if (e.button === 0) {
             Puzzle.toggleMine(x, y);
         } else if (e.button === 2) {
@@ -2010,7 +2010,7 @@ const UI = (function() {
         var resizeBtn = document.getElementById('puzzle-resize-btn');
         if (resizeBtn) {
             resizeBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var w = parseInt(document.getElementById('puzzle-width').value) || 9;
                 var h = parseInt(document.getElementById('puzzle-height').value) || 9;
                 Puzzle.setEditorSize(w, h);
@@ -2021,7 +2021,7 @@ const UI = (function() {
         var clearBtn = document.getElementById('puzzle-clear-btn');
         if (clearBtn) {
             clearBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 Puzzle.clearAll();
                 renderPuzzleEditor();
             });
@@ -2030,7 +2030,7 @@ const UI = (function() {
         var randomBtn = document.getElementById('puzzle-random-btn');
         if (randomBtn) {
             randomBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var w = parseInt(document.getElementById('puzzle-width').value) || 9;
                 var h = parseInt(document.getElementById('puzzle-height').value) || 9;
                 Puzzle.randomPuzzle(w, h, 0.15);
@@ -2041,19 +2041,19 @@ const UI = (function() {
         var testBtn = document.getElementById('puzzle-test-btn');
         if (testBtn) {
             testBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var result = Puzzle.validatePuzzle();
                 var statusEl = document.getElementById('puzzle-valid-status');
                 if (result.valid) {
                     statusEl.textContent = '✅ ' + result.reason;
                     statusEl.style.color = '#22c55e';
                     document.getElementById('puzzle-play-btn').disabled = false;
-                    AudioManager.playWin();
+                    if (typeof AudioManager !== "undefined") AudioManager.playWin();
                 } else {
                     statusEl.textContent = '⚠️ ' + result.reason;
                     statusEl.style.color = '#ef4444';
                     document.getElementById('puzzle-play-btn').disabled = true;
-                    AudioManager.playLose();
+                    if (typeof AudioManager !== "undefined") AudioManager.playLose();
                 }
             });
         }
@@ -2061,14 +2061,14 @@ const UI = (function() {
         var shareBtn = document.getElementById('puzzle-share-btn');
         if (shareBtn) {
             shareBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var code = Puzzle.encodePuzzle();
                 var input = document.getElementById('puzzle-share-code');
                 input.value = code;
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(code).then(function() {
                         showHintOverlay('分享码已复制到剪贴板！');
-                        AudioManager.playPowerUp();
+                        if (typeof AudioManager !== "undefined") AudioManager.playPowerUp();
                     }).catch(function() {
                         showHintOverlay(code);
                     });
@@ -2081,7 +2081,7 @@ const UI = (function() {
         var playBtn = document.getElementById('puzzle-play-btn');
         if (playBtn) {
             playBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var result = Puzzle.validatePuzzle();
                 if (!result.valid) {
                     showHintOverlay('谜题无效，请先通过测试');
@@ -2096,7 +2096,7 @@ const UI = (function() {
         var loadBtn = document.getElementById('puzzle-load-btn');
         if (loadBtn) {
             loadBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var code = document.getElementById('puzzle-input-code').value.trim();
                 var data = Puzzle.decodePuzzle(code);
                 if (!data) {
@@ -2145,7 +2145,7 @@ const UI = (function() {
         // 绑定事件
         container.querySelectorAll('.puzzle-saved-play').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var c = btn.dataset.code;
                 var d = Puzzle.decodePuzzle(c);
                 if (d) {
@@ -2157,7 +2157,7 @@ const UI = (function() {
         });
         container.querySelectorAll('.puzzle-saved-delete').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var i = parseInt(btn.dataset.idx);
                 var arr = Storage.get('puzzle_collection') || [];
                 arr.splice(i, 1);
@@ -2265,7 +2265,7 @@ const UI = (function() {
         var claimBtn = document.getElementById('quests-claim-btn');
         if (claimBtn) {
             claimBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var rewards = DailyQuests.getAllRewards();
                 if (typeof Powerups !== 'undefined') {
                     rewards.forEach(function(r) {
@@ -2275,7 +2275,7 @@ const UI = (function() {
                         if (r.heatmap) Powerups.addHeatmap(r.heatmap);
                     });
                 }
-                AudioManager.playWin();
+                if (typeof AudioManager !== "undefined") AudioManager.playWin();
                 showHintOverlay('🎁 奖励已领取！');
                 renderQuestRewards();
                 updateQuestBadge();
@@ -2303,7 +2303,7 @@ const UI = (function() {
         var tabBtns = screen.querySelectorAll('.bl-tab');
         tabBtns.forEach(function(btn) {
             btn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var target = btn.dataset.blTab;
                 tabBtns.forEach(function(b) { b.classList.remove('active'); });
                 btn.classList.add('active');
@@ -2316,7 +2316,7 @@ const UI = (function() {
         var clearBtn = document.getElementById('clear-battle-log-btn');
         if (clearBtn) {
             clearBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 if (confirm('确定要清空所有作战日志吗？此操作不可恢复。')) {
                     BattleLog.clear();
                     renderBattleLogList();
@@ -2667,7 +2667,7 @@ const UI = (function() {
 
             card.addEventListener('click', function(e) {
                 if (e.target.classList.contains('challenge-btn')) return;
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 renderBattleAnalysis(entry.id);
                 showScreen('battle-analysis-screen');
             });
@@ -2676,7 +2676,7 @@ const UI = (function() {
             if (challengeBtn && typeof ShadowRace !== 'undefined') {
                 challengeBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    AudioManager.playClick();
+                    if (typeof AudioManager !== "undefined") AudioManager.playClick();
                     var custom = null;
                     if (entry.difficulty === 'custom') {
                         custom = { width: entry.width, height: entry.height, mines: entry.mineCount };
@@ -2899,7 +2899,7 @@ const UI = (function() {
         var challengeBtn = document.getElementById('challenge-shadow-btn');
         if (challengeBtn) {
             challengeBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 var custom = null;
                 if (entry.difficulty === 'custom') {
                     custom = { width: entry.width, height: entry.height, mines: entry.mineCount };
@@ -2917,7 +2917,7 @@ const UI = (function() {
         var deleteBtn = document.getElementById('delete-battle-entry-btn');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', function() {
-                AudioManager.playClick();
+                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 if (confirm('确定要删除这条记录吗？')) {
                     BattleLog.deleteById(id);
                     showScreen('battle-log-screen');

@@ -105,7 +105,7 @@ const Powerups = (function() {
 
         if (success) {
             inventory[id]--;
-            AudioManager.playPowerUp();
+            if (typeof AudioManager !== 'undefined') AudioManager.playPowerUp();
             // 记录统计
             if (typeof Stats !== 'undefined') {
                 Stats.recordPowerupUsed(id);

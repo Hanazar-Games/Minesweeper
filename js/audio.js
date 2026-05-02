@@ -14,6 +14,8 @@ const AudioManager = (function() {
     let musicVol = 0.3;
     let musicOsc = null;
     let musicGain = null;
+    let musicConvolver = null;
+    let musicReverbGain = null;
 
     // 音效风格参数
     const sfxStyles = {
@@ -37,14 +39,20 @@ const AudioManager = (function() {
 
     function getCtx() {
         if (!ctx) {
-            ctx = new (window.AudioContext || window.webkitAudioContext)();
+            try {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.warn('AudioContext init failed:', e);
+                enabled = false;
+                return null;
+            }
         }
         return ctx;
     }
 
     function resume() {
         if (ctx && ctx.state === 'suspended') {
-            ctx.resume();
+            ctx.resume().catch(function() {});
         }
     }
 
@@ -54,49 +62,54 @@ const AudioManager = (function() {
 
     function playTone(freq, duration, type, vol, options = {}) {
         if (!enabled) return;
-        resume();
-        const context = getCtx();
-        const style = getStyle();
-        const oscType = options.type || style.type;
-        const finalVol = vol * volume * masterVolume * sfxVolume;
-        if (finalVol <= 0) return;
+        try {
+            resume();
+            const context = getCtx();
+            if (!context) return;
+            const style = getStyle();
+            const oscType = options.type || style.type;
+            const finalVol = vol * volume * masterVolume * sfxVolume;
+            if (finalVol <= 0) return;
 
-        const osc = context.createOscillator();
-        const gain = context.createGain();
-        const filter = context.createBiquadFilter();
+            const osc = context.createOscillator();
+            const gain = context.createGain();
+            const filter = context.createBiquadFilter();
 
-        osc.type = oscType;
-        osc.frequency.setValueAtTime(freq, context.currentTime);
-        if (style.detune) {
-            osc.detune.setValueAtTime(style.detune, context.currentTime);
+            osc.type = oscType;
+            osc.frequency.setValueAtTime(freq, context.currentTime);
+            if (style.detune) {
+                osc.detune.setValueAtTime(style.detune, context.currentTime);
+            }
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(options.filter || style.filter || 8000, context.currentTime);
+
+            var attack = (options.attack !== undefined ? options.attack : adsrAttack) / 1000;
+            var decay = (options.decay !== undefined ? options.decay : adsrDecay) / 1000;
+            var release = (options.release !== undefined ? options.release : adsrRelease) / 1000;
+            attack = Math.max(0.001, attack);
+            decay = Math.max(0.001, decay);
+            release = Math.max(0.001, release);
+
+            gain.gain.setValueAtTime(0, context.currentTime);
+            gain.gain.linearRampToValueAtTime(finalVol, context.currentTime + attack);
+            var decayEndTime = context.currentTime + attack + decay;
+            var releaseEndTime = context.currentTime + duration + release;
+            if (releaseEndTime <= decayEndTime) {
+                releaseEndTime = decayEndTime + 0.01;
+            }
+            gain.gain.exponentialRampToValueAtTime(finalVol * 0.3, decayEndTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, releaseEndTime);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(context.destination);
+
+            osc.start(context.currentTime);
+            osc.stop(context.currentTime + duration + release + 0.1);
+        } catch (e) {
+            // 静默处理 Web Audio API 异常，避免中断游戏逻辑
         }
-
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(options.filter || style.filter || 8000, context.currentTime);
-
-        var attack = (options.attack !== undefined ? options.attack : adsrAttack) / 1000;
-        var decay = (options.decay !== undefined ? options.decay : adsrDecay) / 1000;
-        var release = (options.release !== undefined ? options.release : adsrRelease) / 1000;
-        attack = Math.max(0.001, attack);
-        decay = Math.max(0.001, decay);
-        release = Math.max(0.001, release);
-
-        gain.gain.setValueAtTime(0, context.currentTime);
-        gain.gain.linearRampToValueAtTime(finalVol, context.currentTime + attack);
-        var decayEndTime = context.currentTime + attack + decay;
-        var releaseEndTime = context.currentTime + duration + release;
-        if (releaseEndTime <= decayEndTime) {
-            releaseEndTime = decayEndTime + 0.01;
-        }
-        gain.gain.exponentialRampToValueAtTime(finalVol * 0.3, decayEndTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, releaseEndTime);
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(context.destination);
-
-        osc.start(context.currentTime);
-        osc.stop(context.currentTime + duration + release + 0.1);
     }
 
     // 不同风格的音效变体
@@ -281,6 +294,7 @@ const AudioManager = (function() {
         stopMusic(); // 清理旧节点，防止内存泄漏
         resume();
         const context = getCtx();
+        if (!context) return;
 
         musicGain = context.createGain();
         musicGain.gain.value = musicVol * volume * masterVolume;
@@ -310,12 +324,13 @@ const AudioManager = (function() {
         var sustainTime = Math.max(150, noteInterval * 0.8);
 
         // 混响效果（修复：原来未接入信号链）
-        var convolver = null;
-        var reverbGain = null;
+        // 清理旧混响节点防止内存泄漏
+        if (musicConvolver) { try { musicConvolver.disconnect(); } catch(e) {} musicConvolver = null; }
+        if (musicReverbGain) { try { musicReverbGain.disconnect(); } catch(e) {} musicReverbGain = null; }
         if (musicReverbAmount > 0.01) {
-            convolver = context.createConvolver();
-            reverbGain = context.createGain();
-            reverbGain.gain.value = musicReverbAmount;
+            musicConvolver = context.createConvolver();
+            musicReverbGain = context.createGain();
+            musicReverbGain.gain.value = musicReverbAmount;
             // 程序化生成简单脉冲响应
             var impulseLen = context.sampleRate * 1.5;
             var impulse = context.createBuffer(2, impulseLen, context.sampleRate);
@@ -325,10 +340,10 @@ const AudioManager = (function() {
                     data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLen, 2);
                 }
             }
-            convolver.buffer = impulse;
-            musicGain.connect(convolver);
-            convolver.connect(reverbGain);
-            reverbGain.connect(context.destination);
+            musicConvolver.buffer = impulse;
+            musicGain.connect(musicConvolver);
+            musicConvolver.connect(musicReverbGain);
+            musicReverbGain.connect(context.destination);
         }
 
         function playNextNote() {
@@ -360,9 +375,21 @@ const AudioManager = (function() {
     function stopMusic() {
         if (musicOsc) {
             try { musicOsc.stop(); } catch(e) {}
+            try { musicOsc.disconnect(); } catch(e) {}
             musicOsc = null;
         }
-        musicGain = null;
+        if (musicGain) {
+            try { musicGain.disconnect(); } catch(e) {}
+            musicGain = null;
+        }
+        if (musicConvolver) {
+            try { musicConvolver.disconnect(); } catch(e) {}
+            musicConvolver = null;
+        }
+        if (musicReverbGain) {
+            try { musicReverbGain.disconnect(); } catch(e) {}
+            musicReverbGain = null;
+        }
     }
 
     function setEnabled(v) {
@@ -386,15 +413,15 @@ const AudioManager = (function() {
 
     function setVolume(v) {
         volume = Math.max(0, Math.min(1, v));
-        if (musicGain) {
-            musicGain.gain.value = musicVol * volume * masterVolume;
+        if (musicGain && musicGain.gain) {
+            try { musicGain.gain.value = musicVol * volume * masterVolume; } catch(e) {}
         }
     }
 
     function setMasterVolume(v) {
         masterVolume = Math.max(0, Math.min(1, v));
-        if (musicGain) {
-            musicGain.gain.value = musicVol * volume * masterVolume;
+        if (musicGain && musicGain.gain) {
+            try { musicGain.gain.value = musicVol * volume * masterVolume; } catch(e) {}
         }
     }
 
@@ -404,8 +431,8 @@ const AudioManager = (function() {
 
     function setMusicVolume(v) {
         musicVol = Math.max(0, Math.min(1, v));
-        if (musicGain) {
-            musicGain.gain.value = musicVol * volume * masterVolume;
+        if (musicGain && musicGain.gain) {
+            try { musicGain.gain.value = musicVol * volume * masterVolume; } catch(e) {}
         }
     }
 

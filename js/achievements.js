@@ -122,7 +122,7 @@ const Achievements = (function() {
     }
 
     function showUnlock(ach) {
-        AudioManager.playWin();
+        if (typeof AudioManager !== 'undefined') AudioManager.playWin();
         const container = document.getElementById('achievement-toasts') || document.body;
         const toast = document.createElement('div');
         toast.className = 'achievement-toast';

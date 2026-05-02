@@ -176,7 +176,7 @@ const Game = (function() {
                 }
                 // 倒计时滴答音效
                 if (challengeData.timeLimit && time >= challengeData.timeLimit - 10 && time < challengeData.timeLimit) {
-                    AudioManager.playTick();
+                    if (typeof AudioManager !== 'undefined') AudioManager.playTick();
                 }
             }
         }, 100);
@@ -280,7 +280,7 @@ const Game = (function() {
                 // 无尽模式：扣血而不是直接输
                 if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
                     var hp = Endless.takeDamage(1);
-                    AudioManager.playLose();
+                    if (typeof AudioManager !== 'undefined') AudioManager.playLose();
                     if (history.length > 0) {
                         var prev = history.pop();
                         board = prev.board;
@@ -311,7 +311,7 @@ const Game = (function() {
                         board.calculateBV();
                         scell.isRevealed = true;
                         board.revealedCount++;
-                        AudioManager.playReveal();
+                        if (typeof AudioManager !== 'undefined') AudioManager.playReveal();
                         updateUI();
                         if (board.checkWin()) win();
                     }
@@ -320,7 +320,7 @@ const Game = (function() {
                     if (challengeMode === 'survival' && lives > 1) {
                         lives--;
                         combo = 0;
-                        AudioManager.playLose();
+                        if (typeof AudioManager !== 'undefined') AudioManager.playLose();
                         if (history.length > 0) {
                             const prev = history.pop();
                             board = prev.board;
@@ -341,7 +341,7 @@ const Game = (function() {
                 if (combo > maxCombo) maxCombo = combo;
                 // combo 里程碑音效
                 if (combo === 5 || combo === 10 || combo === 20 || combo === 50) {
-                    AudioManager.playCombo(combo);
+                    if (typeof AudioManager !== 'undefined') AudioManager.playCombo(combo);
                 }
                 if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
                     Endless.addRevealed(result.revealed ? result.revealed.length : 1);
@@ -376,7 +376,7 @@ const Game = (function() {
                 // chord 触雷不应用盾牌（盾牌只保护直接 reveal）
                 if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
                     var hp = Endless.takeDamage(1);
-                    AudioManager.playLose();
+                    if (typeof AudioManager !== 'undefined') AudioManager.playLose();
                     if (history.length > 0) {
                         var prev = history.pop();
                         board = prev.board;
@@ -391,7 +391,7 @@ const Game = (function() {
                 } else if (challengeMode === 'survival' && lives > 1) {
                     lives--;
                     combo = 0;
-                    AudioManager.playLose();
+                    if (typeof AudioManager !== 'undefined') AudioManager.playLose();
                     if (history.length > 0) {
                         var prev = history.pop();
                         board = prev.board;
@@ -410,7 +410,7 @@ const Game = (function() {
                 combo++;
                 if (combo > maxCombo) maxCombo = combo;
                 if (combo === 5 || combo === 10 || combo === 20 || combo === 50) {
-                    AudioManager.playCombo(combo);
+                    if (typeof AudioManager !== 'undefined') AudioManager.playCombo(combo);
                 }
                 if (board.checkWin()) {
                     win();
@@ -436,13 +436,13 @@ const Game = (function() {
             Replay.record('flag', x, y);
             if (result.action === 'flag') {
                 usedFlags = true;
-                AudioManager.playFlag();
+                if (typeof AudioManager !== 'undefined') AudioManager.playFlag();
                 Stats.recordFlagsPlaced(1);
                 if (typeof DailyQuests !== 'undefined') {
                     DailyQuests.checkEvent('flag', { count: 1 });
                 }
             } else if (result.action === 'unflag') {
-                AudioManager.playUnflag();
+                if (typeof AudioManager !== 'undefined') AudioManager.playUnflag();
             }
         }
         updateUI();
@@ -471,7 +471,7 @@ const Game = (function() {
             recordBattleLog(true, efficiency);
             if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             Endless.nextLevel();
-            AudioManager.playLevelUp();
+            if (typeof AudioManager !== 'undefined') AudioManager.playLevelUp();
             document.dispatchEvent(new CustomEvent('endlessAdvance', {
                 detail: Endless.getState()
             }));
@@ -531,7 +531,7 @@ const Game = (function() {
             if (typeof DailyQuests !== 'undefined') {
                 DailyQuests.checkEvent('campaign_stars', { stars: stars });
             }
-            AudioManager.playLevelUp();
+            if (typeof AudioManager !== 'undefined') AudioManager.playLevelUp();
             document.dispatchEvent(new CustomEvent('campaignComplete', {
                 detail: { levelId: campaignLevelId, stars: stars }
             }));
@@ -554,7 +554,7 @@ const Game = (function() {
             Replay.stop();
             recordBattleLog(true, efficiency);
             if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
-            AudioManager.playLevelUp();
+            if (typeof AudioManager !== 'undefined') AudioManager.playLevelUp();
             document.dispatchEvent(new CustomEvent('survivalAdvance', {
                 detail: { level: survivalLevel, score: survivalScore, lives: lives }
             }));
@@ -572,7 +572,7 @@ const Game = (function() {
             if (key === 'speedrun') {
                 speedrunStreak++;
                 Stats.recordChallenge(key, speedrunStreak);
-                AudioManager.playStreakUp(speedrunStreak);
+                if (typeof AudioManager !== 'undefined') AudioManager.playStreakUp(speedrunStreak);
             } else if (key === 'fog' || key === 'survival' || key === 'symmetry' || key === 'zen' || key === 'giant' || key === 'comboRush' || key === 'noUndo') {
                 Stats.recordChallenge(key, 1);
             } else if (key === 'noFlag' || key === 'blind' || key === 'timeAttack') {
@@ -582,7 +582,7 @@ const Game = (function() {
             }
         }
 
-        AudioManager.playWin();
+        if (typeof AudioManager !== 'undefined') AudioManager.playWin();
         createParticles();
         Replay.stop();
         recordBattleLog(true, efficiency);
@@ -627,9 +627,9 @@ const Game = (function() {
 
         // 限时模式超时音效
         if (challengeData.timeLimit && time >= challengeData.timeLimit) {
-            AudioManager.playTimeout();
+            if (typeof AudioManager !== 'undefined') AudioManager.playTimeout();
         } else {
-            AudioManager.playLose();
+            if (typeof AudioManager !== 'undefined') AudioManager.playLose();
         }
 
         // 无尽模式：跳过普通统计，使用特殊结算
@@ -666,7 +666,7 @@ const Game = (function() {
 
         // 速通挑战连胜中断
         if (challengeMode && normalizeChallengeKey(challengeMode) === 'speedrun') {
-            if (speedrunStreak > 0) AudioManager.playStreakReset();
+            if (speedrunStreak > 0 && typeof AudioManager !== 'undefined') AudioManager.playStreakReset();
             speedrunStreak = 0;
         }
 
@@ -780,7 +780,7 @@ const Game = (function() {
         // 使用 AI 求解器获取最佳提示
         const solverResult = Solver.getHint(board);
         if (solverResult) {
-            AudioManager.playHint();
+            if (typeof AudioManager !== 'undefined') AudioManager.playHint();
             if (typeof DailyQuests !== 'undefined') {
                 DailyQuests.checkEvent('hint', { count: 1 });
             }
@@ -793,7 +793,7 @@ const Game = (function() {
         saveState();
         const flagged = board.autoFlag();
         if (flagged.length > 0) {
-            AudioManager.playFlag();
+            if (typeof AudioManager !== 'undefined') AudioManager.playFlag();
             Stats.recordFlagsPlaced(flagged.length);
         }
         updateUI();

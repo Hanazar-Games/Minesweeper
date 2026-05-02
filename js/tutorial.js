@@ -255,7 +255,7 @@ const Tutorial = (function() {
             const startBtn = document.getElementById('tutorial-start-game');
             if (startBtn) {
                 startBtn.addEventListener('click', () => {
-                    AudioManager.playClick();
+                    if (typeof AudioManager !== 'undefined') AudioManager.playClick();
                     Game.start('beginner');
                     UI.showScreen('game-screen');
                 });
@@ -273,7 +273,7 @@ const Tutorial = (function() {
     }
 
     function nextStep() {
-        AudioManager.playClick();
+        if (typeof AudioManager !== 'undefined') AudioManager.playClick();
         if (currentStep < steps.length - 1) {
             currentStep++;
             renderStep();
@@ -281,7 +281,7 @@ const Tutorial = (function() {
     }
 
     function prevStep() {
-        AudioManager.playClick();
+        if (typeof AudioManager !== 'undefined') AudioManager.playClick();
         if (currentStep > 0) {
             currentStep--;
             renderStep();
@@ -289,7 +289,7 @@ const Tutorial = (function() {
     }
 
     function finishTutorial() {
-        AudioManager.playWin();
+        if (typeof AudioManager !== 'undefined') AudioManager.playWin();
         UI.showScreen('main-menu');
     }
 
@@ -413,10 +413,10 @@ const Tutorial = (function() {
             // 左键揭开
             const result = practiceBoard.reveal(x, y);
             if (result.changed && !result.hitMine) {
-                AudioManager.playReveal();
+                if (typeof AudioManager !== 'undefined') AudioManager.playReveal();
                 checkPracticeProgress();
             } else if (result.hitMine) {
-                AudioManager.playLose();
+                if (typeof AudioManager !== 'undefined') AudioManager.playLose();
                 practiceState = 'lost';
                 practiceBoard.revealAll();
                 document.getElementById('tutorial-task-text').innerHTML = 
@@ -428,7 +428,7 @@ const Tutorial = (function() {
             }
         } else if (e.button === 2) {
             // 右键标记
-            AudioManager.playClick();
+            if (typeof AudioManager !== 'undefined') AudioManager.playClick();
             const cell = practiceBoard.cells[y][x];
             if (cell.isFlagged) {
                 cell.isFlagged = false;
@@ -447,7 +447,7 @@ const Tutorial = (function() {
     function checkPracticeProgress() {
         if (practiceBoard.checkWin()) {
             practiceState = 'won';
-            AudioManager.playWin();
+            if (typeof AudioManager !== 'undefined') AudioManager.playWin();
             document.getElementById('tutorial-task-text').innerHTML = 
                 '<span style="color:var(--secondary)">🎉 太棒了！你成功完成了练习！</span>';
             expectedAction = null;

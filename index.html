@@ -1346,5 +1346,27 @@
     <script src="js/achievements.js"></script>
     <script src="js/tutorial.js"></script>
     <script src="js/app.js"></script>
+    <script>
+    // AudioManager 安全兜底：如果音频模块加载失败，提供空实现防止所有调用崩溃
+    (function() {
+        if (typeof AudioManager === 'undefined') {
+            window.AudioManager = {
+                playClick: function(){}, playReveal: function(){}, playFlag: function(){},
+                playUnflag: function(){}, playWin: function(){}, playLose: function(){},
+                playChord: function(){}, playHint: function(){}, playHover: function(){},
+                playCount: function(){}, playTick: function(){}, playTimeout: function(){},
+                playStreakUp: function(){}, playStreakReset: function(){}, playPowerUp: function(){},
+                playLevelUp: function(){}, playCombo: function(){},
+                startMusic: function(){}, stopMusic: function(){},
+                setEnabled: function(){}, setMusicEnabled: function(){},
+                setVolume: function(){}, setMasterVolume: function(){}, setSfxVolume: function(){},
+                setMusicVolume: function(){}, setSfxStyle: function(){}, setAdsr: function(){},
+                setMusicReverb: function(){}, restartMusic: function(){},
+                get enabled() { return false; }
+            };
+            console.warn('[AudioManager] Audio module not loaded, using safe mock.');
+        }
+    })();
+    </script>
 </body>
 </html>
