@@ -235,6 +235,11 @@ const ThunderRush = (function() {
     function handleCellClick(x, y, isRightClick) {
         if (gameState !== 'playing' || !currentBoard) return false;
 
+        // 已踩中的雷不可再次操作
+        for (var i = 0; i < hitCells.length; i++) {
+            if (hitCells[i].x === x && hitCells[i].y === y) return false;
+        }
+
         if (firstClick) {
             if (isRightClick) return false; // 首次点击前不允许标记
             firstClick = false;

@@ -1,5 +1,14 @@
 # 超级扫雷 - 更新日志
 
+## v1.8.1 (2026-04-29)
+
+### Bug 修复（Thunder Rush 深度审查）
+- **重复踩雷扣时间**：`handleCellClick()` 新增 `hitCells` 重复检查，已踩中的雷格不可再次点击，防止连续扣时间
+- **thunderLoop 后台泄漏**：`showScreen()` 离开 Thunder Rush 时，除 `stopGame()` 外同步清理 `thunderGameActive`、`thunderLoopId` 和 `thunderLongPressTimer`，彻底终止 UI 轮询
+- **移动端触摸默认行为**：`touchstart`/`touchend`/`touchcancel` 的 `passive` 从 `true` 改为 `false`，并添加 `e.preventDefault()`，阻止浏览器长按弹出菜单/选择文本
+- **长按定时器泄漏**：`showThunderRushStart()` / `showThunderRushOver()` / `startThunderRush()` 均增加 `thunderLongPressTimer` 清理，杜绝所有定时器残留
+- **旧 thunderLoopId 残留**：`startThunderRush()` 开头强制清理可能存在的旧 `thunderLoopId`，防止多个轮询并行
+
 ## v1.8.0 (2026-04-29)
 
 ### 新功能

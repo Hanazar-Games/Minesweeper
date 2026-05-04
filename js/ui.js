@@ -45,6 +45,15 @@ const UI = (function() {
             if (trState.gameState === 'playing') {
                 if (!confirm('雷暴突袭正在进行中，确定要退出吗？')) return;
                 ThunderRush.stopGame();
+                thunderGameActive = false;
+                if (thunderLoopId) {
+                    clearTimeout(thunderLoopId);
+                    thunderLoopId = null;
+                }
+                if (thunderLongPressTimer) {
+                    clearTimeout(thunderLongPressTimer);
+                    thunderLongPressTimer = null;
+                }
             }
         }
 
@@ -3384,6 +3393,7 @@ const UI = (function() {
                 var trState = ThunderRush.getState();
                 if (trState.firstClick) return; // 首次点击前不允许标记
 
+                e.preventDefault();
                 if (thunderLongPressTimer) clearTimeout(thunderLongPressTimer);
                 thunderLongPressTimer = setTimeout(function() {
                     thunderLongPressTimer = null;
@@ -3394,7 +3404,7 @@ const UI = (function() {
                         updateThunderHUD(ThunderRush.getState());
                     }
                 }, 500);
-            }, { passive: true });
+            }, { passive: false });
 
             boardEl.addEventListener('touchend', function(e) {
                 if (thunderLongPressTimer) {
@@ -3412,18 +3422,26 @@ const UI = (function() {
                         updateThunderHUD(ThunderRush.getState());
                     }
                 }
-            }, { passive: true });
+            }, { passive: false });
 
             boardEl.addEventListener('touchcancel', function(e) {
                 if (thunderLongPressTimer) {
                     clearTimeout(thunderLongPressTimer);
                     thunderLongPressTimer = null;
                 }
-            }, { passive: true });
+            }, { passive: false });
         }
     }
 
     function startThunderRush() {
+        if (thunderLoopId) {
+            clearTimeout(thunderLoopId);
+            thunderLoopId = null;
+        }
+        if (thunderLongPressTimer) {
+            clearTimeout(thunderLongPressTimer);
+            thunderLongPressTimer = null;
+        }
         ThunderRush.startGame();
         thunderGameActive = true;
 
@@ -3441,6 +3459,10 @@ const UI = (function() {
             clearTimeout(thunderLoopId);
             thunderLoopId = null;
         }
+        if (thunderLongPressTimer) {
+            clearTimeout(thunderLongPressTimer);
+            thunderLongPressTimer = null;
+        }
 
         var stats = ThunderRush.getStats();
         document.getElementById('thunder-best-score').textContent = stats.bestScore;
@@ -3456,6 +3478,10 @@ const UI = (function() {
         if (thunderLoopId) {
             clearTimeout(thunderLoopId);
             thunderLoopId = null;
+        }
+        if (thunderLongPressTimer) {
+            clearTimeout(thunderLongPressTimer);
+            thunderLongPressTimer = null;
         }
 
         var state = ThunderRush.getState();
