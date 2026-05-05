@@ -88,6 +88,11 @@ const Achievements = (function() {
         { id: 'powerup_first', name: '道具新手', desc: '首次使用道具', icon: '🧪', category: 'skill', condition: (s) => (s.powerups && (s.powerups.scannerUsed + s.powerups.shieldUsed + s.powerups.freezeUsed + s.powerups.heatmapUsed)) >= 1 },
         { id: 'shield_save', name: '死里逃生', desc: '使用盾牌避免一次死亡', icon: '🛡️', category: 'skill', condition: (s) => (s.powerups && s.powerups.shieldUsed) >= 1 },
 
+        // 星际博物馆
+        { id: 'museum_first', name: '考古学家', desc: '解锁博物馆第一个展品', icon: '🌌', category: 'special', condition: (s) => typeof Museum !== 'undefined' && Museum.getProgress().unlocked >= 1 },
+        { id: 'museum_half', name: '星际探险家', desc: '解锁博物馆一半展品', icon: '🚀', category: 'special', condition: (s) => typeof Museum !== 'undefined' && Museum.getProgress().unlocked >= 7 },
+        { id: 'museum_all', name: '宇宙收藏家', desc: '解锁博物馆全部展品', icon: '👑', category: 'special', condition: (s) => typeof Museum !== 'undefined' && Museum.getProgress().unlocked >= 15 },
+
         // 特殊
         { id: 'custom_max', name: '极限挑战', desc: '在50x30的自定义地图上获胜', icon: '🗺️', category: 'special', condition: (s, g) => g.won && g.customSize && g.width >= 50 && g.height >= 30 },
         { id: 'night_owl', name: '夜猫子', desc: '在凌晨0-5点完成一局', icon: '🌙', category: 'special', condition: (s, g) => { const h = new Date().getHours(); return g.won && h >= 0 && h < 5; } },

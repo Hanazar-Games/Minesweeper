@@ -33,6 +33,7 @@ const UI = (function() {
         bindShadowRaceEvents();
         bindPatternDojoEvents();
         bindThunderRushEvents();
+        bindMuseumEvents();
         updateContinueButton();
         updateAchievementBadge();
         updateQuestBadge();
@@ -78,6 +79,8 @@ const UI = (function() {
             renderDojoGallery();
         } else if (name === 'thunder-rush-screen') {
             showThunderRushStart();
+        } else if (name === 'museum-screen') {
+            renderMuseum();
         } else if (name === 'game-screen') {
             // 进入游戏时重置影子竞速结果面板
             var srResultEl = document.getElementById('shadow-race-result');
@@ -133,6 +136,9 @@ const UI = (function() {
                         break;
                     case 'thunder-rush':
                         showScreen('thunder-rush-screen');
+                        break;
+                    case 'museum':
+                        showScreen('museum-screen');
                         break;
                     case 'campaign':
                         showScreen('campaign-screen');
@@ -3642,6 +3648,109 @@ const UI = (function() {
                     }
                 }
             }
+        }
+    }
+
+    // ============ 星际博物馆 (Museum) ============
+
+    function bindMuseumEvents() {
+        if (typeof Museum === 'undefined') return;
+
+        var gallery = document.getElementById('museum-gallery');
+        if (gallery) {
+            gallery.addEventListener('click', function(e) {
+                var card = e.target.closest('.museum-card');
+                if (!card) return;
+                var id = card.dataset.id;
+                if (!id) return;
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                showMuseumDetail(id);
+            });
+        }
+
+        var detailBack = document.getElementById('museum-detail-back');
+        if (detailBack) {
+            detailBack.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                document.getElementById('museum-detail').classList.add('hidden');
+                document.getElementById('museum-gallery').classList.remove('hidden');
+                document.querySelector('.museum-progress').classList.remove('hidden');
+            });
+        }
+    }
+
+    function renderMuseum() {
+        if (typeof Museum === 'undefined') return;
+
+        var newlyUnlocked = Museum.checkUnlocks();
+        if (newlyUnlocked.length > 0 && typeof AudioManager !== 'undefined') {
+            AudioManager.playWin();
+        }
+
+        updateMuseumProgress();
+
+        var gallery = document.getElementById('museum-gallery');
+        if (!gallery) return;
+
+        var exhibits = Museum.getExhibits();
+        gallery.innerHTML = '';
+
+        for (var i = 0; i < exhibits.length; i++) {
+            var ex = exhibits[i];
+            var card = document.createElement('div');
+            card.className = 'museum-card' + (ex.unlocked ? '' : ' locked');
+            card.dataset.id = ex.id;
+
+            var icon = document.createElement('div');
+            icon.className = 'museum-card-icon';
+            icon.textContent = ex.unlocked ? ex.icon : '🔒';
+
+            var name = document.createElement('div');
+            name.className = 'museum-card-name';
+            name.textContent = ex.unlocked ? ex.name : '???';
+
+            card.appendChild(icon);
+            card.appendChild(name);
+            gallery.appendChild(card);
+        }
+
+        document.getElementById('museum-detail').classList.add('hidden');
+        document.getElementById('museum-gallery').classList.remove('hidden');
+        document.querySelector('.museum-progress').classList.remove('hidden');
+    }
+
+    function showMuseumDetail(id) {
+        if (typeof Museum === 'undefined') return;
+
+        var ex = Museum.getExhibit(id);
+        if (!ex) return;
+
+        var iconEl = document.getElementById('museum-detail-icon');
+        var nameEl = document.getElementById('museum-detail-name');
+        var descEl = document.getElementById('museum-detail-desc');
+        var statusEl = document.getElementById('museum-detail-status');
+
+        if (iconEl) iconEl.textContent = ex.unlocked ? ex.icon : '🔒';
+        if (nameEl) nameEl.textContent = ex.unlocked ? ex.name : '未解锁的遗迹';
+        if (descEl) descEl.textContent = ex.unlocked ? ex.desc : '完成特定挑战后，这座星际遗迹将向您敞开大门。继续探索扫雷宇宙吧！';
+        if (statusEl) statusEl.textContent = ex.unlocked ? '✅ 已解锁' : '🔒 未解锁';
+
+        document.getElementById('museum-gallery').classList.add('hidden');
+        document.querySelector('.museum-progress').classList.add('hidden');
+        document.getElementById('museum-detail').classList.remove('hidden');
+    }
+
+    function updateMuseumProgress() {
+        if (typeof Museum === 'undefined') return;
+        var progress = Museum.getProgress();
+        var fill = document.getElementById('museum-progress-fill');
+        var text = document.getElementById('museum-progress-text');
+        if (fill) {
+            var pct = Math.max(0, Math.min(100, (progress.unlocked / progress.total) * 100));
+            fill.style.width = pct + '%';
+        }
+        if (text) {
+            text.textContent = progress.unlocked + ' / ' + progress.total;
         }
     }
 
