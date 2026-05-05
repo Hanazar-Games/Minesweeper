@@ -189,6 +189,14 @@ body {
     50% { transform: translateY(-10px); }
 }
 
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
 @keyframes loadingBar {
     0% { width: 0%; }
     50% { width: 60%; }
@@ -4690,5 +4698,215 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
     .museum-detail-icon {
         font-size: 3.5rem;
+    }
+}
+
+/* ========== 布雷大师 (Mine Architect) ========== */
+
+.architect-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.architect-intro {
+    text-align: center;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.architect-level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.75rem;
+}
+
+.architect-level-card {
+    background: var(--bg-light);
+    border-radius: 10px;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+}
+
+.architect-level-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    border-color: var(--primary);
+}
+
+.architect-level-card.locked {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.architect-level-card.locked:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: transparent;
+}
+
+.architect-level-num {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary);
+    font-family: var(--font-display);
+}
+
+.architect-level-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0.25rem 0;
+}
+
+.architect-level-info {
+    font-size: 0.75rem;
+    color: var(--warning);
+}
+
+.architect-game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.architect-game-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.architect-game-desc {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 100%;
+}
+
+.architect-mine-counter {
+    background: var(--bg-light);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+}
+
+.architect-mine-counter.over-limit {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    animation: shake 0.4s ease;
+}
+
+.architect-board {
+    display: grid;
+    grid-template-columns: repeat(5, var(--architect-cell, 48px));
+    grid-template-rows: repeat(5, var(--architect-cell, 48px));
+    gap: 3px;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    padding: 8px;
+    background: var(--bg-light);
+    border-radius: 8px;
+    width: fit-content;
+}
+
+.architect-cell {
+    width: var(--architect-cell, 48px);
+    height: var(--architect-cell, 48px);
+    background: var(--cell-hidden);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s, background 0.2s;
+}
+
+.architect-cell:hover {
+    background: var(--cell-hover);
+    transform: scale(1.05);
+}
+
+.architect-cell:active {
+    transform: scale(0.95);
+}
+
+.architect-cell.revealed {
+    background: var(--cell-revealed);
+    cursor: default;
+}
+
+.architect-cell.revealed:hover {
+    transform: none;
+}
+
+.architect-cell.mined {
+    background: var(--warning);
+}
+
+.architect-cell.disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.architect-cell.disabled:hover {
+    transform: none;
+}
+
+.architect-cell.number-1 { color: #3b82f6; }
+.architect-cell.number-2 { color: #22c55e; }
+.architect-cell.number-3 { color: #ef4444; }
+.architect-cell.number-4 { color: #a855f7; }
+.architect-cell.number-5 { color: #f97316; }
+.architect-cell.number-6 { color: #14b8a6; }
+.architect-cell.number-7 { color: #f43f5e; }
+.architect-cell.number-8 { color: #64748b; }
+
+.architect-game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.architect-feedback {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+
+.architect-feedback.correct {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.architect-feedback.incorrect {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+    .architect-level-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .architect-board {
+        --architect-cell: 42px;
+    }
+
+    .architect-game-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

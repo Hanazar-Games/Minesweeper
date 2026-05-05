@@ -124,6 +124,10 @@
                         <span class="btn-icon">🌌</span>
                         <span class="btn-text">星际博物馆</span>
                     </button>
+                    <button class="menu-btn" data-action="architect">
+                        <span class="btn-icon">🏗️</span>
+                        <span class="btn-text">布雷大师</span>
+                    </button>
                     <button class="menu-btn" data-action="achievements">
                         <span class="btn-icon">🏆</span>
                         <span class="btn-text">成就</span>
@@ -1371,6 +1375,38 @@
             </div>
         </div>
 
+        <!-- 布雷大师 -->
+        <div id="architect-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>🏗️ 布雷大师</h2>
+            </div>
+            <div class="architect-container">
+                <!-- 关卡选择 -->
+                <div id="architect-levels" class="architect-levels">
+                    <p class="architect-intro">根据数字提示，在空白格中放置正确数量的雷。</p>
+                    <div id="architect-level-grid" class="architect-level-grid"></div>
+                </div>
+                <!-- 游戏界面 -->
+                <div id="architect-game" class="architect-game hidden">
+                    <div class="architect-game-header">
+                        <button id="architect-game-back" class="back-btn">← 返回选关</button>
+                        <h3 id="architect-game-title"></h3>
+                        <p id="architect-game-desc" class="architect-game-desc"></p>
+                        <div class="architect-mine-counter">
+                            已放置: <span id="architect-placed">0</span> / <span id="architect-target">0</span>
+                        </div>
+                    </div>
+                    <div id="architect-board" class="architect-board"></div>
+                    <div class="architect-game-controls">
+                        <button id="architect-reset-btn" class="secondary-btn">重置</button>
+                        <button id="architect-submit-btn" class="primary-btn">提交答案</button>
+                    </div>
+                    <div id="architect-feedback" class="architect-feedback hidden"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- 星际博物馆 -->
         <div id="museum-screen" class="screen hidden">
             <div class="screen-header">
@@ -1515,6 +1551,7 @@
     <script src="js/replay.js"></script>
     <script src="js/achievements.js"></script>
     <script src="js/museum.js"></script>
+    <script src="js/mine-architect.js"></script>
     <script src="js/tutorial.js"></script>
     <script src="js/app.js"></script>
     <script>

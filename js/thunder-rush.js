@@ -376,13 +376,17 @@ const ThunderRush = (function() {
         var saved = Storage.get('thunder_rush_stats');
         if (saved) {
             try {
-                var parsed = JSON.parse(saved);
-                if (parsed && typeof parsed === 'object') {
-                    stats.bestScore = parsed.bestScore || 0;
-                    stats.bestStreak = parsed.bestStreak || 0;
-                    stats.totalGames = parsed.totalGames || 0;
-                    stats.totalSolved = parsed.totalSolved || 0;
-                    stats.history = Array.isArray(parsed.history) ? parsed.history : [];
+                var data = saved;
+                // 兼容旧数据（双重 JSON.stringify）
+                if (typeof saved === 'string') {
+                    data = JSON.parse(saved);
+                }
+                if (data && typeof data === 'object') {
+                    stats.bestScore = data.bestScore || 0;
+                    stats.bestStreak = data.bestStreak || 0;
+                    stats.totalGames = data.totalGames || 0;
+                    stats.totalSolved = data.totalSolved || 0;
+                    stats.history = Array.isArray(data.history) ? data.history : [];
                 }
             } catch (e) {
                 console.warn('[ThunderRush] Failed to load stats:', e);
@@ -392,7 +396,7 @@ const ThunderRush = (function() {
 
     function saveStats() {
         try {
-            Storage.set('thunder_rush_stats', JSON.stringify(stats));
+            Storage.set('thunder_rush_stats', stats);
         } catch (e) {
             console.warn('[ThunderRush] Failed to save stats:', e);
         }

@@ -34,12 +34,20 @@ const UI = (function() {
         bindPatternDojoEvents();
         bindThunderRushEvents();
         bindMuseumEvents();
+        bindArchitectEvents();
         updateContinueButton();
         updateAchievementBadge();
         updateQuestBadge();
     }
 
     function showScreen(name) {
+        // 离开布雷大师时清理状态
+        if (currentScreen === 'architect' && name !== 'architect-screen') {
+            architectCurrentLevel = null;
+            architectPlayerMines = [];
+            architectGameCompleted = false;
+        }
+
         // 如果正在雷暴突袭游戏中，确认是否退出
         if (currentScreen === 'thunder-rush' && typeof ThunderRush !== 'undefined') {
             var trState = ThunderRush.getState();
@@ -81,6 +89,8 @@ const UI = (function() {
             showThunderRushStart();
         } else if (name === 'museum-screen') {
             renderMuseum();
+        } else if (name === 'architect-screen') {
+            renderArchitectLevels();
         } else if (name === 'game-screen') {
             // 进入游戏时重置影子竞速结果面板
             var srResultEl = document.getElementById('shadow-race-result');
@@ -139,6 +149,9 @@ const UI = (function() {
                         break;
                     case 'museum':
                         showScreen('museum-screen');
+                        break;
+                    case 'architect':
+                        showScreen('architect-screen');
                         break;
                     case 'campaign':
                         showScreen('campaign-screen');
@@ -3672,9 +3685,12 @@ const UI = (function() {
         if (detailBack) {
             detailBack.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                document.getElementById('museum-detail').classList.add('hidden');
-                document.getElementById('museum-gallery').classList.remove('hidden');
-                document.querySelector('.museum-progress').classList.remove('hidden');
+                var detail = document.getElementById('museum-detail');
+                var gallery = document.getElementById('museum-gallery');
+                var progress = document.querySelector('.museum-progress');
+                if (detail) detail.classList.add('hidden');
+                if (gallery) gallery.classList.remove('hidden');
+                if (progress) progress.classList.remove('hidden');
             });
         }
     }
@@ -3714,9 +3730,12 @@ const UI = (function() {
             gallery.appendChild(card);
         }
 
-        document.getElementById('museum-detail').classList.add('hidden');
-        document.getElementById('museum-gallery').classList.remove('hidden');
-        document.querySelector('.museum-progress').classList.remove('hidden');
+        var detail = document.getElementById('museum-detail');
+        var gallery = document.getElementById('museum-gallery');
+        var progress = document.querySelector('.museum-progress');
+        if (detail) detail.classList.add('hidden');
+        if (gallery) gallery.classList.remove('hidden');
+        if (progress) progress.classList.remove('hidden');
     }
 
     function showMuseumDetail(id) {
@@ -3735,9 +3754,12 @@ const UI = (function() {
         if (descEl) descEl.textContent = ex.unlocked ? ex.desc : '完成特定挑战后，这座星际遗迹将向您敞开大门。继续探索扫雷宇宙吧！';
         if (statusEl) statusEl.textContent = ex.unlocked ? '✅ 已解锁' : '🔒 未解锁';
 
-        document.getElementById('museum-gallery').classList.add('hidden');
-        document.querySelector('.museum-progress').classList.add('hidden');
-        document.getElementById('museum-detail').classList.remove('hidden');
+        var gallery = document.getElementById('museum-gallery');
+        var progress = document.querySelector('.museum-progress');
+        var detail = document.getElementById('museum-detail');
+        if (gallery) gallery.classList.add('hidden');
+        if (progress) progress.classList.add('hidden');
+        if (detail) detail.classList.remove('hidden');
     }
 
     function updateMuseumProgress() {
@@ -3751,6 +3773,312 @@ const UI = (function() {
         }
         if (text) {
             text.textContent = progress.unlocked + ' / ' + progress.total;
+        }
+    }
+
+    // ============ 布雷大师 (Mine Architect) ============
+
+    var architectCurrentLevel = null;
+    var architectPlayerMines = [];
+    var architectStartTime = 0;
+    var architectGameCompleted = false;
+
+    function bindArchitectEvents() {
+        if (typeof MineArchitect === 'undefined') return;
+
+        var levelGrid = document.getElementById('architect-level-grid');
+        if (levelGrid) {
+            levelGrid.addEventListener('click', function(e) {
+                var card = e.target.closest('.architect-level-card');
+                if (!card) return;
+                var id = parseInt(card.dataset.id);
+                if (isNaN(id)) return;
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                startArchitectGame(id);
+            });
+        }
+
+        var gameBack = document.getElementById('architect-game-back');
+        if (gameBack) {
+            gameBack.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                document.getElementById('architect-game').classList.add('hidden');
+                document.getElementById('architect-levels').classList.remove('hidden');
+                architectCurrentLevel = null;
+                architectPlayerMines = [];
+            });
+        }
+
+        var boardEl = document.getElementById('architect-board');
+        if (boardEl) {
+            boardEl.addEventListener('click', function(e) {
+                var cell = e.target.closest('.architect-cell');
+                if (!cell) return;
+                var x = parseInt(cell.dataset.x);
+                var y = parseInt(cell.dataset.y);
+                if (isNaN(x) || isNaN(y)) return;
+
+                if (!architectCurrentLevel || architectGameCompleted) return;
+                var levelData = architectCurrentLevel.data;
+
+                // 不能点击 revealed 格子
+                var isRevealed = false;
+                for (var i = 0; i < levelData.revealed.length; i++) {
+                    if (levelData.revealed[i].x === x && levelData.revealed[i].y === y) {
+                        isRevealed = true;
+                        break;
+                    }
+                }
+                if (isRevealed) return;
+
+                // 切换雷标记
+                var idx = -1;
+                for (var i = 0; i < architectPlayerMines.length; i++) {
+                    if (architectPlayerMines[i].x === x && architectPlayerMines[i].y === y) {
+                        idx = i;
+                        break;
+                    }
+                }
+
+                if (idx >= 0) {
+                    architectPlayerMines.splice(idx, 1);
+                    if (typeof AudioManager !== 'undefined') AudioManager.playUnflag();
+                } else {
+                    // 阻止过量放置
+                    if (architectPlayerMines.length >= levelData.mineCount) {
+                        var counter = document.getElementById('architect-placed');
+                        var counterWrap = document.querySelector('.architect-mine-counter');
+                        if (counterWrap) {
+                            counterWrap.classList.add('over-limit');
+                            setTimeout(function() { counterWrap.classList.remove('over-limit'); }, 400);
+                        }
+                        return;
+                    }
+                    architectPlayerMines.push({x: x, y: y});
+                    if (typeof AudioManager !== 'undefined') AudioManager.playFlag();
+                }
+
+                renderArchitectBoard();
+                updateArchitectMineCounter();
+
+                // 隐藏之前的反馈
+                var feedback = document.getElementById('architect-feedback');
+                if (feedback) feedback.classList.add('hidden');
+            });
+        }
+
+        var resetBtn = document.getElementById('architect-reset-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                architectPlayerMines = [];
+                renderArchitectBoard();
+                updateArchitectMineCounter();
+                var feedback = document.getElementById('architect-feedback');
+                if (feedback) feedback.classList.add('hidden');
+            });
+        }
+
+        var submitBtn = document.getElementById('architect-submit-btn');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                if (!architectCurrentLevel || architectGameCompleted) return;
+                var timeMs = Date.now() - architectStartTime;
+                var result = MineArchitect.submitAnswer(architectCurrentLevel.data.id, architectPlayerMines, timeMs);
+                showArchitectFeedback(result);
+                if (result.correct) {
+                    renderArchitectLevels();
+                }
+            });
+        }
+    }
+
+    function renderArchitectLevels() {
+        if (typeof MineArchitect === 'undefined') return;
+
+        var grid = document.getElementById('architect-level-grid');
+        if (!grid) return;
+
+        var levels = MineArchitect.getLevels();
+        grid.innerHTML = '';
+
+        for (var i = 0; i < levels.length; i++) {
+            var lvl = levels[i];
+            var card = document.createElement('div');
+            card.className = 'architect-level-card' + (lvl.unlocked ? '' : ' locked');
+            card.dataset.id = lvl.id;
+
+            var num = document.createElement('div');
+            num.className = 'architect-level-num';
+            num.textContent = lvl.id;
+
+            var name = document.createElement('div');
+            name.className = 'architect-level-name';
+            name.textContent = lvl.unlocked ? lvl.name : '???';
+
+            var info = document.createElement('div');
+            info.className = 'architect-level-info';
+            if (lvl.completed) {
+                info.textContent = '⭐'.repeat(lvl.stars) + (lvl.stars < 3 ? '☆'.repeat(3 - lvl.stars) : '');
+            } else if (lvl.unlocked) {
+                info.textContent = lvl.width + '×' + lvl.height + ' · ' + lvl.mineCount + '雷';
+            } else {
+                info.textContent = '🔒 未解锁';
+            }
+
+            card.appendChild(num);
+            card.appendChild(name);
+            card.appendChild(info);
+            grid.appendChild(card);
+        }
+
+        var levelsEl = document.getElementById('architect-levels');
+        var gameEl = document.getElementById('architect-game');
+        if (levelsEl) levelsEl.classList.remove('hidden');
+        if (gameEl) gameEl.classList.add('hidden');
+    }
+
+    function startArchitectGame(id) {
+        if (typeof MineArchitect === 'undefined') return;
+
+        var level = MineArchitect.getLevel(id);
+        if (!level || !level.unlocked) return;
+
+        architectCurrentLevel = level;
+        architectPlayerMines = [];
+        architectStartTime = Date.now();
+        architectGameCompleted = false;
+
+        var title = document.getElementById('architect-game-title');
+        if (title) title.textContent = level.data.name;
+
+        var desc = document.getElementById('architect-game-desc');
+        if (desc) desc.textContent = level.data.desc || '';
+
+        // 恢复提交按钮，移除禁用状态
+        var submitBtn = document.getElementById('architect-submit-btn');
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '提交答案'; }
+
+        updateArchitectMineCounter();
+        renderArchitectBoard();
+
+        var feedback = document.getElementById('architect-feedback');
+        if (feedback) feedback.classList.add('hidden');
+
+        var levelsEl = document.getElementById('architect-levels');
+        var gameEl = document.getElementById('architect-game');
+        if (levelsEl) levelsEl.classList.add('hidden');
+        if (gameEl) gameEl.classList.remove('hidden');
+
+        if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+    }
+
+    function renderArchitectBoard() {
+        var boardEl = document.getElementById('architect-board');
+        if (!boardEl || !architectCurrentLevel) return;
+
+        var levelData = architectCurrentLevel.data;
+        var w = levelData.width;
+        var h = levelData.height;
+
+        boardEl.innerHTML = '';
+        boardEl.style.gridTemplateColumns = 'repeat(' + w + ', var(--architect-cell, 48px))';
+        boardEl.style.gridTemplateRows = 'repeat(' + h + ', var(--architect-cell, 48px))';
+
+        for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {
+                var cell = document.createElement('div');
+                cell.className = 'architect-cell';
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+
+                // 检查是否是 revealed 格子
+                var revealedNum = null;
+                for (var i = 0; i < levelData.revealed.length; i++) {
+                    if (levelData.revealed[i].x === x && levelData.revealed[i].y === y) {
+                        revealedNum = levelData.revealed[i].num;
+                        break;
+                    }
+                }
+
+                if (revealedNum !== null) {
+                    cell.classList.add('revealed');
+                    if (revealedNum > 0) {
+                        cell.textContent = revealedNum;
+                        cell.classList.add('number-' + revealedNum);
+                    }
+                } else {
+                    // 检查是否是玩家放置的雷
+                    var isMine = false;
+                    for (var i = 0; i < architectPlayerMines.length; i++) {
+                        if (architectPlayerMines[i].x === x && architectPlayerMines[i].y === y) {
+                            isMine = true;
+                            break;
+                        }
+                    }
+                    if (isMine) {
+                        cell.classList.add('mined');
+                        cell.textContent = '💣';
+                    }
+                    if (architectGameCompleted) {
+                        cell.classList.add('disabled');
+                    }
+                }
+
+                boardEl.appendChild(cell);
+            }
+        }
+    }
+
+    function updateArchitectMineCounter() {
+        if (!architectCurrentLevel) return;
+        var placed = document.getElementById('architect-placed');
+        var target = document.getElementById('architect-target');
+        if (placed) placed.textContent = architectPlayerMines.length;
+        if (target) target.textContent = architectCurrentLevel.data.mineCount;
+    }
+
+    function showArchitectFeedback(result) {
+        var feedback = document.getElementById('architect-feedback');
+        if (!feedback) return;
+
+        feedback.classList.remove('hidden');
+        if (result.correct) {
+            architectGameCompleted = true;
+            feedback.className = 'architect-feedback correct';
+            var nextId = architectCurrentLevel.data.id + 1;
+            var hasNext = nextId <= 10;
+            feedback.innerHTML = '<strong>🎉 回答正确！</strong><br>所有数字约束均满足。' +
+                (hasNext ? '<br><button id="architect-next-btn" class="primary-btn" style="margin-top:0.5rem;">下一关 →</button>' : '<br><em>全部关卡已完成！</em>');
+            if (typeof AudioManager !== 'undefined') AudioManager.playWin();
+
+            // 禁用提交按钮
+            var submitBtn = document.getElementById('architect-submit-btn');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '已完成'; }
+
+            // 绑定下一关按钮
+            if (hasNext) {
+                setTimeout(function() {
+                    var nextBtn = document.getElementById('architect-next-btn');
+                    if (nextBtn) {
+                        nextBtn.addEventListener('click', function() {
+                            if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                            startArchitectGame(nextId);
+                        });
+                    }
+                }, 0);
+            }
+        } else {
+            feedback.className = 'architect-feedback incorrect';
+            if (result.reason) {
+                feedback.innerHTML = '<strong>❌ 回答有误</strong><br>' + escapeHtml(result.reason);
+            } else if (typeof result.x === 'number') {
+                feedback.innerHTML = '<strong>❌ 数字不匹配</strong><br>位置 (' + result.x + ',' + result.y + ') 期望 ' + result.expected + ' 个雷，实际 ' + result.actual + ' 个。';
+            } else {
+                feedback.innerHTML = '<strong>❌ 回答有误</strong><br>请检查雷的分布。';
+            }
+            if (typeof AudioManager !== 'undefined') AudioManager.playLose();
         }
     }
 
