@@ -4785,7 +4785,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
     margin: 0;
     font-size: 0.85rem;
     color: var(--text-muted);
-    max-width: 100%;
+    width: 100%;
+    flex-basis: 100%;
 }
 
 .architect-mine-counter {
@@ -4893,6 +4894,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .architect-feedback.incorrect {
     background: rgba(239, 68, 68, 0.15);
     color: #ef4444;
+}
+
+.architect-next-btn {
+    margin-top: 0.5rem;
 }
 
 /* 移动端适配 */

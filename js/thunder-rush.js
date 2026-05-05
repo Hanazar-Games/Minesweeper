@@ -207,7 +207,7 @@ const ThunderRush = (function() {
 
         nextPuzzle();
 
-        if (typeof AudioManager !== 'undefined') AudioManager.playLevelUp();
+        if (typeof AudioManager !== 'undefined') AudioManager.playClick();
     }
 
     function nextPuzzle() {

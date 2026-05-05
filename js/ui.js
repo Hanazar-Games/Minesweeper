@@ -46,6 +46,7 @@ const UI = (function() {
             architectCurrentLevel = null;
             architectPlayerMines = [];
             architectGameCompleted = false;
+            architectStartTime = 0;
         }
 
         // 如果正在雷暴突袭游戏中，确认是否退出
@@ -3122,10 +3123,13 @@ const UI = (function() {
 
         document.getElementById('dojo-training-title').textContent = pattern.name;
         document.getElementById('dojo-training-counter').textContent = (dojoCurrentBoardIndex + 1) + ' / ' + pattern.trainingBoards.length;
-        document.getElementById('dojo-confirm-btn').classList.remove('hidden');
+        var confirmBtn = document.getElementById('dojo-confirm-btn');
+        if (confirmBtn) confirmBtn.classList.remove('hidden');
         var nextBtn = document.getElementById('dojo-next-btn');
-        nextBtn.classList.add('hidden');
-        nextBtn.textContent = '➡️ 下一题';
+        if (nextBtn) {
+            nextBtn.classList.add('hidden');
+            nextBtn.textContent = '➡️ 下一题';
+        }
         document.getElementById('dojo-feedback').classList.add('hidden');
         document.getElementById('dojo-feedback').innerHTML = '';
 
@@ -3217,17 +3221,21 @@ const UI = (function() {
         var timeMs = Date.now() - dojoTrainingStartTime;
 
         var feedbackEl = document.getElementById('dojo-feedback');
-        feedbackEl.classList.remove('hidden');
+        if (feedbackEl) feedbackEl.classList.remove('hidden');
 
         if (result.correct) {
             if (typeof AudioManager !== 'undefined') AudioManager.playWin();
-            feedbackEl.className = 'dojo-feedback correct';
-            feedbackEl.innerHTML = '<div class="dojo-feedback-icon">✅</div><div class="dojo-feedback-text">正确！' + escapeHtml(result.explanation || '') + '</div>';
+            if (feedbackEl) {
+                feedbackEl.className = 'dojo-feedback correct';
+                feedbackEl.innerHTML = '<div class="dojo-feedback-icon">✅</div><div class="dojo-feedback-text">正确！' + escapeHtml(result.explanation || '') + '</div>';
+            }
             PatternDojo.recordResult(dojoCurrentPattern, true, timeMs);
         } else {
             if (typeof AudioManager !== 'undefined') AudioManager.playLose();
-            feedbackEl.className = 'dojo-feedback wrong';
-            feedbackEl.innerHTML = '<div class="dojo-feedback-icon">❌</div><div class="dojo-feedback-text">' + escapeHtml(result.reason || '') + '</div>';
+            if (feedbackEl) {
+                feedbackEl.className = 'dojo-feedback wrong';
+                feedbackEl.innerHTML = '<div class="dojo-feedback-icon">❌</div><div class="dojo-feedback-text">' + escapeHtml(result.reason || '') + '</div>';
+            }
             PatternDojo.recordResult(dojoCurrentPattern, false, timeMs);
 
             // 高亮正确答案
@@ -3242,13 +3250,17 @@ const UI = (function() {
             }
         }
 
-        document.getElementById('dojo-confirm-btn').classList.add('hidden');
+        var confirmBtn = document.getElementById('dojo-confirm-btn');
+        if (confirmBtn) confirmBtn.classList.add('hidden');
+        var nextBtn = document.getElementById('dojo-next-btn');
         var pattern = PatternDojo.getPattern(dojoCurrentPattern);
-        if (pattern && dojoCurrentBoardIndex < pattern.trainingBoards.length - 1) {
-            document.getElementById('dojo-next-btn').classList.remove('hidden');
-        } else {
-            document.getElementById('dojo-next-btn').textContent = '🏠 返回图鉴';
-            document.getElementById('dojo-next-btn').classList.remove('hidden');
+        if (nextBtn) {
+            if (pattern && dojoCurrentBoardIndex < pattern.trainingBoards.length - 1) {
+                nextBtn.classList.remove('hidden');
+            } else {
+                nextBtn.textContent = '🏠 返回图鉴';
+                nextBtn.classList.remove('hidden');
+            }
         }
     }
 
@@ -3802,10 +3814,14 @@ const UI = (function() {
         if (gameBack) {
             gameBack.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                document.getElementById('architect-game').classList.add('hidden');
-                document.getElementById('architect-levels').classList.remove('hidden');
+                var gameEl = document.getElementById('architect-game');
+                var levelsEl = document.getElementById('architect-levels');
+                if (gameEl) gameEl.classList.add('hidden');
+                if (levelsEl) levelsEl.classList.remove('hidden');
                 architectCurrentLevel = null;
                 architectPlayerMines = [];
+                architectGameCompleted = false;
+                architectStartTime = 0;
             });
         }
 
@@ -3956,9 +3972,11 @@ const UI = (function() {
         var desc = document.getElementById('architect-game-desc');
         if (desc) desc.textContent = level.data.desc || '';
 
-        // 恢复提交按钮，移除禁用状态
+        // 恢复提交按钮和重置按钮，移除禁用状态
         var submitBtn = document.getElementById('architect-submit-btn');
         if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '提交答案'; }
+        var resetBtn = document.getElementById('architect-reset-btn');
+        if (resetBtn) { resetBtn.disabled = false; }
 
         updateArchitectMineCounter();
         renderArchitectBoard();
@@ -4050,12 +4068,14 @@ const UI = (function() {
             var nextId = architectCurrentLevel.data.id + 1;
             var hasNext = nextId <= 10;
             feedback.innerHTML = '<strong>🎉 回答正确！</strong><br>所有数字约束均满足。' +
-                (hasNext ? '<br><button id="architect-next-btn" class="primary-btn" style="margin-top:0.5rem;">下一关 →</button>' : '<br><em>全部关卡已完成！</em>');
+                (hasNext ? '<br><button id="architect-next-btn" class="primary-btn architect-next-btn">下一关 →</button>' : '<br><em>全部关卡已完成！</em>');
             if (typeof AudioManager !== 'undefined') AudioManager.playWin();
 
-            // 禁用提交按钮
+            // 禁用提交按钮和重置按钮
             var submitBtn = document.getElementById('architect-submit-btn');
             if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '已完成'; }
+            var resetBtn = document.getElementById('architect-reset-btn');
+            if (resetBtn) { resetBtn.disabled = true; }
 
             // 绑定下一关按钮
             if (hasNext) {
