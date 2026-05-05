@@ -173,13 +173,13 @@ const Museum = (function() {
     function checkUnlocks() {
         var stats = Stats.getAll();
         var newlyUnlocked = [];
-        var unlockedCount = unlocked.size;
 
         for (var i = 0; i < EXHIBITS.length; i++) {
             var ex = EXHIBITS[i];
             if (unlocked.has(ex.id)) continue;
             try {
-                if (ex.condition(stats, unlockedCount)) {
+                // 使用实时 unlocked.size，避免 legend 等依赖解锁数量的条件延迟触发
+                if (ex.condition(stats, unlocked.size)) {
                     unlocked.add(ex.id);
                     newlyUnlocked.push(ex);
                 }

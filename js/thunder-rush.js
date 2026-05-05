@@ -49,6 +49,7 @@ const ThunderRush = (function() {
     var puzzleStartTime = 0;
     var hitMineThisPuzzle = false;
     var hitCells = [];
+    var transitionTimeout = null;
 
     // 持久化统计
     var stats = {
@@ -203,11 +204,13 @@ const ThunderRush = (function() {
             clearInterval(timerInterval);
             timerInterval = null;
         }
+        if (transitionTimeout) {
+            clearTimeout(transitionTimeout);
+            transitionTimeout = null;
+        }
         timerInterval = setInterval(tick, 100);
 
         nextPuzzle();
-
-        if (typeof AudioManager !== 'undefined') AudioManager.playClick();
     }
 
     function nextPuzzle() {
@@ -215,6 +218,9 @@ const ThunderRush = (function() {
         firstClick = true;
         hitMineThisPuzzle = false;
         hitCells = [];
+        if (transitionTimeout) {
+            transitionTimeout = null;
+        }
         var level = getLevel(puzzleCount);
         currentBoard = {
             mines: [],
@@ -235,7 +241,10 @@ const ThunderRush = (function() {
     function handleCellClick(x, y, isRightClick) {
         if (gameState !== 'playing' || !currentBoard) return false;
 
-        // 已踩中的雷不可再次操作
+        // 已踩雷或正在过渡中不可操作
+        if (hitMineThisPuzzle) return false;
+
+        // 已踩中的雷格不可再次操作
         for (var i = 0; i < hitCells.length; i++) {
             if (hitCells[i].x === x && hitCells[i].y === y) return false;
         }
@@ -273,7 +282,8 @@ const ThunderRush = (function() {
                 endGame();
                 return true;
             }
-            setTimeout(function() {
+            transitionTimeout = setTimeout(function() {
+                transitionTimeout = null;
                 if (gameState === 'playing') nextPuzzle();
             }, 900);
             return true;
@@ -305,7 +315,8 @@ const ThunderRush = (function() {
             else AudioManager.playWin();
         }
 
-        setTimeout(function() {
+        transitionTimeout = setTimeout(function() {
+            transitionTimeout = null;
             if (gameState === 'playing') nextPuzzle();
         }, 1000);
     }
@@ -365,6 +376,10 @@ const ThunderRush = (function() {
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
+        }
+        if (transitionTimeout) {
+            clearTimeout(transitionTimeout);
+            transitionTimeout = null;
         }
         gameState = 'idle';
         currentBoard = null;

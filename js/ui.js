@@ -3803,6 +3803,12 @@ const UI = (function() {
             levelGrid.addEventListener('click', function(e) {
                 var card = e.target.closest('.architect-level-card');
                 if (!card) return;
+                if (card.classList.contains('locked')) {
+                    if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+                    card.style.animation = 'shake 0.3s ease';
+                    setTimeout(function() { card.style.animation = ''; }, 300);
+                    return;
+                }
                 var id = parseInt(card.dataset.id);
                 if (isNaN(id)) return;
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
@@ -3862,9 +3868,10 @@ const UI = (function() {
                 } else {
                     // 阻止过量放置
                     if (architectPlayerMines.length >= levelData.mineCount) {
-                        var counter = document.getElementById('architect-placed');
                         var counterWrap = document.querySelector('.architect-mine-counter');
                         if (counterWrap) {
+                            counterWrap.classList.remove('over-limit');
+                            void counterWrap.offsetWidth; // 强制重绘，确保动画重新触发
                             counterWrap.classList.add('over-limit');
                             setTimeout(function() { counterWrap.classList.remove('over-limit'); }, 400);
                         }
@@ -3989,7 +3996,6 @@ const UI = (function() {
         if (levelsEl) levelsEl.classList.add('hidden');
         if (gameEl) gameEl.classList.remove('hidden');
 
-        if (typeof AudioManager !== 'undefined') AudioManager.playClick();
     }
 
     function renderArchitectBoard() {
