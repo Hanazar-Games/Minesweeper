@@ -459,7 +459,8 @@ const Game = (function() {
         if (challengeMode === 'championship' && typeof Championship !== 'undefined') {
             Championship.onPhaseComplete(time, clicks, board.bv, efficiency);
             if (typeof AudioManager !== 'undefined') AudioManager.playWin();
-            document.dispatchEvent(new CustomEvent('championshipAdvance'));
+            Replay.stop();
+            recordBattleLog(true, efficiency);
             return;
         }
         
@@ -637,6 +638,8 @@ const Game = (function() {
         if (challengeMode === 'championship' && typeof Championship !== 'undefined') {
             Championship.onPhaseFail(time, clicks, board.bv, efficiency);
             if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+            Replay.stop();
+            recordBattleLog(false, efficiency);
             return;
         }
 

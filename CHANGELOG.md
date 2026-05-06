@@ -1,5 +1,22 @@
 # 超级扫雷 - 更新日志
 
+## v1.10.1 (2026-04-29)
+
+### Bug 修复（v1.10.0 锦标赛深度审查）
+- **showScreen 退出确认错误触发**：`Game.gameState='won'` 会在阶段完成/过渡/胜利时错误触发确认框。改为检查 `Championship.state === 'playing'`，只拦截真正的中途退出
+- **暂停菜单重新开始破坏公平性**：锦标赛阶段中点击"重新开始"仅重置 `Game` 状态，锦标赛计时器继续运行。改为弹出确认并从头开始整个锦标赛
+- **Championship.stop() 未完全清理**：遗漏 `phaseTimes`/`totalTime`/`startTime`，导致脏数据残留。已补全
+- **锦标赛路径遗漏 Replay/BattleLog**：`win()`/`lose()` 提前 `return` 跳过了 `Replay.stop()` 和 `recordBattleLog()`。已在锦标赛分支中补全
+- **HTML 星级规则 emoji 颠倒**：`⭐ ≤8分钟:3星` 等 emoji 数量与星级数相反，已修正
+- **HTML 总用时重复"秒"字**：`formatChampTime()` 返回值已含"秒"，与硬编码"秒"叠加显示为"5秒秒"。已移除硬编码
+- **CSS `--success` 未定义**：`.phase-complete-content h3` 使用未定义变量。改为 `var(--secondary)`
+- **CSS `.rule-item` 样式缺失**：HTML 中使用的类无对应样式。已补充基础 padding
+- **onPhaseFail 允许 phase-transition 状态**：`phase-transition` 下不可能触发失败，但防御性代码开了不该开的门。改为仅允许 `playing`
+- **currentPhaseIdx 初始值语义误导**：初始 `0` 使 `getState()` 在 idle 时返回"初级"为当前阶段。改为 `-1` 并添加状态检查
+- **championshipAdvance 死事件**：`game.js` 中 dispatch 无人监听的事件。已移除
+- **renderChampionshipStart 可能覆盖进行中画面**：`showScreen` 调用时会执行 `renderChampionshipStart()`，可能覆盖阶段介绍/完成画面。添加 `state !== 'idle'` 守卫
+- **phaseStartBtn 内部缺少 null 检查**：`getElementById('championship-phase-intro')` 未做空保护。已补全
+
 ## v1.10.0 (2026-04-29)
 
 ### 新功能

@@ -18,7 +18,7 @@ const Championship = (function() {
 
     // ============ 状态 ============
     var state = 'idle'; // idle, playing, phase-transition, ended, victory
-    var currentPhaseIdx = 0;
+    var currentPhaseIdx = -1;
     var phaseTimes = []; // 每个阶段的用时（秒）
     var totalTime = 0;   // 总用时（秒）
     var startTime = 0;
@@ -118,7 +118,7 @@ const Championship = (function() {
     }
 
     function onPhaseFail(phaseTime, clicks, bv, efficiency) {
-        if (state !== 'playing' && state !== 'phase-transition') return;
+        if (state !== 'playing') return;
         state = 'ended';
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 
@@ -180,7 +180,10 @@ const Championship = (function() {
     function stop() {
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
         state = 'idle';
-        currentPhaseIdx = 0;
+        currentPhaseIdx = -1;
+        phaseTimes = [];
+        totalTime = 0;
+        startTime = 0;
     }
 
     // ============ 公开 API ============
@@ -204,7 +207,7 @@ const Championship = (function() {
                 totalTime: totalTime,
                 bestTime: bestTime,
                 bestStars: bestStars,
-                currentPhase: PHASES[currentPhaseIdx] || null,
+                currentPhase: (state !== 'idle' && PHASES[currentPhaseIdx]) ? PHASES[currentPhaseIdx] : null,
                 phases: PHASES.map(function(p) { return { id: p.id, name: p.name, desc: p.desc }; })
             };
         },

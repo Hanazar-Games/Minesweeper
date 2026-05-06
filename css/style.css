@@ -4968,6 +4968,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
     color: var(--text-secondary);
 }
 
+.rule-item {
+    padding: 0.3rem 0;
+}
+
 .championship-best {
     font-size: 1rem;
     color: var(--warning);
@@ -5030,7 +5034,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .phase-complete-content h3 {
     margin: 0 0 1rem 0;
-    color: var(--success);
+    color: var(--secondary);
 }
 
 .phase-complete-content p {

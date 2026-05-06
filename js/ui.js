@@ -71,10 +71,10 @@ const UI = (function() {
             }
         }
 
-        // 如果正在锦标赛游戏中（使用 game-screen），确认是否退出
-        if (typeof Game !== 'undefined') {
-            var gs = Game.getState();
-            if (gs.challengeMode === 'championship' && (gs.gameState === 'playing' || gs.gameState === 'won')) {
+        // 如果正在锦标赛游戏中，确认是否退出
+        if (typeof Championship !== 'undefined') {
+            var champState = Championship.getState();
+            if (champState.state === 'playing') {
                 if (!confirm('扫雷锦标赛正在进行中，退出将丢失当前进度，确定要退出吗？')) return;
                 Championship.stop();
             }
@@ -606,6 +606,13 @@ const UI = (function() {
             if (typeof AudioManager !== "undefined") AudioManager.playClick();
             document.getElementById('pause-overlay').classList.add('hidden');
             const state = Game.getState();
+            if (state.challengeMode === 'championship' && typeof Championship !== 'undefined') {
+                if (confirm('锦标赛不允许重新开始当前阶段。这将放弃当前进度并从头开始，确定吗？')) {
+                    Championship.stop();
+                    Championship.start();
+                }
+                return;
+            }
             Game.start(state.difficulty, null, state.challengeMode, state.seed);
         });
 
@@ -4152,10 +4159,12 @@ const UI = (function() {
         if (phaseStartBtn) {
             phaseStartBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                if (typeof Championship === 'undefined') return;
                 var state = Championship.getState();
                 var phase = state.currentPhase;
                 if (!phase) return;
-                document.getElementById('championship-phase-intro').classList.add('hidden');
+                var introEl = document.getElementById('championship-phase-intro');
+                if (introEl) introEl.classList.add('hidden');
                 Game.start(phase.id, null, 'championship');
                 showScreen('game-screen');
             });
@@ -4225,6 +4234,11 @@ const UI = (function() {
     }
 
     function renderChampionshipStart() {
+        if (typeof Championship === 'undefined') return;
+        // 如果锦标赛正在进行中（非 idle），不渲染开始界面，避免覆盖阶段介绍/完成/结束画面
+        var cs = Championship.getState();
+        if (cs.state !== 'idle') return;
+
         var startEl = document.getElementById('championship-start');
         var introEl = document.getElementById('championship-phase-intro');
         var completeEl = document.getElementById('championship-phase-complete');
@@ -4238,9 +4252,8 @@ const UI = (function() {
 
         var bestDisplay = document.getElementById('championship-best-display');
         if (bestDisplay) {
-            var state = Championship.getState();
-            if (state.bestTime !== null) {
-                bestDisplay.textContent = '最佳记录：' + formatChampTime(state.bestTime) + ' · ' + '⭐'.repeat(state.bestStars);
+            if (cs.bestTime !== null) {
+                bestDisplay.textContent = '最佳记录：' + formatChampTime(cs.bestTime) + ' · ' + '⭐'.repeat(cs.bestStars);
             } else {
                 bestDisplay.textContent = '最佳记录：无';
             }
