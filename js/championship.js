@@ -31,7 +31,7 @@ const Championship = (function() {
     function load() {
         var saved = Storage.get('championship_records');
         if (saved && typeof saved === 'object') {
-            if (typeof saved.bestTime === 'number') bestTime = saved.bestTime;
+            if (typeof saved.bestTime === 'number' || saved.bestTime === null) bestTime = saved.bestTime;
             if (typeof saved.bestStars === 'number') bestStars = saved.bestStars;
         }
     }
@@ -53,6 +53,9 @@ const Championship = (function() {
     }
 
     function start() {
+        if (state !== 'idle') {
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        }
         state = 'playing';
         currentPhaseIdx = 0;
         phaseTimes = [];
@@ -184,6 +187,15 @@ const Championship = (function() {
         phaseTimes = [];
         totalTime = 0;
         startTime = 0;
+        // 重置 Game 模块的 challengeMode，防止状态残留
+        if (typeof Game !== 'undefined' && Game.getState) {
+            try {
+                var gs = Game.getState();
+                if (gs.challengeMode === 'championship') {
+                    Game.clearSaved();
+                }
+            } catch (e) {}
+        }
     }
 
     // ============ 公开 API ============

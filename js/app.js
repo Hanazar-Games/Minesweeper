@@ -111,6 +111,8 @@
             if (typeof Game !== 'undefined') {
                 var state = Game.getState();
                 if (state && (state.gameState === 'playing' || state.gameState === 'paused')) {
+                    // 锦标赛模式不保存（锦标赛状态无法持久化恢复）
+                    if (state.challengeMode === 'championship') return;
                     Game.save();
                 }
             }

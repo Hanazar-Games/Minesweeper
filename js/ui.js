@@ -71,10 +71,10 @@ const UI = (function() {
             }
         }
 
-        // 如果正在锦标赛游戏中，确认是否退出
-        if (typeof Championship !== 'undefined') {
+        // 如果正在锦标赛游戏中，确认是否退出（切换到 championship-screen 本身不算退出）
+        if (name !== 'championship-screen' && typeof Championship !== 'undefined') {
             var champState = Championship.getState();
-            if (champState.state === 'playing') {
+            if (champState.state === 'playing' || champState.state === 'phase-transition') {
                 if (!confirm('扫雷锦标赛正在进行中，退出将丢失当前进度，确定要退出吗？')) return;
                 Championship.stop();
             }
@@ -604,15 +604,16 @@ const UI = (function() {
 
         document.getElementById('restart-pause-btn').addEventListener('click', () => {
             if (typeof AudioManager !== "undefined") AudioManager.playClick();
-            document.getElementById('pause-overlay').classList.add('hidden');
             const state = Game.getState();
             if (state.challengeMode === 'championship' && typeof Championship !== 'undefined') {
                 if (confirm('锦标赛不允许重新开始当前阶段。这将放弃当前进度并从头开始，确定吗？')) {
                     Championship.stop();
+                    document.getElementById('pause-overlay').classList.add('hidden');
                     Championship.start();
                 }
                 return;
             }
+            document.getElementById('pause-overlay').classList.add('hidden');
             Game.start(state.difficulty, null, state.challengeMode, state.seed);
         });
 
@@ -4119,15 +4120,15 @@ const UI = (function() {
             var resetBtn = document.getElementById('architect-reset-btn');
             if (resetBtn) { resetBtn.disabled = true; }
 
-            // 绑定下一关按钮
+            // 绑定下一关按钮（使用 onclick 避免重复 addEventListener 累积）
             if (hasNext) {
                 setTimeout(function() {
                     var nextBtn = document.getElementById('architect-next-btn');
                     if (nextBtn) {
-                        nextBtn.addEventListener('click', function() {
+                        nextBtn.onclick = function() {
                             if (typeof AudioManager !== 'undefined') AudioManager.playClick();
                             startArchitectGame(nextId);
-                        });
+                        };
                     }
                 }, 0);
             }
@@ -4190,6 +4191,7 @@ const UI = (function() {
         if (menuBtn) {
             menuBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                if (typeof Championship !== 'undefined') Championship.stop();
                 showScreen('main-menu');
             });
         }
@@ -4206,6 +4208,7 @@ const UI = (function() {
         if (victoryMenu) {
             victoryMenu.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                if (typeof Championship !== 'undefined') Championship.stop();
                 showScreen('main-menu');
             });
         }

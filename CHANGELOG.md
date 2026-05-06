@@ -1,5 +1,18 @@
 # 超级扫雷 - 更新日志
 
+## v1.10.2 (2026-04-29)
+
+### Bug 修复（第六轮深度审查：状态残留/竞态/UI）
+- **showScreen 锦标赛退出确认在内部流程触发**：`Championship.state='playing'` 会在阶段介绍/过渡时错误触发确认框。添加 `name !== 'championship-screen'` 和 `phase-transition` 状态检查
+- **锦标赛结束后返回主菜单状态未重置**：结束/胜利返回按钮未调用 `Championship.stop()`，下次进入显示残留画面。已补全
+- **Game.challengeMode 残留**：`Championship.stop()` 未清理 `Game` 模块状态。添加 `Game.clearSaved()` 调用
+- **锦标赛游戏被错误保存**：`beforeunload` 会保存锦标赛进度，但锦标赛状态无法恢复。添加锦标赛模式跳过保存
+- **布雷大师 nextBtn 重复绑定**：每次提交正确都 `addEventListener` 新监听器，导致内存泄漏。改为 `onclick`
+- **暂停 Overlay 重新开始取消后 UI 异常**：先隐藏 overlay 再弹确认，取消后 overlay 已消失但游戏仍暂停。改为先确认再隐藏
+- **Championship.start() 缺少状态保护**：快速双击导致重复调用。添加 `if (state !== 'idle')` 清理
+- **.phase-intro-badge 硬编码白色**：`color: white` 破坏主题一致性。改为 `var(--bg)`
+- **load() 忽略 null bestTime**：`reset()` 后 `bestTime=null`，`typeof null==='object'` 使条件失败。添加 `=== null` 检查
+
 ## v1.10.1 (2026-04-29)
 
 ### Bug 修复（v1.10.0 锦标赛深度审查）
