@@ -454,6 +454,14 @@ const Game = (function() {
         board.revealAll();
         
         const efficiency = clicks > 0 ? Math.round((board.bv / clicks) * 100) : 0;
+
+        // 锦标赛模式：阶段完成
+        if (challengeMode === 'championship' && typeof Championship !== 'undefined') {
+            Championship.onPhaseComplete(time, clicks, board.bv, efficiency);
+            if (typeof AudioManager !== 'undefined') AudioManager.playWin();
+            document.dispatchEvent(new CustomEvent('championshipAdvance'));
+            return;
+        }
         
         // 无尽模式：跳过普通统计和排行榜，直接处理进阶
         if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
@@ -624,6 +632,13 @@ const Game = (function() {
         board.revealAll();
 
         const efficiency = clicks > 0 ? Math.round((board.bv / clicks) * 100) : 0;
+
+        // 锦标赛模式：阶段失败
+        if (challengeMode === 'championship' && typeof Championship !== 'undefined') {
+            Championship.onPhaseFail(time, clicks, board.bv, efficiency);
+            if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+            return;
+        }
 
         // 限时模式超时音效
         if (challengeData.timeLimit && time >= challengeData.timeLimit) {

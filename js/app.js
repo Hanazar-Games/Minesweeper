@@ -67,6 +67,11 @@
                 Achievements.load();
             }
 
+            console.log('[Boot] Initializing championship...');
+            if (typeof Championship !== 'undefined' && Championship.init) {
+                Championship.init();
+            }
+
             console.log('[Boot] Initializing UI...');
             if (typeof UI !== 'undefined' && UI.init) {
                 UI.init();

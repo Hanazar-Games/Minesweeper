@@ -106,6 +106,17 @@ const Museum = (function() {
             }
         },
         {
+            id: 'championship_victor',
+            name: '锦标赛的荣光',
+            icon: '🏆',
+            desc: '在扫雷锦标赛中完成全部四个阶段的挑战。从初级的轻松热身到大师的终极考验，你已经征服了扫雷宇宙的每一座山峰。',
+            condition: function() {
+                if (typeof Championship === 'undefined') return false;
+                var cs = Championship.getState();
+                return cs.bestTime !== null;
+            }
+        },
+        {
             id: 'hundred_games',
             name: '百战老兵',
             icon: '💯',

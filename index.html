@@ -128,6 +128,10 @@
                         <span class="btn-icon">🏗️</span>
                         <span class="btn-text">布雷大师</span>
                     </button>
+                    <button class="menu-btn" data-action="championship">
+                        <span class="btn-icon">🏆</span>
+                        <span class="btn-text">扫雷锦标赛</span>
+                    </button>
                     <button class="menu-btn" data-action="achievements">
                         <span class="btn-icon">🏆</span>
                         <span class="btn-text">成就</span>
@@ -1375,6 +1379,76 @@
             </div>
         </div>
 
+        <!-- 扫雷锦标赛 -->
+        <div id="championship-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>🏆 扫雷锦标赛</h2>
+            </div>
+            <div class="championship-container">
+                <!-- 开始界面 -->
+                <div id="championship-start">
+                    <p class="championship-intro">依次挑战初级→中级→高级→大师四个难度，中途不可失败。挑战你的极限速度！</p>
+                    <div class="championship-phases-preview">
+                        <div class="champ-phase-item"><span class="champ-phase-icon">🥉</span><span>初级 · 9×9 · 10雷</span></div>
+                        <div class="champ-phase-item"><span class="champ-phase-icon">🥈</span><span>中级 · 16×16 · 40雷</span></div>
+                        <div class="champ-phase-item"><span class="champ-phase-icon">🥇</span><span>高级 · 30×16 · 99雷</span></div>
+                        <div class="champ-phase-item"><span class="champ-phase-icon">💎</span><span>大师 · 30×20 · 180雷</span></div>
+                    </div>
+                    <div class="championship-rules">
+                        <div class="rule-item">⭐ ≤8分钟完成：3星</div>
+                        <div class="rule-item">⭐⭐ ≤15分钟完成：2星</div>
+                        <div class="rule-item">⭐⭐⭐ 完成即可：1星</div>
+                    </div>
+                    <div class="championship-best" id="championship-best-display">最佳记录：无</div>
+                    <button id="championship-start-btn" class="primary-btn championship-start-btn">开始挑战</button>
+                </div>
+                <!-- 阶段介绍 -->
+                <div id="championship-phase-intro" class="hidden">
+                    <div class="phase-intro-content">
+                        <div class="phase-intro-badge" id="phase-intro-badge">阶段 1</div>
+                        <h3 id="phase-intro-name">初级</h3>
+                        <p id="phase-intro-desc">9×9 · 10雷 — 热身阶段</p>
+                        <div class="phase-intro-total">当前总用时：<span id="phase-intro-total">0</span>秒</div>
+                        <button id="phase-intro-start-btn" class="primary-btn">开始</button>
+                    </div>
+                </div>
+                <!-- 阶段完成 -->
+                <div id="championship-phase-complete" class="hidden">
+                    <div class="phase-complete-content">
+                        <h3>🎉 阶段完成！</h3>
+                        <p id="phase-complete-time">用时：45秒</p>
+                        <p id="phase-complete-total">总用时：1分30秒</p>
+                        <button id="phase-next-btn" class="primary-btn">下一阶段 →</button>
+                    </div>
+                </div>
+                <!-- 锦标赛结束 -->
+                <div id="championship-end" class="hidden">
+                    <div class="championship-end-content">
+                        <h3 id="championship-end-title">挑战失败</h3>
+                        <p id="championship-end-detail">倒在了高级阶段</p>
+                        <p id="championship-end-total">总用时：3分20秒</p>
+                        <button id="championship-retry-btn" class="primary-btn">重新挑战</button>
+                        <button id="championship-menu-btn" class="secondary-btn">返回主菜单</button>
+                    </div>
+                </div>
+                <!-- 锦标赛胜利 -->
+                <div id="championship-victory" class="hidden">
+                    <div class="championship-victory-content">
+                        <h3>🏆 锦标赛通关！</h3>
+                        <div id="championship-victory-stars" class="victory-stars"></div>
+                        <p id="championship-victory-total">总用时：5分30秒</p>
+                        <div id="championship-victory-phases" class="victory-phases"></div>
+                        <p id="championship-victory-record" class="hidden">🎉 新记录！</p>
+                        <div class="championship-victory-actions">
+                            <button id="championship-victory-retry" class="primary-btn">再次挑战</button>
+                            <button id="championship-victory-menu" class="secondary-btn">返回主菜单</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 布雷大师 -->
         <div id="architect-screen" class="screen hidden">
             <div class="screen-header">
@@ -1551,6 +1625,7 @@
     <script src="js/replay.js"></script>
     <script src="js/achievements.js"></script>
     <script src="js/museum.js"></script>
+    <script src="js/championship.js"></script>
     <script src="js/mine-architect.js"></script>
     <script src="js/tutorial.js"></script>
     <script src="js/app.js"></script>

@@ -35,6 +35,7 @@ const UI = (function() {
         bindThunderRushEvents();
         bindMuseumEvents();
         bindArchitectEvents();
+        bindChampionshipEvents();
         updateContinueButton();
         updateAchievementBadge();
         updateQuestBadge();
@@ -70,6 +71,15 @@ const UI = (function() {
             }
         }
 
+        // 如果正在锦标赛游戏中（使用 game-screen），确认是否退出
+        if (typeof Game !== 'undefined') {
+            var gs = Game.getState();
+            if (gs.challengeMode === 'championship' && (gs.gameState === 'playing' || gs.gameState === 'won')) {
+                if (!confirm('扫雷锦标赛正在进行中，退出将丢失当前进度，确定要退出吗？')) return;
+                Championship.stop();
+            }
+        }
+
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById(name).classList.remove('hidden');
         currentScreen = name.replace('-screen', '');
@@ -93,6 +103,8 @@ const UI = (function() {
             showThunderRushStart();
         } else if (name === 'museum-screen') {
             renderMuseum();
+        } else if (name === 'championship-screen') {
+            renderChampionshipStart();
         } else if (name === 'architect-screen') {
             renderArchitectLevels();
         } else if (name === 'game-screen') {
@@ -156,6 +168,9 @@ const UI = (function() {
                         break;
                     case 'architect':
                         showScreen('architect-screen');
+                        break;
+                    case 'championship':
+                        showScreen('championship-screen');
                         break;
                     case 'campaign':
                         showScreen('campaign-screen');
@@ -4120,6 +4135,230 @@ const UI = (function() {
             }
             if (typeof AudioManager !== 'undefined') AudioManager.playLose();
         }
+    }
+
+    // ============ 扫雷锦标赛 (Championship) ============
+
+    function bindChampionshipEvents() {
+        var startBtn = document.getElementById('championship-start-btn');
+        if (startBtn) {
+            startBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                Championship.start();
+            });
+        }
+
+        var phaseStartBtn = document.getElementById('phase-intro-start-btn');
+        if (phaseStartBtn) {
+            phaseStartBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                var state = Championship.getState();
+                var phase = state.currentPhase;
+                if (!phase) return;
+                document.getElementById('championship-phase-intro').classList.add('hidden');
+                Game.start(phase.id, null, 'championship');
+                showScreen('game-screen');
+            });
+        }
+
+        var nextBtn = document.getElementById('phase-next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                Championship.advanceToNextPhase();
+            });
+        }
+
+        var retryBtn = document.getElementById('championship-retry-btn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                Championship.start();
+            });
+        }
+
+        var menuBtn = document.getElementById('championship-menu-btn');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                showScreen('main-menu');
+            });
+        }
+
+        var victoryRetry = document.getElementById('championship-victory-retry');
+        if (victoryRetry) {
+            victoryRetry.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                Championship.start();
+            });
+        }
+
+        var victoryMenu = document.getElementById('championship-victory-menu');
+        if (victoryMenu) {
+            victoryMenu.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                showScreen('main-menu');
+            });
+        }
+
+        // 监听锦标赛事件
+        document.addEventListener('championshipPhaseStart', function(e) {
+            var d = e.detail;
+            showScreen('championship-screen');
+            showChampionshipPhaseIntro(d.phase, d.totalTime);
+        });
+
+        document.addEventListener('championshipPhaseComplete', function(e) {
+            var d = e.detail;
+            showChampionshipPhaseComplete(d);
+        });
+
+        document.addEventListener('championshipEnd', function(e) {
+            var d = e.detail;
+            showChampionshipEnd(d);
+        });
+
+        document.addEventListener('championshipVictory', function(e) {
+            var d = e.detail;
+            showChampionshipVictory(d);
+        });
+    }
+
+    function renderChampionshipStart() {
+        var startEl = document.getElementById('championship-start');
+        var introEl = document.getElementById('championship-phase-intro');
+        var completeEl = document.getElementById('championship-phase-complete');
+        var endEl = document.getElementById('championship-end');
+        var victoryEl = document.getElementById('championship-victory');
+        if (startEl) startEl.classList.remove('hidden');
+        if (introEl) introEl.classList.add('hidden');
+        if (completeEl) completeEl.classList.add('hidden');
+        if (endEl) endEl.classList.add('hidden');
+        if (victoryEl) victoryEl.classList.add('hidden');
+
+        var bestDisplay = document.getElementById('championship-best-display');
+        if (bestDisplay) {
+            var state = Championship.getState();
+            if (state.bestTime !== null) {
+                bestDisplay.textContent = '最佳记录：' + formatChampTime(state.bestTime) + ' · ' + '⭐'.repeat(state.bestStars);
+            } else {
+                bestDisplay.textContent = '最佳记录：无';
+            }
+        }
+    }
+
+    function showChampionshipPhaseIntro(phase, totalTime) {
+        var startEl = document.getElementById('championship-start');
+        var introEl = document.getElementById('championship-phase-intro');
+        var completeEl = document.getElementById('championship-phase-complete');
+        var endEl = document.getElementById('championship-end');
+        var victoryEl = document.getElementById('championship-victory');
+        if (startEl) startEl.classList.add('hidden');
+        if (introEl) introEl.classList.remove('hidden');
+        if (completeEl) completeEl.classList.add('hidden');
+        if (endEl) endEl.classList.add('hidden');
+        if (victoryEl) victoryEl.classList.add('hidden');
+
+        var badge = document.getElementById('phase-intro-badge');
+        var nameEl = document.getElementById('phase-intro-name');
+        var descEl = document.getElementById('phase-intro-desc');
+        var totalEl = document.getElementById('phase-intro-total');
+
+        if (badge) badge.textContent = '阶段 ' + (phase.id === 'beginner' ? 1 : phase.id === 'intermediate' ? 2 : phase.id === 'expert' ? 3 : 4);
+        if (nameEl) nameEl.textContent = phase.name;
+        if (descEl) descEl.textContent = phase.desc;
+        if (totalEl) totalEl.textContent = formatChampTime(totalTime);
+    }
+
+    function showChampionshipPhaseComplete(detail) {
+        showScreen('championship-screen');
+        var startEl = document.getElementById('championship-start');
+        var introEl = document.getElementById('championship-phase-intro');
+        var completeEl = document.getElementById('championship-phase-complete');
+        var endEl = document.getElementById('championship-end');
+        var victoryEl = document.getElementById('championship-victory');
+        if (startEl) startEl.classList.add('hidden');
+        if (introEl) introEl.classList.add('hidden');
+        if (completeEl) completeEl.classList.remove('hidden');
+        if (endEl) endEl.classList.add('hidden');
+        if (victoryEl) victoryEl.classList.add('hidden');
+
+        var timeEl = document.getElementById('phase-complete-time');
+        var totalEl = document.getElementById('phase-complete-total');
+        var nextBtn = document.getElementById('phase-next-btn');
+
+        if (timeEl) timeEl.textContent = detail.phase.name + ' 用时：' + formatChampTime(detail.phaseTime);
+        if (totalEl) totalEl.textContent = '总用时：' + formatChampTime(detail.totalTime);
+        if (nextBtn) {
+            nextBtn.textContent = detail.nextPhase ? '下一阶段：' + detail.nextPhase.name + ' →' : '完成';
+        }
+    }
+
+    function showChampionshipEnd(detail) {
+        showScreen('championship-screen');
+        var startEl = document.getElementById('championship-start');
+        var introEl = document.getElementById('championship-phase-intro');
+        var completeEl = document.getElementById('championship-phase-complete');
+        var endEl = document.getElementById('championship-end');
+        var victoryEl = document.getElementById('championship-victory');
+        if (startEl) startEl.classList.add('hidden');
+        if (introEl) introEl.classList.add('hidden');
+        if (completeEl) completeEl.classList.add('hidden');
+        if (endEl) endEl.classList.remove('hidden');
+        if (victoryEl) victoryEl.classList.add('hidden');
+
+        var titleEl = document.getElementById('championship-end-title');
+        var detailEl = document.getElementById('championship-end-detail');
+        var totalEl = document.getElementById('championship-end-total');
+
+        if (titleEl) titleEl.textContent = '💥 挑战失败';
+        if (detailEl) detailEl.textContent = '倒在了' + detail.phaseName + '阶段';
+        if (totalEl) totalEl.textContent = '总用时：' + formatChampTime(detail.totalTime);
+    }
+
+    function showChampionshipVictory(detail) {
+        showScreen('championship-screen');
+        var startEl = document.getElementById('championship-start');
+        var introEl = document.getElementById('championship-phase-intro');
+        var completeEl = document.getElementById('championship-phase-complete');
+        var endEl = document.getElementById('championship-end');
+        var victoryEl = document.getElementById('championship-victory');
+        if (startEl) startEl.classList.add('hidden');
+        if (introEl) introEl.classList.add('hidden');
+        if (completeEl) completeEl.classList.add('hidden');
+        if (endEl) endEl.classList.add('hidden');
+        if (victoryEl) victoryEl.classList.remove('hidden');
+
+        var starsEl = document.getElementById('championship-victory-stars');
+        var totalEl = document.getElementById('championship-victory-total');
+        var phasesEl = document.getElementById('championship-victory-phases');
+        var recordEl = document.getElementById('championship-victory-record');
+
+        if (starsEl) starsEl.textContent = '⭐'.repeat(detail.stars);
+        if (totalEl) totalEl.textContent = '总用时：' + formatChampTime(detail.totalTime);
+        if (recordEl) recordEl.classList.toggle('hidden', !detail.isNewRecord);
+
+        if (phasesEl) {
+            phasesEl.innerHTML = '';
+            var phases = Championship.getState().phases;
+            for (var i = 0; i < phases.length; i++) {
+                var row = document.createElement('div');
+                row.className = 'victory-phase-row';
+                var t = detail.phaseTimes[i];
+                row.textContent = phases[i].name + '：' + (typeof t === 'number' ? formatChampTime(t) : '—');
+                phasesEl.appendChild(row);
+            }
+        }
+    }
+
+    function formatChampTime(totalSeconds) {
+        if (typeof totalSeconds !== 'number' || totalSeconds < 0) return '0秒';
+        var m = Math.floor(totalSeconds / 60);
+        var s = totalSeconds % 60;
+        if (m > 0) {
+            return m + '分' + (s < 10 ? '0' : '') + s + '秒';
+        }
+        return s + '秒';
     }
 
     return {

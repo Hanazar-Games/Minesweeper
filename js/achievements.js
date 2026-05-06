@@ -99,6 +99,11 @@ const Achievements = (function() {
         { id: 'architect_10', name: '大师建筑师', desc: '完成布雷大师全部10关', icon: '👷', category: 'skill', condition: (s, g) => g && g.architect && g.levelId >= 10 },
         { id: 'architect_perfect', name: '完美建筑师', desc: '布雷大师获得全部30颗星', icon: '⭐', category: 'skill', condition: (s) => typeof MineArchitect !== 'undefined' && MineArchitect.getLevels().reduce(function(sum, lvl) { return sum + (lvl.stars || 0); }, 0) >= 30 },
 
+        // 扫雷锦标赛
+        { id: 'championship_first', name: '锦标赛新秀', desc: '首次参加扫雷锦标赛', icon: '🏅', category: 'skill', condition: (s, g) => g && g.championshipPhase === true },
+        { id: 'championship_victory', name: '锦标赛冠军', desc: '完成扫雷锦标赛全部4个阶段', icon: '🏆', category: 'skill', condition: (s, g) => g && g.championshipVictory === true },
+        { id: 'championship_speed', name: '闪电锦标赛', desc: '8分钟内完成扫雷锦标赛', icon: '⚡', category: 'skill', condition: (s, g) => g && g.championshipVictory === true && g.totalTime <= 480 },
+
         // 特殊
         { id: 'custom_max', name: '极限挑战', desc: '在50x30的自定义地图上获胜', icon: '🗺️', category: 'special', condition: (s, g) => g.won && g.customSize && g.width >= 50 && g.height >= 30 },
         { id: 'night_owl', name: '夜猫子', desc: '在凌晨0-5点完成一局', icon: '🌙', category: 'special', condition: (s, g) => { const h = new Date().getHours(); return g.won && h >= 0 && h < 5; } },
