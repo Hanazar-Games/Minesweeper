@@ -41,8 +41,11 @@ const UI = (function() {
     }
 
     function showScreen(name) {
-        // 离开布雷大师时清理状态
+        // 离开布雷大师时确认并清理状态
         if (currentScreen === 'architect' && name !== 'architect-screen') {
+            if (architectCurrentLevel && !architectGameCompleted) {
+                if (!confirm('布雷大师当前关卡正在进行中，确定要退出吗？')) return;
+            }
             architectCurrentLevel = null;
             architectPlayerMines = [];
             architectGameCompleted = false;
@@ -3805,6 +3808,8 @@ const UI = (function() {
                 if (!card) return;
                 if (card.classList.contains('locked')) {
                     if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+                    card.style.animation = '';
+                    void card.offsetWidth;
                     card.style.animation = 'shake 0.3s ease';
                     setTimeout(function() { card.style.animation = ''; }, 300);
                     return;
@@ -3828,14 +3833,13 @@ const UI = (function() {
                 architectPlayerMines = [];
                 architectGameCompleted = false;
                 architectStartTime = 0;
+                renderArchitectLevels();
             });
         }
 
         var boardEl = document.getElementById('architect-board');
         if (boardEl) {
-            boardEl.addEventListener('click', function(e) {
-                var cell = e.target.closest('.architect-cell');
-                if (!cell) return;
+            function architectToggleMine(cell) {
                 var x = parseInt(cell.dataset.x);
                 var y = parseInt(cell.dataset.y);
                 if (isNaN(x) || isNaN(y)) return;
@@ -3887,6 +3891,19 @@ const UI = (function() {
                 // 隐藏之前的反馈
                 var feedback = document.getElementById('architect-feedback');
                 if (feedback) feedback.classList.add('hidden');
+            }
+
+            boardEl.addEventListener('click', function(e) {
+                var cell = e.target.closest('.architect-cell');
+                if (!cell) return;
+                architectToggleMine(cell);
+            });
+
+            boardEl.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                var cell = e.target.closest('.architect-cell');
+                if (!cell) return;
+                architectToggleMine(cell);
             });
         }
 
@@ -3910,9 +3927,6 @@ const UI = (function() {
                 var timeMs = Date.now() - architectStartTime;
                 var result = MineArchitect.submitAnswer(architectCurrentLevel.data.id, architectPlayerMines, timeMs);
                 showArchitectFeedback(result);
-                if (result.correct) {
-                    renderArchitectLevels();
-                }
             });
         }
     }

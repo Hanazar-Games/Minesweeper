@@ -219,6 +219,7 @@ const ThunderRush = (function() {
         hitMineThisPuzzle = false;
         hitCells = [];
         if (transitionTimeout) {
+            clearTimeout(transitionTimeout);
             transitionTimeout = null;
         }
         var level = getLevel(puzzleCount);
@@ -336,6 +337,10 @@ const ThunderRush = (function() {
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
+        }
+        if (transitionTimeout) {
+            clearTimeout(transitionTimeout);
+            transitionTimeout = null;
         }
 
         stats.totalGames++;

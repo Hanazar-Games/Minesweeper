@@ -85,7 +85,7 @@ const Museum = (function() {
                 if (typeof PatternDojo === 'undefined') return false;
                 var progress = PatternDojo.getProgress();
                 var patterns = PatternDojo.getPatterns();
-                if (!patterns) return false;
+                if (!patterns || !progress) return false;
                 var completed = 0;
                 for (var i = 0; i < patterns.length; i++) {
                     var p = progress[patterns[i].id];
@@ -102,7 +102,7 @@ const Museum = (function() {
             condition: function() {
                 if (typeof ThunderRush === 'undefined') return false;
                 var trs = ThunderRush.getStats();
-                return (trs.totalSolved || 0) >= 20;
+                return (trs && trs.totalSolved || 0) >= 20;
             }
         },
         {
@@ -171,7 +171,7 @@ const Museum = (function() {
     }
 
     function checkUnlocks() {
-        var stats = Stats.getAll();
+        var stats = Stats.getAll() || {};
         var newlyUnlocked = [];
 
         for (var i = 0; i < EXHIBITS.length; i++) {

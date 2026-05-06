@@ -1,5 +1,20 @@
 # 超级扫雷 - 更新日志
 
+## v1.9.4 (2026-04-29)
+
+### Bug 修复（第四轮深度审查：UI/UX/竞态/数据安全）
+- **布雷大师提交正确后反馈面板被隐藏**：`submit` 回调中的 `renderArchitectLevels()` 会隐藏 `architect-game` 容器，导致"回答正确"反馈和"下一关"按钮不可见。改为仅在"返回选关"时调用 `renderArchitectLevels()`
+- **布雷大师 showScreen 缺少退出确认**：`showScreen()` 离开 architect 屏幕时直接清理状态，玩家可能意外丢失进度。添加与 Thunder Rush 一致的 `confirm()` 确认对话框
+- **布雷大师锁定关卡 shake 不重触发**：连续快速点击锁定关卡时动画不重新播放。添加 `void card.offsetWidth` 强制重绘
+- **布雷大师棋盘缺少右键支持**：右键点击显示浏览器上下文菜单。添加 `contextmenu` 事件监听器，阻止默认菜单并将右键视为 toggle 雷标记
+- **布雷大师移动端触摸目标偏小**：`--architect-cell: 42px` 低于 WCAG 推荐 44px。增大到 44px
+- **布雷大师 `getLevel()` 返回原始引用**：外部代码可能意外修改关卡数据。返回 `data` 属性的深拷贝
+- **雷暴突袭 `endGame()` 遗漏 `transitionTimeout` 清理**：踩雷后时间池在 900ms 过渡期间耗尽时，悬空定时器残留。在 `endGame()` 中添加 `clearTimeout(transitionTimeout)`
+- **雷暴突袭 `nextPuzzle()` 缺少 `clearTimeout`**：防御性编程疏漏。添加 `clearTimeout(transitionTimeout)`
+- **博物馆 `Stats.getAll()` null 崩溃**：`Stats.getAll()` 返回 null 时条件函数抛出 TypeError（被静默捕获）。添加 `|| {}` 兜底
+- **博物馆 `ThunderRush.getStats()` null 崩溃**：`getStats()` 返回 null 时 `(trs.totalSolved || 0)` 抛出 TypeError。添加 `trs &&` 短路保护
+- **博物馆 `PatternDojo.getProgress()` null 崩溃**：`getProgress()` 返回 null 时 `progress[patterns[i].id]` 抛出 TypeError。添加 `!progress` 检查
+
 ## v1.9.0 (2026-04-29)
 
 ### 新功能

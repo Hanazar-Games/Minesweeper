@@ -321,8 +321,17 @@ const MineArchitect = (function() {
         for (var i = 0; i < LEVELS.length; i++) {
             if (LEVELS[i].id === id) {
                 var p = progress[id];
+                var lvl = LEVELS[i];
                 return {
-                    data: LEVELS[i],
+                    data: {
+                        id: lvl.id,
+                        name: lvl.name,
+                        desc: lvl.desc,
+                        width: lvl.width,
+                        height: lvl.height,
+                        mineCount: lvl.mineCount,
+                        revealed: lvl.revealed.map(function(r) { return {x: r.x, y: r.y, num: r.num}; })
+                    },
                     unlocked: p ? p.unlocked : false,
                     completed: p ? p.completed : false,
                     bestTime: p ? p.bestTime : null,
