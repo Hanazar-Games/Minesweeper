@@ -1,5 +1,14 @@
 # 超级扫雷 - 更新日志
 
+## v1.10.3 (2026-04-29)
+
+### Bug 修复（第七轮深度审查：状态一致性/暂停/存档）
+- **showScreen 退出确认在切换到 game-screen 时触发**：从阶段介绍点击"开始"进入游戏时仍弹出确认框。添加 `name !== 'game-screen'` 和 `ended`/`victory` 状态自动清理
+- **大师阶段尺寸与 game.js 不一致**：锦标赛 master 为 30×20，但 `difficulties.master` 为 40×20，实际棋盘更大。统一为 40×20
+- **锦标赛暂停时总计时器不暂停**：`Game.pause()` 只停止游戏计时，锦标赛总计时继续累积。新增 `Championship.pause()`/`resume()` 并在 `Game.pause()`/`resume()` 中联动调用
+- **锦标赛手动存档绕过保护**：暂停菜单"保存"按钮直接调用 `Game.save()`，无锦标赛检查。添加阻止提示
+- **Game.loadSaved() 未拒绝锦标赛存档**：恢复后 `Championship` 状态为 idle 但 `Game` 为 championship，流程断裂。添加检查并清除
+
 ## v1.10.2 (2026-04-29)
 
 ### Bug 修复（第六轮深度审查：状态残留/竞态/UI）

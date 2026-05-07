@@ -71,11 +71,13 @@ const UI = (function() {
             }
         }
 
-        // 如果正在锦标赛游戏中，确认是否退出（切换到 championship-screen 本身不算退出）
-        if (name !== 'championship-screen' && typeof Championship !== 'undefined') {
+        // 如果正在锦标赛游戏中，确认是否退出（切换到 championship-screen / game-screen 本身不算退出）
+        if (name !== 'championship-screen' && name !== 'game-screen' && typeof Championship !== 'undefined') {
             var champState = Championship.getState();
             if (champState.state === 'playing' || champState.state === 'phase-transition') {
                 if (!confirm('扫雷锦标赛正在进行中，退出将丢失当前进度，确定要退出吗？')) return;
+                Championship.stop();
+            } else if (champState.state === 'ended' || champState.state === 'victory') {
                 Championship.stop();
             }
         }
@@ -310,6 +312,11 @@ const UI = (function() {
 
         document.getElementById('save-btn').addEventListener('click', () => {
             if (typeof AudioManager !== "undefined") AudioManager.playClick();
+            var gs = Game.getState();
+            if (gs.challengeMode === 'championship') {
+                showHintOverlay('锦标赛模式不支持手动保存');
+                return;
+            }
             if (Game.save()) {
                 showHintOverlay('游戏已保存！');
                 updateContinueButton();

@@ -13,7 +13,7 @@ const Championship = (function() {
         { id: 'beginner',     name: '初级',     width: 9,  height: 9,  mines: 10,  desc: '9×9 · 10雷 — 热身阶段' },
         { id: 'intermediate', name: '中级',     width: 16, height: 16, mines: 40,  desc: '16×16 · 40雷 — 渐入佳境' },
         { id: 'expert',       name: '高级',     width: 30, height: 16, mines: 99,  desc: '30×16 · 99雷 — 真正的考验' },
-        { id: 'master',       name: '大师',     width: 30, height: 20, mines: 180, desc: '30×20 · 180雷 — 终极挑战' }
+        { id: 'master',       name: '大师',     width: 40, height: 20, mines: 180, desc: '40×20 · 180雷 — 终极挑战' }
     ];
 
     // ============ 状态 ============
@@ -25,6 +25,7 @@ const Championship = (function() {
     var timerInterval = null;
     var bestTime = null; // 最佳总用时（秒）
     var bestStars = 0;
+    var pausedAt = 0; // 暂停时的时间戳（毫秒）
 
     // ============ 持久化 ============
 
@@ -208,6 +209,8 @@ const Championship = (function() {
         init: init,
         start: start,
         stop: stop,
+        pause: pause,
+        resume: resume,
         onPhaseComplete: onPhaseComplete,
         onPhaseFail: onPhaseFail,
         advanceToNextPhase: advanceToNextPhase,

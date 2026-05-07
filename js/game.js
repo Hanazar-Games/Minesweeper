@@ -767,6 +767,7 @@ const Game = (function() {
             gameState = 'paused';
             stopTimer();
             if (typeof ShadowRace !== 'undefined') ShadowRace.pause();
+            if (challengeMode === 'championship' && typeof Championship !== 'undefined') Championship.pause();
             updateUI();
         }
     }
@@ -776,6 +777,7 @@ const Game = (function() {
             gameState = 'playing';
             startTimer();
             if (typeof ShadowRace !== 'undefined') ShadowRace.resume();
+            if (challengeMode === 'championship' && typeof Championship !== 'undefined') Championship.resume();
             updateUI();
         }
     }
@@ -886,6 +888,11 @@ const Game = (function() {
     function loadSaved() {
         const data = Storage.get('saved_game');
         if (!data) return false;
+        // 拒绝加载锦标赛存档（锦标赛状态无法恢复）
+        if (data.challengeMode === 'championship') {
+            clearSaved();
+            return false;
+        }
         if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
 
         difficulty = data.difficulty;
