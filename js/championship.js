@@ -62,6 +62,7 @@ const Championship = (function() {
         phaseTimes = [];
         totalTime = 0;
         startTime = Date.now();
+        pausedAt = 0;
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
         timerInterval = setInterval(tick, 1000);
         startPhase(0);
@@ -178,6 +179,7 @@ const Championship = (function() {
     function advanceToNextPhase() {
         if (state !== 'phase-transition') return;
         state = 'playing';
+        pausedAt = 0;
         startPhase(currentPhaseIdx + 1);
     }
 
