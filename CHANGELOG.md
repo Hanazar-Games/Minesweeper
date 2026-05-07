@@ -1,5 +1,16 @@
 # 超级扫雷 - 更新日志
 
+## v1.10.5 (2026-04-29)
+
+### Bug 修复（第九轮深度审查：缺失函数 / 防御性加固）
+- **`Championship` 模块 `pause()`/`resume()` 函数完全缺失**：v1.10.3 计划中新增，但实际代码从未定义，导致严格模式下模块加载抛出 `ReferenceError`，且 `Game.pause()`/`resume()` 调用时抛出 `TypeError`。补全两个函数的实现
+- **`tick()` 缺少 `pausedAt !== 0` 检查**：暂停期间总计时器仍会累加。已补充检查
+- **`stop()` 中 `pausedAt` 未重置**：防御性补充重置
+- **`stop()` 无条件调用 `Game.clearSaved()` 误删存档**：改为通过 `localStorage` 读取 `saved_game` 并判断 `challengeMode === 'championship'` 后才清除，避免误删其他模式存档
+- **`challengeMode` 在锦标赛结束后未重置**：`Game.win()`/`lose()` 的锦标赛分支 `return` 前未清理，造成 stale state。已在 `return` 前重置为 `null`
+- **所有 `Championship.*` 调用点缺乏 method guard**：20 处调用加固为 `typeof Championship !== 'undefined' && typeof Championship.method === 'function'`，防止模块加载失败或方法缺失时崩溃
+- **`championshipTick` 事件缺少 UI 监听器**：阶段介绍界面总用时不会实时更新。已添加监听器更新 `phase-intro-total`
+
 ## v1.10.4 (2026-04-29)
 
 ### Bug 修复（第八轮深度审查：暂停状态残留）

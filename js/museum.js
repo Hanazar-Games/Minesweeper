@@ -111,7 +111,7 @@ const Museum = (function() {
             icon: '🏆',
             desc: '在扫雷锦标赛中完成全部四个阶段的挑战。从初级的轻松热身到大师的终极考验，你已经征服了扫雷宇宙的每一座山峰。',
             condition: function() {
-                if (typeof Championship === 'undefined') return false;
+                if (typeof Championship === 'undefined' || typeof Championship.getState !== 'function') return false;
                 var cs = Championship.getState();
                 return cs.bestTime !== null;
             }

@@ -72,7 +72,7 @@ const UI = (function() {
         }
 
         // 如果正在锦标赛游戏中，确认是否退出（切换到 championship-screen / game-screen 本身不算退出）
-        if (name !== 'championship-screen' && name !== 'game-screen' && typeof Championship !== 'undefined') {
+        if (name !== 'championship-screen' && name !== 'game-screen' && typeof Championship !== 'undefined' && typeof Championship.getState === 'function' && typeof Championship.stop === 'function') {
             var champState = Championship.getState();
             if (champState.state === 'playing' || champState.state === 'phase-transition') {
                 if (!confirm('扫雷锦标赛正在进行中，退出将丢失当前进度，确定要退出吗？')) return;
@@ -612,7 +612,7 @@ const UI = (function() {
         document.getElementById('restart-pause-btn').addEventListener('click', () => {
             if (typeof AudioManager !== "undefined") AudioManager.playClick();
             const state = Game.getState();
-            if (state.challengeMode === 'championship' && typeof Championship !== 'undefined') {
+            if (state.challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.stop === 'function' && typeof Championship.start === 'function') {
                 if (confirm('锦标赛不允许重新开始当前阶段。这将放弃当前进度并从头开始，确定吗？')) {
                     Championship.stop();
                     document.getElementById('pause-overlay').classList.add('hidden');
@@ -4159,7 +4159,7 @@ const UI = (function() {
         if (startBtn) {
             startBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                Championship.start();
+                if (typeof Championship !== 'undefined' && typeof Championship.start === 'function') Championship.start();
             });
         }
 
@@ -4167,7 +4167,7 @@ const UI = (function() {
         if (phaseStartBtn) {
             phaseStartBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                if (typeof Championship === 'undefined') return;
+                if (typeof Championship === 'undefined' || typeof Championship.getState !== 'function') return;
                 var state = Championship.getState();
                 var phase = state.currentPhase;
                 if (!phase) return;
@@ -4182,7 +4182,7 @@ const UI = (function() {
         if (nextBtn) {
             nextBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                Championship.advanceToNextPhase();
+                if (typeof Championship !== 'undefined' && typeof Championship.advanceToNextPhase === 'function') Championship.advanceToNextPhase();
             });
         }
 
@@ -4190,7 +4190,7 @@ const UI = (function() {
         if (retryBtn) {
             retryBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                Championship.start();
+                if (typeof Championship !== 'undefined' && typeof Championship.start === 'function') Championship.start();
             });
         }
 
@@ -4198,7 +4198,7 @@ const UI = (function() {
         if (menuBtn) {
             menuBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                if (typeof Championship !== 'undefined') Championship.stop();
+                if (typeof Championship !== 'undefined' && typeof Championship.stop === 'function') Championship.stop();
                 showScreen('main-menu');
             });
         }
@@ -4207,7 +4207,7 @@ const UI = (function() {
         if (victoryRetry) {
             victoryRetry.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                Championship.start();
+                if (typeof Championship !== 'undefined' && typeof Championship.start === 'function') Championship.start();
             });
         }
 
@@ -4215,7 +4215,7 @@ const UI = (function() {
         if (victoryMenu) {
             victoryMenu.addEventListener('click', function() {
                 if (typeof AudioManager !== 'undefined') AudioManager.playClick();
-                if (typeof Championship !== 'undefined') Championship.stop();
+                if (typeof Championship !== 'undefined' && typeof Championship.stop === 'function') Championship.stop();
                 showScreen('main-menu');
             });
         }
@@ -4241,10 +4241,15 @@ const UI = (function() {
             var d = e.detail;
             showChampionshipVictory(d);
         });
+
+        document.addEventListener('championshipTick', function(e) {
+            var totalEl = document.getElementById('phase-intro-total');
+            if (totalEl) totalEl.textContent = formatChampTime(e.detail.totalTime);
+        });
     }
 
     function renderChampionshipStart() {
-        if (typeof Championship === 'undefined') return;
+        if (typeof Championship === 'undefined' || typeof Championship.getState !== 'function') return;
         // 如果锦标赛正在进行中（非 idle），不渲染开始界面，避免覆盖阶段介绍/完成/结束画面
         var cs = Championship.getState();
         if (cs.state !== 'idle') return;
@@ -4363,7 +4368,7 @@ const UI = (function() {
 
         if (phasesEl) {
             phasesEl.innerHTML = '';
-            var phases = Championship.getState().phases;
+            var phases = (typeof Championship !== 'undefined' && typeof Championship.getState === 'function') ? Championship.getState().phases : [];
             for (var i = 0; i < phases.length; i++) {
                 var row = document.createElement('div');
                 row.className = 'victory-phase-row';

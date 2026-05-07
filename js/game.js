@@ -456,11 +456,12 @@ const Game = (function() {
         const efficiency = clicks > 0 ? Math.round((board.bv / clicks) * 100) : 0;
 
         // 锦标赛模式：阶段完成
-        if (challengeMode === 'championship' && typeof Championship !== 'undefined') {
+        if (challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.onPhaseComplete === 'function') {
             Championship.onPhaseComplete(time, clicks, board.bv, efficiency);
             if (typeof AudioManager !== 'undefined') AudioManager.playWin();
             Replay.stop();
             recordBattleLog(true, efficiency);
+            challengeMode = null;
             return;
         }
         
@@ -635,11 +636,12 @@ const Game = (function() {
         const efficiency = clicks > 0 ? Math.round((board.bv / clicks) * 100) : 0;
 
         // 锦标赛模式：阶段失败
-        if (challengeMode === 'championship' && typeof Championship !== 'undefined') {
+        if (challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.onPhaseFail === 'function') {
             Championship.onPhaseFail(time, clicks, board.bv, efficiency);
             if (typeof AudioManager !== 'undefined') AudioManager.playLose();
             Replay.stop();
             recordBattleLog(false, efficiency);
+            challengeMode = null;
             return;
         }
 
@@ -767,7 +769,7 @@ const Game = (function() {
             gameState = 'paused';
             stopTimer();
             if (typeof ShadowRace !== 'undefined') ShadowRace.pause();
-            if (challengeMode === 'championship' && typeof Championship !== 'undefined') Championship.pause();
+            if (challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.pause === 'function') Championship.pause();
             updateUI();
         }
     }
@@ -777,7 +779,7 @@ const Game = (function() {
             gameState = 'playing';
             startTimer();
             if (typeof ShadowRace !== 'undefined') ShadowRace.resume();
-            if (challengeMode === 'championship' && typeof Championship !== 'undefined') Championship.resume();
+            if (challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.resume === 'function') Championship.resume();
             updateUI();
         }
     }

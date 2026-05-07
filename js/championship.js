@@ -79,7 +79,7 @@ const Championship = (function() {
     }
 
     function tick() {
-        if (state !== 'playing') return;
+        if (state !== 'playing' || pausedAt !== 0) return;
         totalTime = Math.floor((Date.now() - startTime) / 1000);
         document.dispatchEvent(new CustomEvent('championshipTick', {
             detail: { totalTime: totalTime }
@@ -183,6 +183,19 @@ const Championship = (function() {
         startPhase(currentPhaseIdx + 1);
     }
 
+    function pause() {
+        if (state === 'playing' && pausedAt === 0) {
+            pausedAt = Date.now();
+        }
+    }
+
+    function resume() {
+        if (state === 'playing' && pausedAt !== 0) {
+            startTime += (Date.now() - pausedAt);
+            pausedAt = 0;
+        }
+    }
+
     function stop() {
         if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
         state = 'idle';
@@ -190,12 +203,15 @@ const Championship = (function() {
         phaseTimes = [];
         totalTime = 0;
         startTime = 0;
-        // 重置 Game 模块的 challengeMode，防止状态残留
-        if (typeof Game !== 'undefined' && Game.getState) {
+        pausedAt = 0;
+        // 清理锦标赛残留存档（通过 localStorage 判断，避免误删其他模式存档）
+        if (typeof Storage !== 'undefined' && Storage.get) {
             try {
-                var gs = Game.getState();
-                if (gs.challengeMode === 'championship') {
-                    Game.clearSaved();
+                var saved = Storage.get('saved_game');
+                if (saved && saved.challengeMode === 'championship') {
+                    if (typeof Game !== 'undefined' && Game.clearSaved) {
+                        Game.clearSaved();
+                    }
                 }
             } catch (e) {}
         }
