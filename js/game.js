@@ -558,6 +558,10 @@ const Game = (function() {
             createParticles();
             replay('stop');
             recordBattleLog(true, efficiency);
+            if (typeof ZenMode !== 'undefined' && typeof ZenMode.onComplete === 'function') {
+                ZenMode.onComplete(time, clicks, board.bv, efficiency, usedUndo, usedFlags);
+            }
+            return;
         } else {
             Stats.recordGame(difficulty, true, time, clicks, board.bv, efficiency);
             Stats.recordCellsRevealed(board.revealedCount);
@@ -658,11 +662,6 @@ const Game = (function() {
             }
         }
 
-        // 禅意模式完成
-        if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onComplete === 'function') {
-            ZenMode.onComplete(time, clicks, board.bv, efficiency, usedUndo, usedFlags);
-        }
-
         if (typeof AudioManager !== 'undefined') AudioManager.playWin();
         createParticles();
         replay('stop');
@@ -745,8 +744,10 @@ const Game = (function() {
             return;
         }
 
-        Stats.recordGame(difficulty, false, time, clicks, board.bv, efficiency);
-        Stats.recordCellsRevealed(board.revealedCount);
+        if (challengeMode !== 'zen') {
+            Stats.recordGame(difficulty, false, time, clicks, board.bv, efficiency);
+            Stats.recordCellsRevealed(board.revealedCount);
+        }
 
         showGameOver(false, time, board.bv, efficiency, false);
         replay('stop');
@@ -772,20 +773,22 @@ const Game = (function() {
             Stats.recordSurvival(survivalLevel, survivalScore, maxCombo);
         }
 
-        checkAchievements({
-            won: false,
-            time,
-            clicks,
-            efficiency,
-            difficulty,
-            challengeMode,
-            noUndo: !usedUndo,
-            noFlags: !usedFlags,
-            chordCount,
-            customSize: difficulty === 'custom',
-            width: board ? board.width : null,
-            height: board ? board.height : null
-        });
+        if (challengeMode !== 'zen') {
+            checkAchievements({
+                won: false,
+                time,
+                clicks,
+                efficiency,
+                difficulty,
+                challengeMode,
+                noUndo: !usedUndo,
+                noFlags: !usedFlags,
+                chordCount,
+                customSize: difficulty === 'custom',
+                width: board ? board.width : null,
+                height: board ? board.height : null
+            });
+        }
     }
 
     function recordBattleLog(won, efficiency) {

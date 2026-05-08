@@ -1962,7 +1962,11 @@ const UI = (function() {
         if (fillEl) {
             var pct = Math.max(0, Math.min(100, zs.focus));
             fillEl.style.width = pct + '%';
-            fillEl.className = 'zen-focus-fill' + (zs.focus <= 30 ? ' zen-focus-low' : zs.focus <= 60 ? ' zen-focus-mid' : ' zen-focus-high');
+            var tier = zs.focus <= 30 ? 'zen-focus-low' : zs.focus <= 60 ? 'zen-focus-mid' : 'zen-focus-high';
+            if (fillEl.dataset.tier !== tier) {
+                fillEl.className = 'zen-focus-fill ' + tier;
+                fillEl.dataset.tier = tier;
+            }
         }
         if (textEl) textEl.textContent = '专注度 ' + zs.focus + '/100';
         if (mistakesEl) mistakesEl.textContent = '失误 ' + zs.mistakes;

@@ -1,32 +1,11 @@
 # 超级扫雷 - 更新日志
 
-## v1.11.0 (2026-04-29)
+## v1.11.3 (2026-04-29)
 
-### 新功能：禅意模式 (Zen Mode)
-一个全新的放松型扫雷变体，与快节奏的雷暴突袭、高压力的锦标赛形成互补。
-
-**核心机制：**
-- **无失败惩罚**：踩到雷不结束游戏，而是扣除专注度（10点/次）
-- **专注度系统**：初始 100 点，归零时冥想结束；每揭开 10 格安全区域恢复 1 点
-- **无限撤销**：随时撤销任何操作
-- **使用提示消耗专注度**：5 点/次
-- **无计时压力**：纯粹享受逻辑推理
-
-**禅意花园：**
-- 每次完成冥想，根据失误数种下不同的花：
-  - 🪷 莲花：零失误
-  - 🌸 樱花：1–2 失误
-  - 🌼 菊花：3–5 失误
-  - 🌾 蒲公英：6+ 失误
-- 花园记录每朵花的日期、用时和效率
-- 累计冥想时长和完成次数统计
-
-**技术实现：**
-- 新增 `js/zen-mode.js` 核心模块（状态机、专注度、花园持久化）
-- `js/game.js` 集成：zen 分支的 reveal/chord/win/lose/hint/undo 全链路
-- `js/ui.js`：zen-screen、zen HUD、zen 退出确认
-- `js/achievements.js`：4 个禅意相关成就
-- `css/style.css`：完整的 zen 样式体系
+### Bug 修复（禅意模式第三轮深度审查：3 处关键修复）
+- **`win()` zen 分支缺少 `return` 导致重复执行**：zen 胜利时 `playWin()` + `createParticles()` + `replay('stop')` + `recordBattleLog()` 被调用两次（第 556 分支一次 + 第 666 行又一次），音效重叠、粒子双倍生成、战报重复记录。已将 `ZenMode.onComplete()` 移入 zen 分支并添加 `return`，删除末尾冗余重复代码
+- **`lose()` zen 分支未跳过 `Stats.recordGame(false)`**：zen 失败时仍调用 `Stats.recordGame(difficulty, false, ...)`，污染常规统计（增加失败数、重置连胜）、触发失败相关成就。已用 `if (challengeMode !== 'zen')` 包裹 `Stats.recordGame()` / `Stats.recordCellsRevealed()` / `checkAchievements()`
+- **`updateZenHUD()` 每帧重复写 `className`**：`gameUpdate` 每次触发都重写 `fillEl.className`，即使专注度档位未变。已添加 `dataset.tier` 缓存，仅档位变化时才更新 `className`
 
 ## v1.11.2 (2026-04-29)
 
@@ -61,6 +40,34 @@
 - **CSS border 不一致**：`.zen-hud` 用 `border-bottom`，其他 HUD 用 `border-top`。已统一
 - **`Game.getState()` 缺少 `zenState`**：外部调用者无法获取 zen 状态。已补充
 - **`renderZenScreen()` 冗余调用**：`zenComplete` 事件处理器显式调用，但 `showScreen()` 已触发。已移除
+
+## v1.11.0 (2026-04-29)
+
+### 新功能：禅意模式 (Zen Mode)
+一个全新的放松型扫雷变体，与快节奏的雷暴突袭、高压力的锦标赛形成互补。
+
+**核心机制：**
+- **无失败惩罚**：踩到雷不结束游戏，而是扣除专注度（10点/次）
+- **专注度系统**：初始 100 点，归零时冥想结束；每揭开 10 格安全区域恢复 1 点
+- **无限撤销**：随时撤销任何操作
+- **使用提示消耗专注度**：5 点/次
+- **无计时压力**：纯粹享受逻辑推理
+
+**禅意花园：**
+- 每次完成冥想，根据失误数种下不同的花：
+  - 🪷 莲花：零失误
+  - 🌸 樱花：1–2 失误
+  - 🌼 菊花：3–5 失误
+  - 🌾 蒲公英：6+ 失误
+- 花园记录每朵花的日期、用时和效率
+- 累计冥想时长和完成次数统计
+
+**技术实现：**
+- 新增 `js/zen-mode.js` 核心模块（状态机、专注度、花园持久化）
+- `js/game.js` 集成：zen 分支的 reveal/chord/win/lose/hint/undo 全链路
+- `js/ui.js`：zen-screen、zen HUD、zen 退出确认
+- `js/achievements.js`：4 个禅意相关成就
+- `css/style.css`：完整的 zen 样式体系
 
 ## v1.10.6 (2026-04-29)
 
