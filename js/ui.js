@@ -341,6 +341,10 @@ const UI = (function() {
                 showHintOverlay('锦标赛模式不支持手动保存');
                 return;
             }
+            if (gs.challengeMode === 'zen') {
+                showHintOverlay('禅意模式不支持手动保存');
+                return;
+            }
             if (Game.save()) {
                 showHintOverlay('游戏已保存！');
                 updateContinueButton();
@@ -1724,8 +1728,14 @@ const UI = (function() {
 
     document.addEventListener('gameOver', (e) => {
         const d = e.detail;
-        document.getElementById('gameover-icon').textContent = d.won ? '😎' : '😵';
-        document.getElementById('gameover-title').textContent = d.won ? '胜利！' : '游戏结束';
+        // 禅意模式使用更柔和的文案
+        if (d.challengeMode === 'zen') {
+            document.getElementById('gameover-icon').textContent = d.won ? '🌸' : '🍂';
+            document.getElementById('gameover-title').textContent = d.won ? '冥想完成' : '冥想结束';
+        } else {
+            document.getElementById('gameover-icon').textContent = d.won ? '😎' : '😵';
+            document.getElementById('gameover-title').textContent = d.won ? '胜利！' : '游戏结束';
+        }
         document.getElementById('go-time').textContent = d.time + 's';
         document.getElementById('go-3bv').textContent = d.bv;
         document.getElementById('go-eff').textContent = d.efficiency + '%';
@@ -4517,8 +4527,15 @@ const UI = (function() {
         var stats = ZenMode.getStats();
         var display = document.getElementById('zen-stats-display');
         if (display) {
-            var m = Math.floor(stats.totalMeditationTime / 60);
-            display.innerHTML = '<span>累计冥想：' + m + ' 分钟</span><span>完成次数：' + stats.totalCompletions + '</span>';
+            var timeText;
+            if (stats.totalMeditationTime === 0) {
+                timeText = '0 分钟';
+            } else if (stats.totalMeditationTime < 60) {
+                timeText = '< 1 分钟';
+            } else {
+                timeText = Math.floor(stats.totalMeditationTime / 60) + ' 分钟';
+            }
+            display.innerHTML = '<span>累计冥想：' + timeText + '</span><span>完成次数：' + stats.totalCompletions + '</span>';
         }
     }
 
@@ -4534,19 +4551,31 @@ const UI = (function() {
             grid.innerHTML = '<p class="zen-empty">还没有种下的花。完成禅意模式来种植你的第一朵花吧。</p>';
             return;
         }
+        var fragment = document.createDocumentFragment();
         for (var i = garden.length - 1; i >= 0; i--) {
             var f = garden[i];
             var card = document.createElement('div');
             card.className = 'zen-flower-card';
             var date = new Date(f.timestamp);
             var dateStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
-            card.innerHTML = '<div class="zen-flower-icon">' + f.icon + '</div>' +
-                '<div class="zen-flower-info">' +
-                '<div class="zen-flower-name">' + f.name + '</div>' +
-                '<div class="zen-flower-meta">' + dateStr + ' · 失误' + f.mistakes + '次 · ' + formatChampTime(f.time) + '</div>' +
-                '</div>';
-            grid.appendChild(card);
+            var iconDiv = document.createElement('div');
+            iconDiv.className = 'zen-flower-icon';
+            iconDiv.textContent = f.icon || '🌸';
+            var infoDiv = document.createElement('div');
+            infoDiv.className = 'zen-flower-info';
+            var nameDiv = document.createElement('div');
+            nameDiv.className = 'zen-flower-name';
+            nameDiv.textContent = f.name || '未知';
+            var metaDiv = document.createElement('div');
+            metaDiv.className = 'zen-flower-meta';
+            metaDiv.textContent = dateStr + ' · 失误' + (f.mistakes || 0) + '次 · ' + formatChampTime(f.sessionTime || f.time || 0);
+            infoDiv.appendChild(nameDiv);
+            infoDiv.appendChild(metaDiv);
+            card.appendChild(iconDiv);
+            card.appendChild(infoDiv);
+            fragment.appendChild(card);
         }
+        grid.appendChild(fragment);
     }
 
     return {

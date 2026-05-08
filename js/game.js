@@ -342,7 +342,7 @@ const Game = (function() {
                     // 禅意模式：踩雷扣除专注度
                     if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onMistake === 'function') {
                         ZenMode.onMistake();
-                        if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+                        if (typeof AudioManager !== 'undefined') AudioManager.playHint();
                         if (history.length > 0) {
                             const prev = history.pop();
                             board = prev.board;
@@ -433,7 +433,7 @@ const Game = (function() {
                     }
                 } else if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onMistake === 'function') {
                     ZenMode.onMistake();
-                    if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+                    if (typeof AudioManager !== 'undefined') AudioManager.playHint();
                     if (history.length > 0) {
                         var prev = history.pop();
                         board = prev.board;
@@ -815,7 +815,7 @@ const Game = (function() {
     function showGameOver(won, t, bv, eff, isNewRecord) {
         setTimeout(() => {
             const ev = new CustomEvent('gameOver', {
-                detail: { won, time: t, bv, efficiency: eff, isNewRecord }
+                detail: { won, time: t, bv, efficiency: eff, isNewRecord, challengeMode: challengeMode }
             });
             document.dispatchEvent(ev);
         }, 300);
@@ -847,6 +847,7 @@ const Game = (function() {
             stopTimer();
             if (typeof ShadowRace !== 'undefined') ShadowRace.pause();
             if (challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.pause === 'function') Championship.pause();
+            if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.pause === 'function') ZenMode.pause();
             updateUI();
         }
     }
@@ -857,6 +858,7 @@ const Game = (function() {
             startTimer();
             if (typeof ShadowRace !== 'undefined') ShadowRace.resume();
             if (challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.resume === 'function') Championship.resume();
+            if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.resume === 'function') ZenMode.resume();
             updateUI();
         }
     }
@@ -864,10 +866,8 @@ const Game = (function() {
     function hint() {
         if (gameState !== 'playing' && gameState !== 'idle') return;
         usedHint = true;
-        if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onHint === 'function') {
-            ZenMode.onHint();
-        }
-        
+
+        // firstSafe 是免费提示，不扣除专注度
         if (board.firstClick && Settings.get('firstSafe')) {
             const corners = [
                 { x: 0, y: 0 },
@@ -885,6 +885,10 @@ const Game = (function() {
             if (typeof AudioManager !== 'undefined') AudioManager.playHint();
             if (typeof DailyQuests !== 'undefined') {
                 DailyQuests.checkEvent('hint', { count: 1 });
+            }
+            // 禅意模式：提示成功后才扣除专注度
+            if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onHint === 'function') {
+                ZenMode.onHint();
             }
         }
         // 禅意模式：提示后检查专注度是否归零

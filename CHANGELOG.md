@@ -28,6 +28,20 @@
 - `js/achievements.js`：4 个禅意相关成就
 - `css/style.css`：完整的 zen 样式体系
 
+## v1.11.2 (2026-04-29)
+
+### Bug 修复（禅意模式第二轮审查：10 处修复）
+- **提示失败仍扣除专注度**：`onHint()` 在 `Solver.getHint()` 之前调用，solver 返回 null 时玩家白白损失专注度。改为仅在提示成功后才扣除
+- **firstSafe 早期返回跳过 focus 检查**：`firstSafe` 免费提示不扣专注度，但 focus 归零检查被跳过。已将 focus 检查逻辑重构，firstSafe 保持免费，普通提示成功后才扣专注度
+- **暂停菜单保存按钮对 Zen 静默失败**：Zen 模式 `save()` 返回 `false` 但 UI 无反馈。添加 `禅意模式不支持手动保存` 提示
+- **暂停时间计入 `sessionTime`**：`ZenMode` 无 pause/resume 钩子，暂停期间时间被计入冥想时长。新增 `ZenMode.pause()`/`resume()`（调整 `startTime` 补偿）并在 `Game.pause()`/`resume()` 中联动
+- **踩雷音效太刺耳**：Zen 模式下每次踩雷播放 `playLose()`（刺耳下降音效）。改为 `playHint()`（柔和提示音）
+- **Zen 失败显示太 harsh**：`lose()` 触发通用 `gameOver` 覆盖层，显示 😵 + "游戏结束"。`showGameOver()` 现已传递 `challengeMode`，UI 对 Zen 模式显示 🍂 + "冥想结束"
+- **Zen 胜利显示太 harsh**：通用覆盖层显示 😎 + "胜利"。Zen 模式改为 🌸 + "冥想完成"
+- **累计冥想显示 "0 分钟"**：59 秒显示为 0 分钟。改为 "< 1 分钟"
+- **花园卡片显示 `time` 而非 `sessionTime`**：`time` 是游戏内部计时器（Zen 模式下不更新），`sessionTime` 是真实冥想时长。改为显示 `sessionTime`
+- **花园渲染防御性加固**：`innerHTML` 拼接存在 XSS 风险（虽然 localStorage 同源）。改用 `textContent` + `DocumentFragment` 安全构建 DOM
+
 ## v1.11.1 (2026-04-29)
 
 ### Bug 修复（禅意模式第一轮审查：16 处修复）

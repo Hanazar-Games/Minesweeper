@@ -25,6 +25,7 @@ const ZenMode = (function() {
     var totalMeditationTime = 0;      // 累计冥想时长（秒）
     var totalCompletions = 0;
     var garden = [];                  // 花园花朵数组
+    var pausedAt = 0;                 // 暂停时的时间戳（毫秒）
 
     // ============ 持久化 ============
     function load() {
@@ -86,6 +87,20 @@ const ZenMode = (function() {
             save();
         }
         state = 'idle';
+        pausedAt = 0;
+    }
+
+    function pause() {
+        if (state === 'playing' && pausedAt === 0) {
+            pausedAt = Date.now();
+        }
+    }
+
+    function resume() {
+        if (state === 'playing' && pausedAt !== 0) {
+            startTime += (Date.now() - pausedAt);
+            pausedAt = 0;
+        }
     }
 
     function onMistake() {
@@ -178,6 +193,8 @@ const ZenMode = (function() {
         init: init,
         start: start,
         stop: stop,
+        pause: pause,
+        resume: resume,
         onMistake: onMistake,
         onHint: onHint,
         onReveal: onReveal,
