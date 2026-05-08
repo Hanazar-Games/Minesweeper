@@ -72,6 +72,11 @@
                 Championship.init();
             }
 
+            console.log('[Boot] Initializing zen mode...');
+            if (typeof ZenMode !== 'undefined' && ZenMode.init) {
+                ZenMode.init();
+            }
+
             console.log('[Boot] Initializing UI...');
             if (typeof UI !== 'undefined' && UI.init) {
                 UI.init();

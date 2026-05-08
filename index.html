@@ -128,6 +128,10 @@
                         <span class="btn-icon">🏗️</span>
                         <span class="btn-text">布雷大师</span>
                     </button>
+                    <button class="menu-btn" data-action="zen">
+                        <span class="btn-icon">🧘</span>
+                        <span class="btn-text">禅意模式</span>
+                    </button>
                     <button class="menu-btn" data-action="championship">
                         <span class="btn-icon">🏆</span>
                         <span class="btn-text">扫雷锦标赛</span>
@@ -270,6 +274,15 @@
                 </div>
                 <span id="endless-hp"></span>
                 <span id="endless-score"></span>
+            </div>
+
+            <!-- 禅意模式 HUD -->
+            <div class="zen-hud" id="zen-hud" style="display:none;">
+                <div class="zen-focus-bar">
+                    <div class="zen-focus-fill" id="zen-focus-fill"></div>
+                </div>
+                <span id="zen-focus-text">专注度 100/100</span>
+                <span id="zen-mistakes">失误 0</span>
             </div>
 
             <!-- 道具栏 -->
@@ -1449,6 +1462,52 @@
             </div>
         </div>
 
+        <!-- 禅意模式 -->
+        <div id="zen-screen" class="screen hidden">
+            <div class="screen-header">
+                <button class="back-btn" data-back="main-menu">← 返回</button>
+                <h2>🧘 禅意模式</h2>
+            </div>
+            <div class="zen-container">
+                <!-- 开始界面 -->
+                <div id="zen-start">
+                    <p class="zen-intro">无计时压力，纯粹享受解谜的乐趣。踩到雷不会结束游戏，但会消耗专注度。专注度归零时冥想结束。</p>
+                    <div class="zen-rules">
+                        <div class="zen-rule-item">🪷 零失误：莲花</div>
+                        <div class="zen-rule-item">🌸 1-2 失误：樱花</div>
+                        <div class="zen-rule-item">🌼 3-5 失误：菊花</div>
+                        <div class="zen-rule-item">🌾 6+ 失误：蒲公英</div>
+                    </div>
+                    <div class="zen-stats" id="zen-stats-display">
+                        <span>累计冥想：0 分钟</span>
+                        <span>完成次数：0</span>
+                    </div>
+                    <button id="zen-start-btn" class="primary-btn">开始冥想</button>
+                    <button id="zen-garden-btn" class="secondary-btn">禅意花园</button>
+                </div>
+                <!-- 完成界面 -->
+                <div id="zen-complete" class="hidden">
+                    <div class="zen-complete-content">
+                        <div id="zen-flower" class="zen-flower"></div>
+                        <h3 id="zen-complete-title">冥想完成</h3>
+                        <p id="zen-complete-detail">专注度剩余 70/100 · 失误 2 次</p>
+                        <p id="zen-complete-time">冥想时长：3分20秒</p>
+                        <button id="zen-complete-retry" class="primary-btn">再次冥想</button>
+                        <button id="zen-complete-menu" class="secondary-btn">返回</button>
+                    </div>
+                </div>
+                <!-- 花园界面 -->
+                <div id="zen-garden" class="hidden">
+                    <div class="zen-garden-header">
+                        <button id="zen-garden-back" class="back-btn">← 返回</button>
+                        <h3>🌸 禅意花园</h3>
+                        <p id="zen-garden-count">已种下 0 朵花</p>
+                    </div>
+                    <div id="zen-garden-grid" class="zen-garden-grid"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- 布雷大师 -->
         <div id="architect-screen" class="screen hidden">
             <div class="screen-header">
@@ -1619,6 +1678,7 @@
     <script src="js/thunder-rush.js"></script>
     <script src="js/battle-log.js"></script>
     <script src="js/shadow-race.js"></script>
+    <script src="js/zen-mode.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/i18n.js"></script>

@@ -5119,3 +5119,216 @@ input[type="range"]::-webkit-slider-thumb:hover {
         padding: 1.5rem 1rem;
     }
 }
+
+
+/* ========================================
+   禅意模式 (Zen Mode)
+   ======================================== */
+
+.zen-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.zen-intro {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.zen-rules {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.zen-rule-item {
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.zen-stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.zen-stats span {
+    background: var(--bg-light);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+}
+
+#zen-start-btn {
+    margin-bottom: 0.75rem;
+}
+
+/* 禅意模式完成界面 */
+.zen-complete-content {
+    max-width: 400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    text-align: center;
+}
+
+.zen-flower {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: zenFlowerIn 0.6s ease-out;
+}
+
+@keyframes zenFlowerIn {
+    0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+    60% { transform: scale(1.1) rotate(5deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* 禅意花园 */
+.zen-garden-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.zen-garden-header h3 {
+    margin: 0;
+    flex: 1;
+}
+
+.zen-garden-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.zen-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 3rem 1rem;
+}
+
+.zen-flower-card {
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition);
+}
+
+.zen-flower-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.zen-flower-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.zen-flower-info {
+    text-align: left;
+    overflow: hidden;
+}
+
+.zen-flower-name {
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+}
+
+.zen-flower-meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* 禅意模式 HUD */
+.zen-hud {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+.zen-focus-bar {
+    width: 120px;
+    height: 10px;
+    background: var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.zen-focus-fill {
+    height: 100%;
+    width: 100%;
+    border-radius: 5px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.zen-focus-high {
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+}
+
+.zen-focus-mid {
+    background: linear-gradient(90deg, #facc15, #eab308);
+}
+
+.zen-focus-low {
+    background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+#zen-focus-text {
+    font-weight: 500;
+    color: var(--text);
+}
+
+#zen-mistakes {
+    color: var(--text-muted);
+}
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+    .zen-container {
+        padding: 1rem;
+    }
+    .zen-rules {
+        grid-template-columns: 1fr;
+    }
+    .zen-stats {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .zen-garden-grid {
+        grid-template-columns: 1fr;
+    }
+    .zen-hud {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+    }
+}

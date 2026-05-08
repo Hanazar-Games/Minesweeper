@@ -116,9 +116,12 @@ const Game = (function() {
             maxLives = 3;
             survivalScore = 0;
         }
-        // 禅意模式：不显示计时器压力
+        // 禅意模式初始化
         if (challenge === 'zen') {
             challengeData.noTimer = true;
+            if (typeof ZenMode !== 'undefined' && typeof ZenMode.start === 'function') {
+                ZenMode.start();
+            }
         }
         // 连击大师：2分钟限时
         if (challenge === 'combo-rush') {
@@ -234,6 +237,9 @@ const Game = (function() {
         if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
             detail.endlessState = Endless.getState();
         }
+        if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.getState === 'function') {
+            detail.zenState = ZenMode.getState();
+        }
         const ev = new CustomEvent('gameUpdate', { detail: detail });
         document.dispatchEvent(ev);
     }
@@ -331,8 +337,19 @@ const Game = (function() {
                         if (board.checkWin()) win();
                     }
                 } else {
+                    // 禅意模式：踩雷扣除专注度
+                    if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onMistake === 'function') {
+                        ZenMode.onMistake();
+                        if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+                        var zs = ZenMode.getState();
+                        if (zs.focus <= 0) {
+                            lose();
+                        } else {
+                            updateUI();
+                        }
+                    }
                     // 生存模式扣命
-                    if (challengeMode === 'survival' && lives > 1) {
+                    else if (challengeMode === 'survival' && lives > 1) {
                         lives--;
                         combo = 0;
                         if (typeof AudioManager !== 'undefined') AudioManager.playLose();
@@ -361,6 +378,9 @@ const Game = (function() {
                 if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
                     Endless.addRevealed(result.revealed ? result.revealed.length : 1);
                     Endless.addScore(result.revealed ? result.revealed.length * 10 : 10);
+                }
+                if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onReveal === 'function') {
+                    ZenMode.onReveal(result.revealed ? result.revealed.length : 1);
                 }
                 if (typeof DailyQuests !== 'undefined') {
                     DailyQuests.checkEvent('reveal', { count: result.revealed ? result.revealed.length : 1 });
@@ -402,6 +422,15 @@ const Game = (function() {
                     updateUI();
                     if (hp <= 0) {
                         lose();
+                    }
+                } else if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onMistake === 'function') {
+                    ZenMode.onMistake();
+                    if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+                    var zcs = ZenMode.getState();
+                    if (zcs.focus <= 0) {
+                        lose();
+                    } else {
+                        updateUI();
                     }
                 } else if (challengeMode === 'survival' && lives > 1) {
                     lives--;
@@ -607,6 +636,11 @@ const Game = (function() {
             }
         }
 
+        // 禅意模式完成
+        if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onComplete === 'function') {
+            ZenMode.onComplete(time, clicks, board.bv, efficiency, usedUndo, usedFlags);
+        }
+
         if (typeof AudioManager !== 'undefined') AudioManager.playWin();
         createParticles();
         replay('stop');
@@ -637,7 +671,8 @@ const Game = (function() {
             chordCount,
             customSize: difficulty === 'custom',
             width: board ? board.width : null,
-            height: board ? board.height : null
+            height: board ? board.height : null,
+            zenMistakes: (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && ZenMode.getState) ? ZenMode.getState().mistakes : 0
         });
         // 通知UI更新成就徽章
         document.dispatchEvent(new CustomEvent('achievementCheck'));
@@ -658,6 +693,11 @@ const Game = (function() {
             recordBattleLog(false, efficiency);
             challengeMode = null;
             return;
+        }
+
+        // 禅意模式：专注度归零结束
+        if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.stop === 'function') {
+            ZenMode.stop();
         }
 
         // 限时模式超时音效
@@ -802,6 +842,9 @@ const Game = (function() {
     function hint() {
         if (gameState !== 'playing' && gameState !== 'idle') return;
         usedHint = true;
+        if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onHint === 'function') {
+            ZenMode.onHint();
+        }
         
         if (board.firstClick && Settings.get('firstSafe')) {
             const corners = [
@@ -839,6 +882,7 @@ const Game = (function() {
 
     function save() {
         if (!board || gameState === 'won' || gameState === 'lost') return false;
+        if (challengeMode === 'zen') return false;
         const data = {
             board: {
                 width: board.width,
@@ -907,6 +951,11 @@ const Game = (function() {
         if (!data) return false;
         // 拒绝加载锦标赛存档（锦标赛状态无法恢复）
         if (data.challengeMode === 'championship') {
+            clearSaved();
+            return false;
+        }
+        // 拒绝加载禅意模式存档（专注度状态无法恢复）
+        if (data.challengeMode === 'zen') {
             clearSaved();
             return false;
         }

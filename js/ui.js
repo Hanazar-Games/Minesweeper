@@ -36,6 +36,7 @@ const UI = (function() {
         bindMuseumEvents();
         bindArchitectEvents();
         bindChampionshipEvents();
+        bindZenEvents();
         updateContinueButton();
         updateAchievementBadge();
         updateQuestBadge();
@@ -82,6 +83,17 @@ const UI = (function() {
             }
         }
 
+        // 如果正在禅意模式游戏中，确认是否退出
+        if (name !== 'zen-screen' && name !== 'game-screen' && typeof Game !== 'undefined' && Game.getState) {
+            var gs = Game.getState();
+            if (gs.challengeMode === 'zen' && gs.gameState === 'playing') {
+                if (!confirm('禅意冥想正在进行中，退出将结束本次冥想，确定要退出吗？')) return;
+                if (typeof ZenMode !== 'undefined' && ZenMode.stop) {
+                    ZenMode.stop();
+                }
+            }
+        }
+
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById(name).classList.remove('hidden');
         currentScreen = name.replace('-screen', '');
@@ -107,6 +119,8 @@ const UI = (function() {
             renderMuseum();
         } else if (name === 'championship-screen') {
             renderChampionshipStart();
+        } else if (name === 'zen-screen') {
+            renderZenScreen();
         } else if (name === 'architect-screen') {
             renderArchitectLevels();
         } else if (name === 'game-screen') {
@@ -170,6 +184,9 @@ const UI = (function() {
                         break;
                     case 'architect':
                         showScreen('architect-screen');
+                        break;
+                    case 'zen':
+                        showScreen('zen-screen');
                         break;
                     case 'championship':
                         showScreen('championship-screen');
@@ -428,6 +445,9 @@ const UI = (function() {
 
         // 无尽模式 HUD
         updateEndlessHUD(detail);
+
+        // 禅意模式 HUD
+        updateZenHUD(detail);
 
         // 道具栏更新
         updatePowerupHUD();
@@ -1909,6 +1929,26 @@ const UI = (function() {
             hpBarEl.className = 'hp-bar-fill' + (state.hp <= 3 ? ' hp-low' : state.hp <= state.maxHp * 0.5 ? ' hp-mid' : ' hp-high');
         }
         if (scoreEl) scoreEl.textContent = 'Score: ' + state.score;
+    }
+
+    function updateZenHUD(detail) {
+        var hud = document.getElementById('zen-hud');
+        var isZen = detail.challengeMode === 'zen';
+        if (hud) hud.style.display = isZen ? 'flex' : 'none';
+        if (!isZen || !detail.zenState) return;
+
+        var zs = detail.zenState;
+        var fillEl = document.getElementById('zen-focus-fill');
+        var textEl = document.getElementById('zen-focus-text');
+        var mistakesEl = document.getElementById('zen-mistakes');
+
+        if (fillEl) {
+            var pct = Math.max(0, Math.min(100, zs.focus));
+            fillEl.style.width = pct + '%';
+            fillEl.className = 'zen-focus-fill' + (zs.focus <= 30 ? ' zen-focus-low' : zs.focus <= 60 ? ' zen-focus-mid' : ' zen-focus-high');
+        }
+        if (textEl) textEl.textContent = '专注度 ' + zs.focus + '/100';
+        if (mistakesEl) mistakesEl.textContent = '失误 ' + zs.mistakes;
     }
 
     function updateFogOverlay(board) {
@@ -4392,6 +4432,115 @@ const UI = (function() {
             return m + '分' + (s < 10 ? '0' : '') + s + '秒';
         }
         return s + '秒';
+    }
+
+    // ============ 禅意模式 (Zen Mode) ============
+
+    function bindZenEvents() {
+        if (bindZenEvents._bound) return;
+        bindZenEvents._bound = true;
+
+        var startBtn = document.getElementById('zen-start-btn');
+        if (startBtn) {
+            startBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                Game.start('intermediate', null, 'zen');
+                showScreen('game-screen');
+            });
+        }
+
+        var gardenBtn = document.getElementById('zen-garden-btn');
+        if (gardenBtn) {
+            gardenBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                renderZenGarden();
+                document.getElementById('zen-start').classList.add('hidden');
+                document.getElementById('zen-garden').classList.remove('hidden');
+            });
+        }
+
+        var gardenBack = document.getElementById('zen-garden-back');
+        if (gardenBack) {
+            gardenBack.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                document.getElementById('zen-garden').classList.add('hidden');
+                document.getElementById('zen-start').classList.remove('hidden');
+            });
+        }
+
+        var retryBtn = document.getElementById('zen-complete-retry');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                document.getElementById('zen-complete').classList.add('hidden');
+                document.getElementById('zen-start').classList.remove('hidden');
+                Game.start('intermediate', null, 'zen');
+                showScreen('game-screen');
+            });
+        }
+
+        var menuBtn = document.getElementById('zen-complete-menu');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', function() {
+                if (typeof AudioManager !== 'undefined') AudioManager.playClick();
+                document.getElementById('zen-complete').classList.add('hidden');
+                document.getElementById('zen-start').classList.remove('hidden');
+                showScreen('main-menu');
+            });
+        }
+
+        document.addEventListener('zenComplete', function(e) {
+            showScreen('zen-screen');
+            document.getElementById('zen-start').classList.add('hidden');
+            document.getElementById('zen-complete').classList.remove('hidden');
+            var d = e.detail;
+            var flowerEl = document.getElementById('zen-flower');
+            if (flowerEl) flowerEl.textContent = d.flower.icon;
+            var titleEl = document.getElementById('zen-complete-title');
+            if (titleEl) titleEl.textContent = d.flower.name + ' — ' + d.flower.desc;
+            var detailEl = document.getElementById('zen-complete-detail');
+            if (detailEl) detailEl.textContent = '专注度剩余 ' + d.focus + '/100 · 失误 ' + d.mistakes + ' 次';
+            var timeEl = document.getElementById('zen-complete-time');
+            if (timeEl) timeEl.textContent = '冥想时长：' + formatChampTime(d.sessionTime);
+            renderZenScreen();
+        });
+    }
+
+    function renderZenScreen() {
+        if (typeof ZenMode === 'undefined' || typeof ZenMode.getStats !== 'function') return;
+        var stats = ZenMode.getStats();
+        var display = document.getElementById('zen-stats-display');
+        if (display) {
+            var m = Math.floor(stats.totalMeditationTime / 60);
+            display.innerHTML = '<span>累计冥想：' + m + ' 分钟</span><span>完成次数：' + stats.totalCompletions + '</span>';
+        }
+    }
+
+    function renderZenGarden() {
+        if (typeof ZenMode === 'undefined' || typeof ZenMode.getGarden !== 'function') return;
+        var garden = ZenMode.getGarden();
+        var grid = document.getElementById('zen-garden-grid');
+        var countEl = document.getElementById('zen-garden-count');
+        if (countEl) countEl.textContent = '已种下 ' + garden.length + ' 朵花';
+        if (!grid) return;
+        grid.innerHTML = '';
+        if (garden.length === 0) {
+            grid.innerHTML = '<p class="zen-empty">还没有种下的花。完成禅意模式来种植你的第一朵花吧。</p>';
+            return;
+        }
+        for (var i = garden.length - 1; i >= 0; i--) {
+            var f = garden[i];
+            var card = document.createElement('div');
+            card.className = 'zen-flower-card';
+            var date = new Date(f.timestamp);
+            var dateStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+            card.innerHTML = '<div class="zen-flower-icon">' + f.icon + '</div>' +
+                '<div class="zen-flower-info">' +
+                '<div class="zen-flower-name">' + f.name + '</div>' +
+                '<div class="zen-flower-meta">' + dateStr + ' · 失误' + f.mistakes + '次 · ' + formatChampTime(f.time) + '</div>' +
+                '</div>';
+            grid.appendChild(card);
+        }
     }
 
     return {
