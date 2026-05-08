@@ -33,6 +33,21 @@ const Game = (function() {
     // 谜题模式状态
     let puzzleData = null;
 
+    // 安全调用 Replay 方法（replay.js 在 game.js 之后加载）
+    function replay(method) {
+        if (typeof Replay !== 'undefined' && Replay[method]) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            return Replay[method].apply(Replay, args);
+        }
+    }
+
+    // 安全调用 Achievements.check（achievements.js 在 game.js 之后加载）
+    function checkAchievements(data) {
+        if (typeof Achievements !== 'undefined' && Achievements.check) {
+            Achievements.check(data);
+        }
+    }
+
     const difficulties = {
         beginner: { width: 9, height: 9, mines: 10 },
         intermediate: { width: 16, height: 16, mines: 40 },
@@ -130,7 +145,7 @@ const Game = (function() {
             Powerups.initGame();
         }
 
-        Replay.start();
+        replay('start');
         stopTimer();
         updateUI();
     }
@@ -243,7 +258,7 @@ const Game = (function() {
         time = prev.time;
         clicks = prev.clicks;
         gameState = prev.state;
-        Replay.record('undo', -1, -1);
+        replay('record', 'undo', -1, -1);
         updateUI();
     }
 
@@ -268,7 +283,7 @@ const Game = (function() {
 
         saveState();
         clicks++;
-        Replay.record('reveal', x, y);
+        replay('record', 'reveal', x, y);
 
         const result = board.reveal(x, y);
         if (result.changed) {
@@ -368,7 +383,7 @@ const Game = (function() {
         saveState();
         clicks++;
         chordCount++;
-        Replay.record('chord', x, y);
+        replay('record', 'chord', x, y);
 
         const result = board.chord(x, y);
         if (result.changed) {
@@ -433,7 +448,7 @@ const Game = (function() {
         const useQuestion = Settings.get('question');
         const result = board.toggleFlag(x, y, useQuestion);
         if (result.changed) {
-            Replay.record('flag', x, y);
+            replay('record', 'flag', x, y);
             if (result.action === 'flag') {
                 usedFlags = true;
                 if (typeof AudioManager !== 'undefined') AudioManager.playFlag();
@@ -459,7 +474,7 @@ const Game = (function() {
         if (challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.onPhaseComplete === 'function') {
             Championship.onPhaseComplete(time, clicks, board.bv, efficiency);
             if (typeof AudioManager !== 'undefined') AudioManager.playWin();
-            Replay.stop();
+            replay('stop');
             recordBattleLog(true, efficiency);
             challengeMode = null;
             return;
@@ -471,13 +486,13 @@ const Game = (function() {
                 DailyQuests.checkEvent('win', { won: true, time: time, difficulty: difficulty, challengeMode: challengeMode, usedUndo: usedUndo });
                 DailyQuests.checkEvent('endless_level', { level: (typeof Endless !== 'undefined' ? Endless.getState().level : 1) });
             }
-            Achievements.check({
+            checkAchievements({
                 won: true, time, clicks, efficiency, difficulty, challengeMode,
                 noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
                 customSize: difficulty === 'custom',
                 width: board ? board.width : null, height: board ? board.height : null
             });
-            Replay.stop();
+            replay('stop');
             recordBattleLog(true, efficiency);
             if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             Endless.nextLevel();
@@ -552,7 +567,7 @@ const Game = (function() {
             if (typeof DailyQuests !== 'undefined') {
                 DailyQuests.checkEvent('win', { won: true, time: time, difficulty: difficulty, challengeMode: challengeMode, usedUndo: usedUndo });
             }
-            Achievements.check({
+            checkAchievements({
                 won: true, time, clicks, efficiency, difficulty, challengeMode,
                 noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
                 customSize: difficulty === 'custom',
@@ -561,7 +576,7 @@ const Game = (function() {
             survivalLevel++;
             survivalScore += Math.max(1000 - time * 5, 100) + combo * 10;
             lives = Math.min(maxLives, lives + 1);
-            Replay.stop();
+            replay('stop');
             recordBattleLog(true, efficiency);
             if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
             if (typeof AudioManager !== 'undefined') AudioManager.playLevelUp();
@@ -594,7 +609,7 @@ const Game = (function() {
 
         if (typeof AudioManager !== 'undefined') AudioManager.playWin();
         createParticles();
-        Replay.stop();
+        replay('stop');
         recordBattleLog(true, efficiency);
 
         // 影子挑战结束判定
@@ -610,7 +625,7 @@ const Game = (function() {
             DailyQuests.checkEvent('win', { won: true, time: time, difficulty: difficulty, challengeMode: challengeMode, usedUndo: usedUndo });
             DailyQuests.checkEvent('combo', { value: maxCombo });
         }
-        Achievements.check({
+        checkAchievements({
             won: true,
             time,
             clicks,
@@ -639,7 +654,7 @@ const Game = (function() {
         if (challengeMode === 'championship' && typeof Championship !== 'undefined' && typeof Championship.onPhaseFail === 'function') {
             Championship.onPhaseFail(time, clicks, board.bv, efficiency);
             if (typeof AudioManager !== 'undefined') AudioManager.playLose();
-            Replay.stop();
+            replay('stop');
             recordBattleLog(false, efficiency);
             challengeMode = null;
             return;
@@ -656,10 +671,10 @@ const Game = (function() {
         if (challengeMode === 'endless' && typeof Endless !== 'undefined') {
             var es = Endless.getState();
             showGameOver(false, time, board.bv, efficiency, false);
-            Replay.stop();
+            replay('stop');
             recordBattleLog(false, efficiency);
             if (typeof ShadowRace !== 'undefined') ShadowRace.stop();
-            Achievements.check({
+            checkAchievements({
                 won: false, time, clicks, efficiency, difficulty, challengeMode,
                 noUndo: !usedUndo, noFlags: !usedFlags, chordCount,
                 customSize: difficulty === 'custom',
@@ -672,7 +687,7 @@ const Game = (function() {
         Stats.recordCellsRevealed(board.revealedCount);
 
         showGameOver(false, time, board.bv, efficiency, false);
-        Replay.stop();
+        replay('stop');
         recordBattleLog(false, efficiency);
 
         // 影子挑战结束判定
@@ -695,7 +710,7 @@ const Game = (function() {
             Stats.recordSurvival(survivalLevel, survivalScore, maxCombo);
         }
 
-        Achievements.check({
+        checkAchievements({
             won: false,
             time,
             clicks,
@@ -728,7 +743,7 @@ const Game = (function() {
                 usedFlags: usedFlags,
                 usedPowerup: usedPowerup,
                 efficiency: efficiency,
-                replay: Replay.getRecording()
+                replay: replay('getRecording')
             });
         } catch (e) {
             console.warn('BattleLog record failed:', e);
@@ -1044,7 +1059,7 @@ const Game = (function() {
         maxCombo = 0;
         freezeUntil = 0;
         if (typeof Powerups !== 'undefined') Powerups.initGame();
-        Replay.start();
+        replay('start');
         stopTimer();
         updateUI();
         return true;
@@ -1073,7 +1088,7 @@ const Game = (function() {
         combo = 0;
         freezeUntil = 0;
         if (typeof Powerups !== 'undefined') Powerups.initGame();
-        Replay.start();
+        replay('start');
         stopTimer();
         updateUI();
     }
@@ -1099,7 +1114,7 @@ const Game = (function() {
         combo = 0;
         freezeUntil = 0;
         if (typeof Powerups !== 'undefined') Powerups.initGame();
-        Replay.start();
+        replay('start');
         stopTimer();
         updateUI();
     }
@@ -1132,7 +1147,7 @@ const Game = (function() {
         survivalScore = 0;
         speedrunStreak = 0;
         if (typeof Powerups !== 'undefined') Powerups.initGame();
-        Replay.start();
+        replay('start');
         stopTimer();
         updateUI();
     }
@@ -1183,6 +1198,7 @@ const Game = (function() {
         loadSaved,
         hasSaved,
         clearSaved,
+        stopTimer,
         getState,
         get difficulties() { return difficulties; },
         getSeed,

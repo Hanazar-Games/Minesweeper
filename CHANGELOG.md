@@ -1,5 +1,15 @@
 # 超级扫雷 - 更新日志
 
+## v1.10.6 (2026-04-29)
+
+### Bug 修复（第十轮深度审查：跨模块资源泄漏 / 防御性加固）
+- **Game 计时器泄漏**：`Championship.stop()` 未停止 `Game` 的 `timerInterval`，用户从锦标赛导航退出后 Game 计时器继续运行。暴露 `Game.stopTimer()` API 并在 `Championship.stop()` 中调用
+- **Replay 调用无 guard**：`game.js` 中 18 处 `Replay.*` 调用无任何 `typeof` 检查，`replay.js` 在 `game.js` 之后加载。新增 `replay()` helper 函数统一安全调用
+- **Achievements 调用无 guard**：`game.js` 中 5 处、`ui.js` 中 2 处 `Achievements.*` 调用无 `typeof` 检查。新增 `checkAchievements()` helper 并补全 guard
+- **`Championship.load()` 数据验证缺失**：`bestTime` 可接受 `NaN`（`typeof NaN === 'number'`），`bestStars` 无范围限制。添加 `isNaN` 检查和 `0–3` 范围约束
+- **timerInterval 在 phase-transition 期间不清除**：阶段完成后 interval 继续运行造成资源浪费。在 `onPhaseComplete()` 中清除、在 `advanceToNextPhase()` 中恢复
+- **`bindChampionshipEvents()` 可重复绑定**：缺乏去重保护，若 `UI.init()` 被意外多次调用会导致事件监听器堆叠。添加 `_bound` 标志
+
 ## v1.10.5 (2026-04-29)
 
 ### Bug 修复（第九轮深度审查：缺失函数 / 防御性加固）

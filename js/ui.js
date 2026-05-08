@@ -1646,6 +1646,7 @@ const UI = (function() {
         const grid = document.getElementById('achievements-grid');
         if (!grid) return;
 
+        if (typeof Achievements === 'undefined' || !Achievements.getAll) return;
         const all = Achievements.getAll();
         const filtered = filter === 'all' ? all : all.filter(a => a.category === filter);
 
@@ -1664,6 +1665,7 @@ const UI = (function() {
             grid.appendChild(card);
         });
 
+        if (typeof Achievements === 'undefined' || !Achievements.getProgress) return;
         const progress = Achievements.getProgress();
         document.getElementById('ach-unlocked-count').textContent = progress.unlocked;
         document.getElementById('ach-total-count').textContent = progress.total;
@@ -4155,6 +4157,9 @@ const UI = (function() {
     // ============ 扫雷锦标赛 (Championship) ============
 
     function bindChampionshipEvents() {
+        if (bindChampionshipEvents._bound) return;
+        bindChampionshipEvents._bound = true;
+
         var startBtn = document.getElementById('championship-start-btn');
         if (startBtn) {
             startBtn.addEventListener('click', function() {

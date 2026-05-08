@@ -32,8 +32,12 @@ const Championship = (function() {
     function load() {
         var saved = Storage.get('championship_records');
         if (saved && typeof saved === 'object') {
-            if (typeof saved.bestTime === 'number' || saved.bestTime === null) bestTime = saved.bestTime;
-            if (typeof saved.bestStars === 'number') bestStars = saved.bestStars;
+            if ((typeof saved.bestTime === 'number' && !isNaN(saved.bestTime)) || saved.bestTime === null) {
+                bestTime = saved.bestTime;
+            }
+            if (typeof saved.bestStars === 'number' && !isNaN(saved.bestStars) && saved.bestStars >= 0 && saved.bestStars <= 3) {
+                bestStars = saved.bestStars;
+            }
         }
     }
 
@@ -110,6 +114,7 @@ const Championship = (function() {
         } else {
             // 进入下一阶段
             state = 'phase-transition';
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             document.dispatchEvent(new CustomEvent('championshipPhaseComplete', {
                 detail: {
                     phaseIdx: currentPhaseIdx,
@@ -180,6 +185,7 @@ const Championship = (function() {
         if (state !== 'phase-transition') return;
         state = 'playing';
         pausedAt = 0;
+        if (!timerInterval) timerInterval = setInterval(tick, 1000);
         startPhase(currentPhaseIdx + 1);
     }
 
@@ -204,6 +210,10 @@ const Championship = (function() {
         totalTime = 0;
         startTime = 0;
         pausedAt = 0;
+        // 停止 Game 模块的计时器，防止导航退出后计时器泄漏
+        if (typeof Game !== 'undefined' && Game.stopTimer) {
+            try { Game.stopTimer(); } catch (e) {}
+        }
         // 清理锦标赛残留存档（通过 localStorage 判断，避免误删其他模式存档）
         if (typeof Storage !== 'undefined' && Storage.get) {
             try {
