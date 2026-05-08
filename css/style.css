@@ -266,8 +266,32 @@ body {
     font-size: 2.8rem;
     font-weight: 900;
     color: var(--primary);
-    margin-bottom: 2rem;
+    margin-bottom: 0.75rem;
     text-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+}
+
+.menu-home-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 1.2rem;
+    background: transparent;
+    border: 1.5px solid var(--primary);
+    border-radius: 20px;
+    color: var(--primary);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: var(--transition);
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.menu-home-link:hover {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
 }
 
 .menu-nav {
