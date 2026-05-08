@@ -291,7 +291,16 @@ body {
     background: var(--primary);
     color: white;
     transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 15px var(--primary);
+}
+
+.menu-home-link:active {
+    transform: scale(0.98);
+}
+
+.menu-home-link:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .menu-nav {

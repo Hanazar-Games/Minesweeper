@@ -1,5 +1,18 @@
 # 超级扫雷 - 更新日志
 
+## v1.11.5 (2026-04-29)
+
+### Bug 修复（官网链接 UI/主题/可访问性审查：3 处修复）
+- **`.menu-home-link:hover` 阴影硬编码不兼容主题**：`box-shadow: 0 0 15px rgba(59, 130, 246, 0.3)` 固定为蓝色，在 dark/nature/neon/retro 主题下与主色不符。改为 `box-shadow: 0 0 15px var(--primary)`，跟随当前主题主色
+- **`.menu-home-link` 缺少键盘导航样式**：Tab 键聚焦到官网链接时无任何视觉反馈。添加 `:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }`
+- **`.menu-home-link` 缺少点击反馈**：鼠标按下时无按压感。添加 `:active { transform: scale(0.98); }`
+
+## v1.11.4 (2026-04-29)
+
+### 新功能
+- **官网链接**：主菜单 Logo 下方新增胶囊形 `🏠 回到大厅` 按钮，跳转 `https://hanazargames.com`
+- **设置-关于页官网链接**：在 `about-links` 中新增首个链接 `🏠 回到大厅`
+
 ## v1.11.3 (2026-04-29)
 
 ### Bug 修复（禅意模式第三轮深度审查：3 处关键修复）
