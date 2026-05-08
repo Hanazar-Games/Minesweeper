@@ -83,10 +83,10 @@ const UI = (function() {
             }
         }
 
-        // 如果正在禅意模式游戏中，确认是否退出
+        // 如果正在禅意模式游戏中，确认是否退出（playing 或 paused 都算进行中）
         if (name !== 'zen-screen' && name !== 'game-screen' && typeof Game !== 'undefined' && Game.getState) {
             var gs = Game.getState();
-            if (gs.challengeMode === 'zen' && gs.gameState === 'playing') {
+            if (gs.challengeMode === 'zen' && (gs.gameState === 'playing' || gs.gameState === 'paused')) {
                 if (!confirm('禅意冥想正在进行中，退出将结束本次冥想，确定要退出吗？')) return;
                 if (typeof ZenMode !== 'undefined' && ZenMode.stop) {
                     ZenMode.stop();
@@ -120,6 +120,13 @@ const UI = (function() {
         } else if (name === 'championship-screen') {
             renderChampionshipStart();
         } else if (name === 'zen-screen') {
+            // 重置禅意子面板，确保显示开始界面
+            var zStart = document.getElementById('zen-start');
+            var zComplete = document.getElementById('zen-complete');
+            var zGarden = document.getElementById('zen-garden');
+            if (zStart) zStart.classList.remove('hidden');
+            if (zComplete) zComplete.classList.add('hidden');
+            if (zGarden) zGarden.classList.add('hidden');
             renderZenScreen();
         } else if (name === 'architect-screen') {
             renderArchitectLevels();
@@ -4502,7 +4509,6 @@ const UI = (function() {
             if (detailEl) detailEl.textContent = '专注度剩余 ' + d.focus + '/100 · 失误 ' + d.mistakes + ' 次';
             var timeEl = document.getElementById('zen-complete-time');
             if (timeEl) timeEl.textContent = '冥想时长：' + formatChampTime(d.sessionTime);
-            renderZenScreen();
         });
     }
 

@@ -28,6 +28,26 @@
 - `js/achievements.js`：4 个禅意相关成就
 - `css/style.css`：完整的 zen 样式体系
 
+## v1.11.1 (2026-04-29)
+
+### Bug 修复（禅意模式第一轮审查：16 处修复）
+- **游戏结束覆盖层与禅意完成界面冲突**：`win()` 调用 `showGameOver()` 导致通用胜利弹窗覆盖禅意完成界面。Zen 模式下跳过 `showGameOver()` 和普通统计/排行榜
+- **`#zen-garden-back` 按钮导致 JS 崩溃**：`class="back-btn"` 无 `data-back` 属性，`bindNavigationEvents()` 调用 `showScreen(undefined)` 崩溃。改为 `class="secondary-btn"`
+- **提示专注度归零不结束游戏**：`hint()` 调用 `ZenMode.onHint()` 后不检查专注度，玩家可无限使用提示直到归零仍继续。已补全 `focus <= 0` → `lose()` 检查
+- **chord 踩雷免费揭示邻居**：Zen 模式下 chord 踩雷不恢复棋盘，所有安全邻居永久揭示。已在 `reveal()`/`chord()` zen 分支添加 `history.pop()` 恢复
+- **Zen 退出确认被绕过**：暂停菜单退出时 `gameState='paused'`，`showScreen()` 只检查 `'playing'`。改为检查 `'playing' || 'paused'`
+- **timer 闪烁**：`startTimer()` 在 Zen 模式下仍每 100ms 更新 `#timer`，与 `renderBoard()` 的 `'∞'` 显示冲突。`updateTimerDisplay()` 仅在 `!challengeData.noTimer` 时执行
+- **`ZenMode.start()` 重复调用丢失时间**：无 guard，覆盖 `startTime` 不累积。添加 `if (state === 'playing') stop();`
+- **`onReveal(0)` 被计为 1**：`count || 1` 将 0 计为 1。改为显式 `typeof count === 'number'` 检查
+- **Garden 无大小限制**：`garden` 数组无限增长，`renderZenGarden()` 线性渲染导致性能下降。限制保留最近 200 朵
+- **`load()` 接受 `Infinity`**：数值验证未排除 `Infinity`。添加 `isFinite()` 检查
+- **`getFlowerType()` 负数输入**：无防御，负数返回樱花。添加 `Math.max(0, mistakeCount)`
+- **`onComplete()` 保存数据不完整**：缺少 `hintsUsed` 和 `sessionTime`。已补充
+- **Zen 屏幕子元素可见性不重置**：从花园返回主菜单再进入，直接显示花园。`showScreen('zen-screen')` 中显式重置子面板
+- **CSS border 不一致**：`.zen-hud` 用 `border-bottom`，其他 HUD 用 `border-top`。已统一
+- **`Game.getState()` 缺少 `zenState`**：外部调用者无法获取 zen 状态。已补充
+- **`renderZenScreen()` 冗余调用**：`zenComplete` 事件处理器显式调用，但 `showScreen()` 已触发。已移除
+
 ## v1.10.6 (2026-04-29)
 
 ### Bug 修复（第十轮深度审查：跨模块资源泄漏 / 防御性加固）

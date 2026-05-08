@@ -5271,7 +5271,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     gap: 1rem;
     padding: 0.5rem 1rem;
     background: var(--bg-light);
-    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
     font-size: 0.9rem;
 }
 

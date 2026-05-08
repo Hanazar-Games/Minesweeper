@@ -30,15 +30,15 @@ const ZenMode = (function() {
     function load() {
         var saved = Storage.get('zen_mode_data');
         if (saved && typeof saved === 'object') {
-            if (typeof saved.totalMeditationTime === 'number' && !isNaN(saved.totalMeditationTime) && saved.totalMeditationTime >= 0) {
+            if (typeof saved.totalMeditationTime === 'number' && isFinite(saved.totalMeditationTime) && saved.totalMeditationTime >= 0) {
                 totalMeditationTime = saved.totalMeditationTime;
             }
-            if (typeof saved.totalCompletions === 'number' && !isNaN(saved.totalCompletions) && saved.totalCompletions >= 0) {
+            if (typeof saved.totalCompletions === 'number' && isFinite(saved.totalCompletions) && saved.totalCompletions >= 0) {
                 totalCompletions = saved.totalCompletions;
             }
             if (Array.isArray(saved.garden)) {
                 garden = saved.garden.filter(function(f) {
-                    return f && typeof f.type === 'string' && typeof f.timestamp === 'number';
+                    return f && typeof f.type === 'string' && typeof f.timestamp === 'number' && isFinite(f.timestamp) && f.timestamp > 0;
                 });
             }
         }
@@ -58,14 +58,18 @@ const ZenMode = (function() {
 
     // ============ 花朵类型 ============
     function getFlowerType(mistakeCount) {
-        if (mistakeCount === 0) return { type: 'lotus', icon: '🪷', name: '莲花', desc: '零失误的完美冥想' };
-        if (mistakeCount <= 2) return { type: 'sakura', icon: '🌸', name: '樱花', desc: '偶有波澜的宁静' };
-        if (mistakeCount <= 5) return { type: 'chrysanthemum', icon: '🌼', name: '菊花', desc: '历经风雨的从容' };
+        var mc = Math.max(0, mistakeCount);
+        if (mc === 0) return { type: 'lotus', icon: '🪷', name: '莲花', desc: '零失误的完美冥想' };
+        if (mc <= 2) return { type: 'sakura', icon: '🌸', name: '樱花', desc: '偶有波澜的宁静' };
+        if (mc <= 5) return { type: 'chrysanthemum', icon: '🌼', name: '菊花', desc: '历经风雨的从容' };
         return { type: 'dandelion', icon: '🌾', name: '蒲公英', desc: '随性而为的自在' };
     }
 
     // ============ 核心逻辑 ============
     function start() {
+        if (state === 'playing') {
+            stop(); // 先结束当前会话，累加时间
+        }
         state = 'playing';
         focus = FOCUS_MAX;
         mistakes = 0;
@@ -104,7 +108,9 @@ const ZenMode = (function() {
 
     function onReveal(count) {
         if (state !== 'playing') return;
-        revealsSinceLastReward += (count || 1);
+        var c = (typeof count === 'number') ? count : 1;
+        if (c <= 0) return;
+        revealsSinceLastReward += c;
         if (revealsSinceLastReward >= REVEAL_THRESHOLD) {
             var rewards = Math.floor(revealsSinceLastReward / REVEAL_THRESHOLD);
             focus = Math.min(FOCUS_MAX, focus + rewards * FOCUS_REWARD_REVEAL);
@@ -129,10 +135,17 @@ const ZenMode = (function() {
             name: flower.name,
             desc: flower.desc,
             mistakes: mistakes,
+            hintsUsed: hintsUsed,
+            sessionTime: sessionTime,
             time: time,
             efficiency: efficiency,
             timestamp: Date.now()
         });
+
+        // 限制花园大小，保留最近 200 朵
+        if (garden.length > 200) {
+            garden = garden.slice(garden.length - 200);
+        }
 
         save();
 

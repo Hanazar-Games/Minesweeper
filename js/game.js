@@ -180,7 +180,9 @@ const Game = (function() {
                 freezeUntil = 0;
             }
             time = Math.floor((now - startTime) / 1000);
-            updateTimerDisplay();
+            if (!challengeData.noTimer) {
+                updateTimerDisplay();
+            }
 
             // 每秒检查一次（避免100ms间隔内重复触发）
             if (now - lastCheck >= 1000) {
@@ -341,6 +343,12 @@ const Game = (function() {
                     if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onMistake === 'function') {
                         ZenMode.onMistake();
                         if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+                        if (history.length > 0) {
+                            const prev = history.pop();
+                            board = prev.board;
+                            time = prev.time;
+                            clicks = prev.clicks;
+                        }
                         var zs = ZenMode.getState();
                         if (zs.focus <= 0) {
                             lose();
@@ -426,6 +434,13 @@ const Game = (function() {
                 } else if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.onMistake === 'function') {
                     ZenMode.onMistake();
                     if (typeof AudioManager !== 'undefined') AudioManager.playLose();
+                    if (history.length > 0) {
+                        var prev = history.pop();
+                        board = prev.board;
+                        time = prev.time;
+                        clicks = prev.clicks;
+                        gameState = prev.state;
+                    }
                     var zcs = ZenMode.getState();
                     if (zcs.focus <= 0) {
                         lose();
@@ -537,20 +552,27 @@ const Game = (function() {
             return;
         }
         
-        Stats.recordGame(difficulty, true, time, clicks, board.bv, efficiency);
-        Stats.recordCellsRevealed(board.revealedCount);
-        
-        if (difficulty !== 'custom') {
-            const entry = {
-                player: '玩家',
-                time,
-                efficiency,
-                date: new Date().toISOString()
-            };
-            const isNewRecord = Stats.Leaderboard.add(difficulty, entry);
-            showGameOver(true, time, board.bv, efficiency, isNewRecord);
+        // 禅意模式：跳过普通统计和排行榜，不显示通用胜利覆盖层
+        if (challengeMode === 'zen') {
+            if (typeof AudioManager !== 'undefined') AudioManager.playWin();
+            createParticles();
+            replay('stop');
+            recordBattleLog(true, efficiency);
         } else {
-            showGameOver(true, time, board.bv, efficiency, false);
+            Stats.recordGame(difficulty, true, time, clicks, board.bv, efficiency);
+            Stats.recordCellsRevealed(board.revealedCount);
+            if (difficulty !== 'custom') {
+                const entry = {
+                    player: '玩家',
+                    time,
+                    efficiency,
+                    date: new Date().toISOString()
+                };
+                const isNewRecord = Stats.Leaderboard.add(difficulty, entry);
+                showGameOver(true, time, board.bv, efficiency, isNewRecord);
+            } else {
+                showGameOver(true, time, board.bv, efficiency, false);
+            }
         }
 
         // 每日挑战记录
@@ -865,6 +887,13 @@ const Game = (function() {
                 DailyQuests.checkEvent('hint', { count: 1 });
             }
         }
+        // 禅意模式：提示后检查专注度是否归零
+        if (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.getState === 'function') {
+            var hs = ZenMode.getState();
+            if (hs.focus <= 0) {
+                lose();
+            }
+        }
         return solverResult;
     }
 
@@ -1051,7 +1080,8 @@ const Game = (function() {
             maxCombo,
             survivalScore,
             campaignLevelId,
-            endlessState: (challengeMode === 'endless' && typeof Endless !== 'undefined') ? Endless.getState() : null
+            endlessState: (challengeMode === 'endless' && typeof Endless !== 'undefined') ? Endless.getState() : null,
+            zenState: (challengeMode === 'zen' && typeof ZenMode !== 'undefined' && typeof ZenMode.getState === 'function') ? ZenMode.getState() : null
         };
     }
 
