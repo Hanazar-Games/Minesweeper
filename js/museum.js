@@ -139,7 +139,7 @@ const Museum = (function() {
             icon: '♾️',
             desc: '在无尽模式中达到第 10 关。每一关都比前一关更凶险，而你依然屹立不倒。',
             condition: function(s) {
-                return (s.survival && s.survival.bestLevel || 0) >= 10;
+                return (s.endless && s.endless.bestLevel || 0) >= 10;
             }
         },
         {

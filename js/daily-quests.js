@@ -124,7 +124,11 @@ const DailyQuests = (function() {
             if (!qt || qt.check !== eventType) continue;
 
             var matched = false;
-            if (qt.needs === 'count') {
+            if (qt.needs === 'count' && eventType === 'campaign_stars' && data) {
+                // campaign_stars 需要累加星星数，不是简单 +1
+                task.progress += data.stars || 0;
+                matched = task.progress >= task.target;
+            } else if (qt.needs === 'count') {
                 task.progress++;
                 matched = task.progress >= task.target;
             } else if (qt.needs === 'difficulty' && data && data.difficulty === qt.diff) {
@@ -147,9 +151,6 @@ const DailyQuests = (function() {
                 matched = true;
             } else if (qt.needs === 'puzzle' && data && data.challengeMode === 'puzzle' && data.won) {
                 task.progress++;
-                matched = task.progress >= task.target;
-            } else if (qt.needs === 'count' && eventType === 'campaign_stars' && data) {
-                task.progress += data.stars || 0;
                 matched = task.progress >= task.target;
             }
 

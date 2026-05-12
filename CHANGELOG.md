@@ -1,5 +1,19 @@
 # 超级扫雷 - 更新日志
 
+## v1.12.1 (2026-05-12)
+
+### Bug 修复（第二轮深度审查：11 处修复）
+- **每日任务 `campaign_stars` 死代码**：`checkEvent` 中 `qt.needs === 'count'` 的 `if` 分支已拦截所有 count 类型，导致下方 `else if (qt.needs === 'count' && eventType === 'campaign_stars')` 永远不会执行。已将 campaign_stars 的星星累加逻辑提升到独立前置分支
+- **博物馆 `endless_10` 展品条件错误**：`condition` 检查的是 `s.survival.bestLevel`（生存模式数据）而非 `s.endless.bestLevel`（无尽模式数据）。玩家无尽模式达到第 10 关时无法解锁，生存模式达到第 10 关反而错误解锁
+- **雷暴突袭 `playStreakUp()` 缺少参数**：`onPuzzleComplete` 中调用 `AudioManager.playStreakUp()` 未传入 `streak` 值，而 `audio.js` 内部计算 `baseFreq = 440 + Math.min(n * 50, 400)`，`undefined` 导致 `NaN`，连击升级音效异常
+- **设置面板试听按钮双重 `playClick()`**：`.preview-btn` 事件监听器外层先播放一次 `playClick()`，当 `type === 'click'` 时又在分支内播放一次，试听 click 音效有明显叠音。已移除外层统一 click，各分支独立播放对应音效
+- **雷暴突袭移动端 click/touchend 双重触发**：棋盘同时绑定 `click` 和 `touchend` 事件，`touchend` 中的 `preventDefault()` 不会阻止后续 `click`。短按时 `handleCellClick()` 被调用两次，产生双重音效。已添加 `thunderTouchHandled` 标志在 click 事件中屏蔽触摸触发的冗余 click
+- **`.cell.focused` 外发光硬编码**：`box-shadow` 仍使用固定蓝色 `rgba(59, 130, 246, 0.5)`，v1.12.0 的 theme audit 遗漏此处。已改为 `var(--primary)`
+- **`body.low-res *` 规则过于宽泛**：v1.12.0 新增的性能 CSS 使用 `body.low-res * { box-shadow: none !important; }`，导致 `.cell.focused` 聚焦指示器、按钮悬停效果在低分辨率模式下完全消失，严重影响键盘导航可访问性。已改为只针对特定装饰性元素移除阴影
+- **关于页面版本号未更新**：`#settings-about` 中仍硬编码 `版本 1.1.0`，与控制台 `v1.12.0` 严重不一致。已更新为 `v1.12.0`，并同步更新 HTML 内置更新日志
+- **教程练习模式右键标记音效不一致**：`handlePracticeMouseDown` 中右键标记播放 `playClick()`，而主游戏使用 `playFlag()`/`playUnflag()`。已改为与主游戏一致的音效
+- **`showScreen()` 未清理 Pattern Dojo 计时器**：离开 pattern-dojo-screen 时未调用 `stopDojoTimer()`，通过直接导航切换画面时计时器 interval 会多运行 1-2 轮。已添加 `currentScreen === 'pattern-dojo'` 的清理逻辑
+
 ## v1.12.0 (2026-05-12)
 
 ### Bug 修复（UI/UX/SFX/BGM 全面审查：13 处修复）

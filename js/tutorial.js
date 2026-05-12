@@ -428,14 +428,15 @@ const Tutorial = (function() {
             }
         } else if (e.button === 2) {
             // 右键标记
-            if (typeof AudioManager !== 'undefined') AudioManager.playClick();
             const cell = practiceBoard.cells[y][x];
             if (cell.isFlagged) {
                 cell.isFlagged = false;
                 practiceBoard.flaggedCount--;
+                if (typeof AudioManager !== 'undefined') AudioManager.playUnflag();
             } else if (!cell.isRevealed) {
                 cell.isFlagged = true;
                 practiceBoard.flaggedCount++;
+                if (typeof AudioManager !== 'undefined') AudioManager.playFlag();
             }
             checkPracticeProgress();
         }

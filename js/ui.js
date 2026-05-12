@@ -94,6 +94,11 @@ const UI = (function() {
             }
         }
 
+        // 离开模式道馆时停止训练计时器
+        if (currentScreen === 'pattern-dojo' && name !== 'pattern-dojo-screen') {
+            stopDojoTimer();
+        }
+
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById(name).classList.remove('hidden');
         currentScreen = name.replace('-screen', '');
@@ -1039,10 +1044,9 @@ const UI = (function() {
         bindSlider('setting-adsr-release', 'adsrRelease', 'adsr-release-value', ' ms');
         bindSlider('setting-music-reverb', 'musicReverb', 'music-reverb-value', '%');
 
-        // 试听按钮
+        // 试听按钮（外层统一播放 click，分支内不再重复）
         document.querySelectorAll('.preview-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 const type = btn.dataset.preview;
                 if (type === 'click') { if (typeof AudioManager !== "undefined") AudioManager.playClick(); }
                 else if (type === 'success') { if (typeof AudioManager !== "undefined") AudioManager.playWin(); }
@@ -3461,6 +3465,7 @@ const UI = (function() {
     var thunderLoopId = null;
     var thunderGameActive = false;
     var thunderLongPressTimer = null;
+    var thunderTouchHandled = false;
 
     function bindThunderRushEvents() {
         if (typeof ThunderRush === 'undefined') return;
@@ -3505,6 +3510,11 @@ const UI = (function() {
         var boardEl = document.getElementById('thunder-board');
         if (boardEl) {
             boardEl.addEventListener('click', function(e) {
+                // 避免触摸短按后触发双重 click
+                if (thunderTouchHandled) {
+                    thunderTouchHandled = false;
+                    return;
+                }
                 var cell = e.target.closest('.thunder-cell');
                 if (!cell) return;
                 var x = parseInt(cell.dataset.x);
@@ -3565,6 +3575,7 @@ const UI = (function() {
                     var x = parseInt(cell.dataset.x);
                     var y = parseInt(cell.dataset.y);
                     if (isNaN(x) || isNaN(y)) return;
+                    thunderTouchHandled = true;
                     var changed = ThunderRush.handleCellClick(x, y, false);
                     if (changed) {
                         renderThunderRushBoard();

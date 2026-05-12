@@ -607,7 +607,7 @@ body {
 }
 
 .cell.focused {
-    box-shadow: inset 0 0 0 3px var(--primary), 0 0 10px rgba(59, 130, 246, 0.5);
+    box-shadow: inset 0 0 0 3px var(--primary), 0 0 10px var(--primary);
     z-index: 1;
 }
 
@@ -2719,6 +2719,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
     margin-bottom: 0.3rem;
     font-size: 0.9rem;
     line-height: 1.5;
+}
+
+.changelog-history {
+    margin-top: 1rem;
+}
+
+.changelog-history summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    user-select: none;
+}
+
+.changelog-history summary:hover {
+    color: var(--primary);
+}
+
+.changelog-history[open] summary {
+    margin-bottom: 0.5rem;
 }
 
 /* 响应式调整 */
@@ -5390,9 +5410,27 @@ body.no-particles .particle {
     display: none !important;
 }
 
-/* 低分辨率模式（降低阴影复杂度） */
-body.low-res * {
+/* 低分辨率模式（降低阴影复杂度，但保留聚焦指示器等必要效果） */
+body.low-res .screen,
+body.low-res .menu-btn,
+body.low-res .difficulty-card,
+body.low-res .achievement-card,
+body.low-res .zen-flower-card,
+body.low-res .campaign-node,
+body.low-res .museum-card,
+body.low-res .bl-card,
+body.low-res .challenge-item,
+body.low-res .overlay-content,
+body.low-res .powerup-slot,
+body.low-res .tut-practice-cell,
+body.low-res .puzzle-cell,
+body.low-res .thunder-cell,
+body.low-res .architect-cell {
     box-shadow: none !important;
+}
+body.low-res .menu-logo,
+body.low-res .splash-title,
+body.low-res .screen-header h2 {
     text-shadow: none !important;
 }
 

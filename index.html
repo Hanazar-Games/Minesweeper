@@ -1137,7 +1137,7 @@
                             <div class="about-logo">💣</div>
                             <h2>超级扫雷</h2>
                             <p class="about-desc">一个功能丰富、界面精美的现代化扫雷游戏。</p>
-                            <div class="about-version">版本 1.1.0</div>
+                            <div class="about-version">版本 v1.12.1</div>
                             <div class="about-links">
                                 <a href="https://hanazargames.com" target="_blank" class="about-link">🏠 回到大厅</a>
                                 <a href="https://github.com" target="_blank" class="about-link">🐙 GitHub 仓库</a>
@@ -1148,14 +1148,28 @@
                         <div class="settings-section">
                             <h3>更新日志</h3>
                             <div class="changelog-entry">
-                                <div class="changelog-version">v1.0.1 <span class="changelog-date">2026-04-27</span></div>
+                                <div class="changelog-version">v1.12.1 <span class="changelog-date">2026-05-12</span></div>
                                 <ul class="changelog-list">
-                                    <li>🛡️ 增强启动画面安全机制：添加 5 秒紧急后备，防止 JS 加载失败导致界面卡住</li>
-                                    <li>🔧 修复 script 加载顺序：solver.js 移至 game.js 之前，避免潜在时序问题</li>
-                                    <li>🧹 全局代码审查：所有模块添加 try-catch 防护和 null 检查</li>
-                                    <li>🌐 移除可选链操作符 (?.)，兼容旧版浏览器</li>
+                                    <li>🎵 BGM 不再随任意设置调节而重启，音乐体验更连贯</li>
+                                    <li>🔇 修复右键标记/道具按钮/试听按钮的多重音效叠加</li>
+                                    <li>🎮 游戏结束后点击格子不再播放无效音效</li>
+                                    <li>♿ 性能设置（减少动画/禁用模糊/禁用粒子/低分辨率/禁用音频）现在真正生效</li>
+                                    <li>🎨 主题适配完善：聚焦高亮、启动标题阴影跟随当前主题色</li>
+                                    <li>🐛 修复每日任务「战役星星」累加逻辑、博物馆「无尽深渊」解锁条件、雷暴突袭连击音效参数</li>
                                 </ul>
                             </div>
+                            <details class="changelog-history">
+                                <summary>📜 历史更新</summary>
+                                <div class="changelog-entry">
+                                    <div class="changelog-version">v1.0.1 <span class="changelog-date">2026-04-27</span></div>
+                                    <ul class="changelog-list">
+                                        <li>🛡️ 增强启动画面安全机制：添加 5 秒紧急后备，防止 JS 加载失败导致界面卡住</li>
+                                        <li>🔧 修复 script 加载顺序：solver.js 移至 game.js 之前，避免潜在时序问题</li>
+                                        <li>🧹 全局代码审查：所有模块添加 try-catch 防护和 null 检查</li>
+                                        <li>🌐 移除可选链操作符 (?.)，兼容旧版浏览器</li>
+                                    </ul>
+                                </div>
+                            </details>
                         </div>
                         <div class="settings-section">
                             <h3>作者信息</h3>

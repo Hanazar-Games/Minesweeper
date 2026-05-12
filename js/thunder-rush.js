@@ -312,7 +312,7 @@ const ThunderRush = (function() {
         timePool += currentBoard.reward;
 
         if (typeof AudioManager !== 'undefined') {
-            if (streak >= 5) AudioManager.playStreakUp();
+            if (streak >= 5) AudioManager.playStreakUp(streak);
             else AudioManager.playWin();
         }
 
