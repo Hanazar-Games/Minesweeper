@@ -6,6 +6,35 @@
 (function() {
     'use strict';
 
+    // 安全地隐藏入场动画（带淡出过渡）
+    function hideIntro() {
+        try {
+            var intro = document.getElementById('intro-screen');
+            if (intro) {
+                intro.classList.add('fade-out');
+                // 等待 CSS transition 完成后再真正隐藏
+                setTimeout(function() {
+                    intro.classList.add('hidden');
+                    intro.classList.remove('fade-out');
+                }, 500);
+            }
+        } catch (e) {
+            console.error('Hide intro failed:', e);
+        }
+    }
+
+    // 安全地显示启动画面
+    function showSplash() {
+        try {
+            var splash = document.getElementById('splash-screen');
+            if (splash) {
+                splash.classList.remove('hidden');
+            }
+        } catch (e) {
+            console.error('Show splash failed:', e);
+        }
+    }
+
     // 安全地隐藏启动画面
     function hideSplash() {
         try {
@@ -94,13 +123,20 @@
             console.error('[Boot] Error during boot:', err);
         }
 
-        // 无论如何，1.8秒后隐藏启动画面
+        // 阶段1：2.5秒后入场动画结束，显示启动画面
+        setTimeout(function() {
+            console.log('[Boot] Intro complete, showing splash...');
+            hideIntro();
+            showSplash();
+        }, 2500);
+
+        // 阶段2：再1.5秒后（总计4.0秒）启动画面结束，进入主菜单
         setTimeout(function() {
             console.log('[Boot] Hiding splash...');
             hideSplash();
             showMainMenu();
             console.log('[Boot] Boot complete');
-        }, 1800);
+        }, 4000);
     }
 
     // 页面加载完成后启动
@@ -157,7 +193,7 @@
     }
 
     if (typeof console !== 'undefined' && console.log) {
-        console.log('%c💣 超级扫雷 v1.12.1', 'font-size:20px;font-weight:bold;color:#3b82f6;');
+        console.log('%c💣 超级扫雷 v1.12.2', 'font-size:20px;font-weight:bold;color:#3b82f6;');
         console.log('%c按 F 全屏 | M 静音 | P 暂停 | H 提示 | Ctrl+Z 撤销', 'color:#94a3b8;');
     }
 })();

@@ -43,8 +43,20 @@
 </head>
 <body>
     <div id="app">
+        <!-- 品牌入场动画 -->
+        <div id="intro-screen" class="intro-screen">
+            <div class="intro-content">
+                <div class="intro-brand" data-i18n="intro_brand">Hanazar Products</div>
+                <div class="intro-divider"></div>
+                <div class="intro-game">
+                    <div class="intro-game-en" data-i18n="intro_game_name_en">minesweeper</div>
+                    <div class="intro-game-zh" data-i18n="intro_game_name">超级扫雷</div>
+                </div>
+            </div>
+        </div>
+
         <!-- 启动画面 -->
-        <div id="splash-screen" class="splash-screen">
+        <div id="splash-screen" class="splash-screen hidden">
             <div class="splash-content">
                 <div class="splash-logo">💣</div>
                 <h1 class="splash-title">超级扫雷</h1>
@@ -55,8 +67,10 @@
             </div>
         </div>
         <script>
-            // 紧急后备：如果主 JS 加载失败，5 秒后自动隐藏启动画面并显示主菜单
+            // 紧急后备：如果主 JS 加载失败，5 秒后自动隐藏所有启动画面并显示主菜单
             window.__splashTimeout = setTimeout(function() {
+                var intro = document.getElementById('intro-screen');
+                if (intro) intro.classList.add('hidden');
                 var splash = document.getElementById('splash-screen');
                 if (splash) splash.classList.add('hidden');
                 var menu = document.getElementById('main-menu');
@@ -1137,7 +1151,7 @@
                             <div class="about-logo">💣</div>
                             <h2>超级扫雷</h2>
                             <p class="about-desc">一个功能丰富、界面精美的现代化扫雷游戏。</p>
-                            <div class="about-version">版本 v1.12.1</div>
+                            <div class="about-version">版本 v1.12.2</div>
                             <div class="about-links">
                                 <a href="https://hanazargames.com" target="_blank" class="about-link">🏠 回到大厅</a>
                                 <a href="https://github.com" target="_blank" class="about-link">🐙 GitHub 仓库</a>
@@ -1148,8 +1162,9 @@
                         <div class="settings-section">
                             <h3>更新日志</h3>
                             <div class="changelog-entry">
-                                <div class="changelog-version">v1.12.1 <span class="changelog-date">2026-05-12</span></div>
+                                <div class="changelog-version">v1.12.2 <span class="changelog-date">2026-05-12</span></div>
                                 <ul class="changelog-list">
+                                    <li>✨ 新增品牌入场动画：Hanazar Products → minesweeper 超级扫雷</li>
                                     <li>🎵 BGM 不再随任意设置调节而重启，音乐体验更连贯</li>
                                     <li>🔇 修复右键标记/道具按钮/试听按钮的多重音效叠加</li>
                                     <li>🎮 游戏结束后点击格子不再播放无效音效</li>

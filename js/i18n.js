@@ -6,6 +6,9 @@
 const I18n = (function() {
     const dict = {
         zh: {
+            intro_brand: 'Hanazar Products',
+            intro_game_name_en: 'minesweeper',
+            intro_game_name: '超级扫雷',
             app_name: '超级扫雷',
             menu_play: '开始游戏',
             menu_continue: '继续游戏',
@@ -51,6 +54,9 @@ const I18n = (function() {
             achievement_unlocked: '解锁成就',
         },
         en: {
+            intro_brand: 'Hanazar Products',
+            intro_game_name_en: 'minesweeper',
+            intro_game_name: 'Super Minesweeper',
             app_name: 'Super Minesweeper',
             menu_play: 'Play',
             menu_continue: 'Continue',
@@ -96,6 +102,9 @@ const I18n = (function() {
             achievement_unlocked: 'Achievement Unlocked',
         },
         ja: {
+            intro_brand: 'Hanazar Products',
+            intro_game_name_en: 'minesweeper',
+            intro_game_name: 'スーパー minesweeper',
             app_name: 'スーパー minesweeper',
             menu_play: 'プレイ',
             menu_continue: '続き',
