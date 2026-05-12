@@ -826,7 +826,7 @@ const Game = (function() {
 
     function createParticles() {
         const container = document.getElementById('particles');
-        if (!container || !Settings.get('particles')) return;
+        if (!container || !Settings.get('particles') || Settings.get('noParticles')) return;
         
         const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899'];
         for (let i = 0; i < 50; i++) {

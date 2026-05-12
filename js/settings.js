@@ -120,7 +120,7 @@ const Settings = (function() {
         // 音频
         try {
             if (typeof AudioManager !== 'undefined') {
-                AudioManager.setEnabled(settings.sound);
+                AudioManager.setEnabled(settings.sound && !settings.noWebAudio);
                 AudioManager.setVolume((settings.volume || 50) / 100);
                 AudioManager.setMasterVolume((settings.masterVolume || 80) / 100);
                 AudioManager.setSfxVolume((settings.sfxVolume || 70) / 100);
@@ -128,15 +128,29 @@ const Settings = (function() {
                 AudioManager.setSfxStyle(settings.sfxStyle || 'classic');
                 AudioManager.setAdsr(settings.adsrAttack || 5, settings.adsrDecay || 50, settings.adsrRelease || 30);
                 AudioManager.setMusicReverb((settings.musicReverb || 20) / 100);
+                // 修复：只在音乐开关状态变化时启用/禁用，避免每次 apply 都 restart 音乐
                 if (settings.music) {
                     AudioManager.setMusicEnabled(true);
-                    AudioManager.restartMusic();
                 } else {
                     AudioManager.setMusicEnabled(false);
                 }
             }
         } catch (e) {
             console.warn('Settings apply audio error:', e);
+        }
+
+        // 性能与可访问性设置应用
+        try {
+            var body = document.body;
+            if (body) {
+                body.classList.toggle('reduced-motion', !!settings.reducedMotion);
+                body.classList.toggle('no-blur', !!settings.noBlur);
+                body.classList.toggle('no-particles', !!settings.noParticles);
+                body.classList.toggle('low-res', !!settings.lowRes);
+                body.classList.toggle('no-webaudio', !!settings.noWebAudio);
+            }
+        } catch (e) {
+            console.warn('Settings apply performance error:', e);
         }
     }
 

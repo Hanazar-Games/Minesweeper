@@ -16,6 +16,7 @@ const AudioManager = (function() {
     let musicGain = null;
     let musicConvolver = null;
     let musicReverbGain = null;
+    let musicImpulseBuffer = null;
 
     // 音效风格参数
     const sfxStyles = {
@@ -38,6 +39,11 @@ const AudioManager = (function() {
     let musicReverbAmount = 0.2;
 
     function getCtx() {
+        if (!enabled) return null;
+        // 尊重 noWebAudio 设置
+        if (typeof Settings !== 'undefined' && Settings.get && Settings.get('noWebAudio')) {
+            return null;
+        }
         if (!ctx) {
             try {
                 ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -323,7 +329,7 @@ const AudioManager = (function() {
         var noteInterval = Math.max(200, Math.min(1000, 500 * (100 / tempoSetting)));
         var sustainTime = Math.max(150, noteInterval * 0.8);
 
-        // 混响效果（修复：原来未接入信号链）
+        // 混响效果
         // 清理旧混响节点防止内存泄漏
         if (musicConvolver) { try { musicConvolver.disconnect(); } catch(e) {} musicConvolver = null; }
         if (musicReverbGain) { try { musicReverbGain.disconnect(); } catch(e) {} musicReverbGain = null; }
@@ -331,16 +337,18 @@ const AudioManager = (function() {
             musicConvolver = context.createConvolver();
             musicReverbGain = context.createGain();
             musicReverbGain.gain.value = musicReverbAmount;
-            // 程序化生成简单脉冲响应
-            var impulseLen = context.sampleRate * 1.5;
-            var impulse = context.createBuffer(2, impulseLen, context.sampleRate);
-            for (var ch = 0; ch < 2; ch++) {
-                var data = impulse.getChannelData(ch);
-                for (var i = 0; i < impulseLen; i++) {
-                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLen, 2);
+            // 复用缓存的脉冲响应或生成新的
+            if (!musicImpulseBuffer || musicImpulseBuffer.sampleRate !== context.sampleRate) {
+                var impulseLen = context.sampleRate * 1.5;
+                musicImpulseBuffer = context.createBuffer(2, impulseLen, context.sampleRate);
+                for (var ch = 0; ch < 2; ch++) {
+                    var data = musicImpulseBuffer.getChannelData(ch);
+                    for (var i = 0; i < impulseLen; i++) {
+                        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLen, 2);
+                    }
                 }
             }
-            musicConvolver.buffer = impulse;
+            musicConvolver.buffer = musicImpulseBuffer;
             musicGain.connect(musicConvolver);
             musicConvolver.connect(musicReverbGain);
             musicReverbGain.connect(context.destination);

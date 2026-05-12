@@ -1,5 +1,20 @@
 # 超级扫雷 - 更新日志
 
+## v1.12.0 (2026-05-12)
+
+### Bug 修复（UI/UX/SFX/BGM 全面审查：13 处修复）
+- **BGM 不断重启**：`Settings.apply()` 每次调用都 `AudioManager.restartMusic()`，导致调节音量/对比度/字体等任何设置时背景音乐都会从头开始。改为仅切换音乐开关时才启用/禁用，风格和速度变更由 UI 事件单独触发 restart
+- **双重音效：右键标记**：`handleCellMouseDown` 中先 `playClick()` 再调用 `Game.flag()`，而后者内部又会 `playFlag()/playUnflag()`，导致两个音效叠加。已移除外层 `playClick()`（鼠标、触摸、键盘三处）
+- **双重音效：道具按钮**：道具栏点击时先 `playClick()` 再 `Game.usePowerup()`，后者内部 `playPowerUp()`。已移除外层 `playClick()`
+- **游戏结束后仍播放音效**：`handleCellMouseDown` / `handleTouchEnd` 中 `playReveal()` 在 `Game.reveal()` 之前调用，即使游戏已结束（won/lost）仍会播放。已添加 `gameState` 预检
+- **性能设置完全无效**：`reducedMotion`/`noBlur`/`noParticles`/`lowRes`/`noWebAudio` 五个设置仅在 UI 中保存，没有任何实际效果。`Settings.apply()` 现已同步应用到 `document.body` 类名，CSS 新增对应规则
+- **`noWebAudio` 未处理**：`audio.js` 中没有任何地方检查此设置。`getCtx()` 现已优先检查 `Settings.get('noWebAudio')`，同时 `Settings.apply()` 将 `sound && !noWebAudio` 传给 `AudioManager.setEnabled()`
+- **`.splash-screen.hidden` 未彻底隐藏**：使用 `opacity: 0; visibility: hidden` 而非 `display: none`，元素仍占据全屏布局空间。已改为 `display: none`
+- **CSS 硬编码颜色**：`.splash-title` 和 `.menu-logo` 的 `text-shadow` 使用固定蓝色 `rgba(59,130,246,0.5)`，不随主题变化。已改为 `var(--primary)`
+- **粒子开关冲突**：`particles`（默认 true）与 `noParticles`（默认 false）是两个独立设置，但 `createParticles()` 只检查前者。现已同时检查两者
+- **混响 buffer 重复生成**：`startMusic()` 每次 restart 都重新生成 `ConvolverBuffer`。已添加 `musicImpulseBuffer` 缓存复用
+- **版本号未更新**：`app.js` 控制台输出仍显示 `v1.0`。已更新为 `v1.12.0`
+
 ## v1.11.5 (2026-04-29)
 
 ### Bug 修复（官网链接 UI/主题/可访问性审查：3 处修复）

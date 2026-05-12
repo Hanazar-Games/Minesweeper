@@ -321,14 +321,13 @@ const UI = (function() {
             Game.autoFlag();
         });
 
-        // 道具按钮
+        // 道具按钮（Game.usePowerup 内部已播放 powerup 音效，此处不再播放 click）
         var powerupBtns = document.querySelectorAll('.powerup-slot');
         powerupBtns.forEach(function(btn, i) {
             btn.addEventListener('click', function() {
                 var keys = ['scanner', 'shield', 'freeze', 'heatmap'];
                 var key = keys[i];
                 if (key) {
-                    if (typeof AudioManager !== "undefined") AudioManager.playClick();
                     Game.usePowerup(key);
                 }
             });
@@ -568,13 +567,16 @@ const UI = (function() {
         isMouseDown = true;
         mouseBtn = e.button;
 
+        // 提前检查游戏状态，避免无效操作仍播放音效
+        const gState = Game.getState().gameState;
+        if (gState === 'won' || gState === 'lost') return;
+
         if (e.button === 0) {
             // 左键
             if (typeof AudioManager !== "undefined") AudioManager.playReveal();
             Game.reveal(x, y);
         } else if (e.button === 2) {
-            // 右键
-            if (typeof AudioManager !== "undefined") AudioManager.playClick();
+            // 右键（Game.flag 内部已播放 flag/unflag 音效，此处不再播放 click）
             Game.flag(x, y);
         } else if (e.button === 1) {
             // 中键 = chord
@@ -601,11 +603,15 @@ const UI = (function() {
         const y = parseInt(e.target.dataset.y);
         if (isNaN(x) || isNaN(y)) return;
 
+        // 提前检查游戏状态，避免无效操作仍播放音效
+        const gState = Game.getState().gameState;
+        if (gState === 'won' || gState === 'lost') return;
+
         if (longPressTimer) {
             clearTimeout(longPressTimer);
         }
         longPressTimer = setTimeout(() => {
-            if (typeof AudioManager !== "undefined") AudioManager.playClick();
+            // Game.flag 内部已播放 flag/unflag 音效，此处不再播放 click
             Game.flag(x, y);
             longPressTimer = null;
         }, 500);
@@ -620,7 +626,11 @@ const UI = (function() {
             const x = parseInt(e.target.dataset.x);
             const y = parseInt(e.target.dataset.y);
             if (!isNaN(x) && !isNaN(y)) {
-                if (typeof AudioManager !== "undefined") AudioManager.playReveal();
+                // 提前检查游戏状态，避免无效操作仍播放音效
+                const gState = Game.getState().gameState;
+                if (gState !== 'won' && gState !== 'lost') {
+                    if (typeof AudioManager !== "undefined") AudioManager.playReveal();
+                }
                 Game.reveal(x, y);
             }
         }
@@ -798,7 +808,7 @@ const UI = (function() {
                     case 'F':
                         e.preventDefault();
                         if (focusVisible) {
-                            if (typeof AudioManager !== "undefined") AudioManager.playClick();
+                            // Game.flag 内部已播放 flag/unflag 音效，此处不再播放 click
                             Game.flag(focusX, focusY);
                         }
                         return;
@@ -835,18 +845,19 @@ const UI = (function() {
                 case 'm':
                     const soundToggle = document.getElementById('setting-sound');
                     const musicToggle = document.getElementById('setting-music');
+                    var newSound = true;
+                    var newMusic = true;
                     if (soundToggle) {
-                        soundToggle.checked = !soundToggle.checked;
-                        Settings.set('sound', soundToggle.checked);
+                        newSound = !soundToggle.checked;
+                        soundToggle.checked = newSound;
                     }
                     if (musicToggle) {
-                        musicToggle.checked = !musicToggle.checked;
-                        Settings.set('music', musicToggle.checked);
+                        newMusic = !musicToggle.checked;
+                        musicToggle.checked = newMusic;
                     }
-                    if (typeof AudioManager !== 'undefined') {
-                        if (typeof AudioManager !== "undefined") AudioManager.setEnabled(soundToggle ? soundToggle.checked : true);
-                        if (typeof AudioManager !== "undefined") AudioManager.setMusicEnabled(musicToggle ? musicToggle.checked : true);
-                    }
+                    // 批量设置避免多次触发 apply/restartMusic
+                    Settings.set('sound', newSound);
+                    Settings.set('music', newMusic);
                     break;
                 case '1':
                 case '2':
@@ -994,7 +1005,13 @@ const UI = (function() {
         }
         // 音乐风格
         const musicStyle = document.getElementById('setting-music-style');
-        if (musicStyle) musicStyle.addEventListener('change', () => Settings.set('musicStyle', musicStyle.value));
+        if (musicStyle) musicStyle.addEventListener('change', () => {
+            Settings.set('musicStyle', musicStyle.value);
+            // 音乐已开启时实时重启以应用新风格
+            if (Settings.get('music') && typeof AudioManager !== 'undefined') {
+                AudioManager.restartMusic();
+            }
+        });
         // 音乐音量
         const musicVol = document.getElementById('setting-music-volume');
         if (musicVol) {
@@ -1009,6 +1026,10 @@ const UI = (function() {
             musicTempo.addEventListener('input', () => {
                 document.getElementById('music-tempo-value').textContent = musicTempo.value + '%';
                 Settings.set('musicTempo', parseInt(musicTempo.value));
+                // 音乐已开启时实时重启以应用新速度
+                if (Settings.get('music') && typeof AudioManager !== 'undefined') {
+                    AudioManager.restartMusic();
+                }
             });
         }
 
@@ -1253,6 +1274,7 @@ const UI = (function() {
             const mvv = document.getElementById('master-volume-value');
             if (mvv) mvv.textContent = (s.masterVolume || 80) + '%';
         }
+        // setting-volume 滑块当前未在 HTML 中提供，保留兼容代码
         const volEl = document.getElementById('setting-volume');
         if (volEl) volEl.value = s.volume || 50;
 

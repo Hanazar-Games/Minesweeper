@@ -130,8 +130,7 @@ body {
 }
 
 .splash-screen.hidden {
-    opacity: 0;
-    visibility: hidden;
+    display: none;
 }
 
 .splash-content {
@@ -150,7 +149,7 @@ body {
     font-size: 2.5rem;
     font-weight: 900;
     color: var(--primary);
-    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    text-shadow: 0 0 20px var(--primary);
     margin-bottom: 0.5rem;
 }
 
@@ -267,7 +266,7 @@ body {
     font-weight: 900;
     color: var(--primary);
     margin-bottom: 0.75rem;
-    text-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+    text-shadow: 0 0 40px var(--primary);
 }
 
 .menu-home-link {
@@ -5364,4 +5363,41 @@ input[type="range"]::-webkit-slider-thumb:hover {
         gap: 0.5rem;
         font-size: 0.8rem;
     }
+}
+
+
+/* ========================================
+   性能与可访问性设置
+   ======================================== */
+
+/* 减少动画 */
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+}
+
+/* 禁用模糊 */
+body.no-blur .overlay {
+    backdrop-filter: none !important;
+}
+
+/* 禁用粒子 */
+body.no-particles #particles,
+body.no-particles .particle {
+    display: none !important;
+}
+
+/* 低分辨率模式（降低阴影复杂度） */
+body.low-res * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+/* 禁用 Web Audio 提示 */
+body.no-webaudio .audio-preview-btns {
+    opacity: 0.5;
+    pointer-events: none;
 }
