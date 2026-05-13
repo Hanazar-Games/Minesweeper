@@ -1,5 +1,18 @@
 # 超级扫雷 - 更新日志
 
+## v1.13.0 (2026-05-12)
+
+### 新功能
+- **主菜单网格化改造**：从垂直长条按钮列表升级为圆角正方形图标网格布局
+  - 6 个主要游戏模式（开始游戏、每日挑战、继续游戏、无尽模式、战役模式、挑战模式）占 2×2 大卡片
+  - 其余 17 个功能入口为标准 1×1 小卡片
+  - 响应式适配：桌面端 4 列 → 平板端 3 列 → 手机端 2 列
+  - 图标与文字垂直居中，圆角 `16px`/`20px`，hover 放大上浮 + 主题色发光
+
+### Bug 修复
+- **战役模式 noGuess 设置永久污染**：`startCampaignLevel` 直接调用 `Settings.set('noGuess', true/false)` 写入 localStorage，玩家退出战役后全局 noGuess 设置被永久改变，影响后续普通游戏。已添加 `originalNoGuess` 变量保存用户原始设置，在 `start()` 和 `startPuzzle()` 中自动恢复
+- **道具系统 `powerupsEnabled` 默认设置缺失**：`settings.js` 的 `defaults` 中缺少 `powerupsEnabled` 键，导致 `powerups.js` 中 `Settings.get('powerupsEnabled')` 始终返回 `undefined`，`undefined === false` 为 `false`，道具功能实际上永远无法通过设置禁用。已在 defaults 中添加 `powerupsEnabled: true`
+
 ## v1.12.2 (2026-05-12)
 
 ### 新功能

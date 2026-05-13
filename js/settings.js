@@ -50,6 +50,7 @@ const Settings = (function() {
         noGuess: false,
         lrChord: true,
         longPress: false,
+        powerupsEnabled: true,
         // 其他
         tooltips: true,
         confirmDestructive: true,

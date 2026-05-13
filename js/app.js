@@ -193,7 +193,7 @@
     }
 
     if (typeof console !== 'undefined' && console.log) {
-        console.log('%c💣 超级扫雷 v1.12.2', 'font-size:20px;font-weight:bold;color:#3b82f6;');
+        console.log('%c💣 超级扫雷 v1.13.0', 'font-size:20px;font-weight:bold;color:#3b82f6;');
         console.log('%c按 F 全屏 | M 静音 | P 暂停 | H 提示 | Ctrl+Z 撤销', 'color:#94a3b8;');
     }
 })();

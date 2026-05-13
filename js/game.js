@@ -30,6 +30,7 @@ const Game = (function() {
     let freezeUntil = 0;
     // 战役模式状态
     let campaignLevelId = null;
+    let originalNoGuess = null;
     // 谜题模式状态
     let puzzleData = null;
 
@@ -97,6 +98,11 @@ const Game = (function() {
         freezeUntil = 0;
         campaignLevelId = null;
         puzzleData = null;
+        // 恢复战役模式可能修改过的 noGuess 设置
+        if (originalNoGuess !== null) {
+            Settings.set('noGuess', originalNoGuess);
+            originalNoGuess = null;
+        }
         // 统一重置所有模式专属状态，防止模式间污染
         survivalLevel = 0;
         lives = 3;
@@ -1126,6 +1132,9 @@ const Game = (function() {
         if (level.type === 'blind') challengeData.revealsLeft = 5;
         currentSeed = level.seed;
         board = new MinesweeperBoard(level.width, level.height, level.mines, level.seed);
+        if (originalNoGuess === null) {
+            originalNoGuess = Settings.get('noGuess');
+        }
         if (level.type === 'noguess') {
             Settings.set('noGuess', true);
         } else {
@@ -1232,6 +1241,10 @@ const Game = (function() {
         maxLives = 3;
         survivalScore = 0;
         speedrunStreak = 0;
+        if (originalNoGuess !== null) {
+            Settings.set('noGuess', originalNoGuess);
+            originalNoGuess = null;
+        }
         if (typeof Powerups !== 'undefined') Powerups.initGame();
         replay('start');
         stopTimer();
