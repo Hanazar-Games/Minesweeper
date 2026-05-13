@@ -67,9 +67,9 @@ const Game = (function() {
         
         let width, height, mines;
         if (diff === 'custom' && custom) {
-            width = Math.max(5, Math.min(50, parseInt(custom.width) || 20));
-            height = Math.max(5, Math.min(30, parseInt(custom.height) || 15));
-            mines = Math.max(1, Math.min(width * height - 1, parseInt(custom.mines) || 50));
+            width = Math.max(5, Math.min(50, parseInt(custom.width, 10) || 20));
+            height = Math.max(5, Math.min(30, parseInt(custom.height, 10) || 15));
+            mines = Math.max(1, Math.min(width * height - 1, parseInt(custom.mines, 10) || 50));
         } else {
             const d = difficulties[diff] || difficulties.beginner;
             width = d.width;

@@ -242,10 +242,10 @@ const UI = (function() {
                 if (typeof AudioManager !== "undefined") AudioManager.playClick();
                 const diff = card.dataset.diff;
                 if (diff === 'custom') {
-                    var w = parseInt(document.getElementById('custom-width').value) || 20;
-                    var h = parseInt(document.getElementById('custom-height').value) || 15;
-                    var m = parseInt(document.getElementById('custom-mines').value) || 50;
-                    var pct = parseInt(document.getElementById('custom-percent').value) || 15;
+                    var w = parseInt(document.getElementById('custom-width').value, 10) || 20;
+                    var h = parseInt(document.getElementById('custom-height').value, 10) || 15;
+                    var m = parseInt(document.getElementById('custom-mines').value, 10) || 50;
+                    var pct = parseInt(document.getElementById('custom-percent').value, 10) || 15;
                     // 如果用户调整了百分比滑块，按百分比计算雷数
                     if (document.getElementById('custom-percent').dataset.changed) {
                         m = Math.max(1, Math.min(w * h - 1, Math.round(w * h * pct / 100)));
@@ -265,9 +265,9 @@ const UI = (function() {
             percentSlider.addEventListener('input', function() {
                 percentSlider.dataset.changed = 'true';
                 percentValue.textContent = percentSlider.value + '%';
-                var w = parseInt(document.getElementById('custom-width').value) || 20;
-                var h = parseInt(document.getElementById('custom-height').value) || 15;
-                var m = Math.round(w * h * parseInt(percentSlider.value) / 100);
+                var w = parseInt(document.getElementById('custom-width').value, 10) || 20;
+                var h = parseInt(document.getElementById('custom-height').value, 10) || 15;
+                var m = Math.round(w * h * parseInt(percentSlider.value, 10) / 100);
                 document.getElementById('custom-mines').value = Math.max(1, Math.min(w * h - 1, m));
             });
         }
@@ -2183,8 +2183,8 @@ const UI = (function() {
         if (resizeBtn) {
             resizeBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== "undefined") AudioManager.playClick();
-                var w = parseInt(document.getElementById('puzzle-width').value) || 9;
-                var h = parseInt(document.getElementById('puzzle-height').value) || 9;
+                var w = parseInt(document.getElementById('puzzle-width').value, 10) || 9;
+                var h = parseInt(document.getElementById('puzzle-height').value, 10) || 9;
                 Puzzle.setEditorSize(w, h);
                 renderPuzzleEditor();
             });
@@ -2203,8 +2203,8 @@ const UI = (function() {
         if (randomBtn) {
             randomBtn.addEventListener('click', function() {
                 if (typeof AudioManager !== "undefined") AudioManager.playClick();
-                var w = parseInt(document.getElementById('puzzle-width').value) || 9;
-                var h = parseInt(document.getElementById('puzzle-height').value) || 9;
+                var w = parseInt(document.getElementById('puzzle-width').value, 10) || 9;
+                var h = parseInt(document.getElementById('puzzle-height').value, 10) || 9;
                 Puzzle.randomPuzzle(w, h, 0.15);
                 renderPuzzleEditor();
             });

@@ -348,9 +348,9 @@ body {
    主菜单
    ======================================== */
 .menu-container {
-    max-width: 640px;
+    max-width: 100%;
     margin: 0 auto;
-    padding-top: 6vh;
+    padding: 4vh 1.5rem 1.5rem;
     text-align: center;
 }
 
@@ -398,10 +398,10 @@ body {
 
 .menu-nav {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-flow: row dense;
-    gap: 10px;
-    max-width: 640px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    width: 100%;
+    max-width: 1100px;
     margin: 0 auto;
 }
 
@@ -410,16 +410,16 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.4rem;
     position: relative;
     width: 100%;
     aspect-ratio: 1 / 1;
-    padding: 0.5rem;
+    padding: 0.6rem;
     background: var(--bg-light);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 18px;
     color: var(--text);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: var(--transition);
     text-align: center;
@@ -434,18 +434,20 @@ body {
 }
 
 .menu-btn-primary {
-    grid-column: span 2;
-    grid-row: span 2;
-    font-size: 1rem;
+    background: linear-gradient(135deg, var(--bg-light) 0%, rgba(59, 130, 246, 0.08) 100%);
+    border-color: var(--primary);
+    font-size: 0.95rem;
+    font-weight: 600;
     border-radius: 20px;
 }
 
 .menu-btn-primary .btn-icon {
-    font-size: 2.4rem;
+    font-size: 2.2rem;
 }
 
 .menu-btn-primary:hover:not(:disabled) {
-    box-shadow: 0 0 25px var(--primary), var(--shadow-lg);
+    background: var(--primary);
+    box-shadow: 0 0 20px var(--primary), var(--shadow-lg);
 }
 
 .menu-badge {
@@ -1785,26 +1787,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
     }
 
     .menu-nav {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
     }
 
     .menu-btn {
-        font-size: 0.7rem;
-        border-radius: 12px;
+        font-size: 0.75rem;
+        border-radius: 14px;
     }
 
     .menu-btn-primary {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         border-radius: 16px;
     }
 
     .menu-btn-primary .btn-icon {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
 
     .btn-icon {
-        font-size: 1.4rem;
+        font-size: 1.5rem;
     }
 
     .game-header {
@@ -1844,7 +1846,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     }
 
     .menu-nav {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 8px;
     }
 }
